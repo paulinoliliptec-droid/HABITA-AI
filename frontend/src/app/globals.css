@@ -1,0 +1,95 @@
+@import "../styles/tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+h1,
+h2,
+h3,
+p,
+ol,
+ul,
+dl,
+dd {
+  margin: 0;
+}
+
+ol,
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+::selection {
+  background: var(--color-accent-subtle);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* View transitions: the workspace arrives gently; the entry view leaves quickly. */
+::view-transition-old(.leave) {
+  animation: var(--duration-fast) var(--ease-exit) both habita-fade reverse;
+}
+
+::view-transition-new(.arrive) {
+  animation:
+    var(--duration-slow) var(--ease-standard) var(--duration-fast) both habita-fade,
+    var(--duration-slow) var(--ease-standard) both habita-rise;
+}
+
+@keyframes habita-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes habita-rise {
+  from {
+    transform: translateY(8px);
+  }
+}

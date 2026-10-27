@@ -18,4 +18,4 @@ Next.js · FastAPI · MongoDB Atlas · Google Maps Platform · Meta Model API (M
 1. `cp .env.example .env` and fill in your values locally. **Never commit secrets.**
 2. Read [`docs/environment.md`](docs/environment.md) and [`docs/architecture.md`](docs/architecture.md).
 
-Status: environment prepared; functional build not started.
+Status: first vertical slice built (*Property → Location → Jurisdiction*). See `backend/README.md` and `frontend/README.md` to run it.

@@ -1,10 +1,82 @@
 # backend/
 
-Python 3.12 + FastAPI. **Not scaffolded yet.**
+Python 3.12 + FastAPI.
 
-First step in the build window:
+## Run
+
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install fastapi "uvicorn[standard]" pydantic-settings pymongo httpx
+cd backend
+python3 -m venv .venv          # if ensurepip is missing: python3 virtualenv.pyz .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+uvicorn app.main:app --reload --port 8000
 ```
-The planned module layout is in `../docs/architecture.md` §3. Local env goes in the repo-root `.env` (git-ignored).
+
+Configuration comes from the repo-root `.env` (git-ignored) or the process environment. See `../docs/environment.md`.
+
+| Variable | Needed for | Without it |
+|---|---|---|
+| `GOOGLE_MAPS_API_KEY` | Geocoding (server key) | `POST /api/property/resolve-location` returns `503 service_not_configured` |
+| `MONGODB_URI` | Persisting properties | Startup fails, unless `ALLOW_EPHEMERAL_STORAGE=true` (local dev/tests: in-memory store) |
+| `BACKEND_CORS_ORIGINS` | Browser access | Defaults to `http://localhost:3000` |
+
+## Test
+
+```bash
+pytest
+```
+
+Google is never called in the default suite: `httpx.MockTransport` serves realistic Geocoding payloads (`tests/fixtures.py`).
+
+Live smoke test against real Google Maps and MongoDB Atlas (opt-in; it upserts one Cascais property):
+
+```bash
+P=habita-ai-512916
+HABITA_LIVE_TESTS=1 \
+  MONGODB_URI="$(gcloud secrets versions access latest --secret mongodb-uri --project $P)" \
+  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="$(gcloud secrets versions access latest --secret NEXT_PUBLIC_GOOGLE_MAPS_API_KEY --project $P)" \
+  pytest tests/test_live_smoke.py
+```
+
+## Layout
+
+```
+app/
+  main.py                      app factory, lifespan wiring, CORS, /health
+  core/                        settings, structured errors
+  api/property.py              /api/property routes
+  schemas/property.py          request/response models
+  integrations/maps/           Google Geocoding client
+  services/property_location.py   address → location → jurisdiction → persisted property
+  services/jurisdiction/       jurisdiction contract, resolver, per-country adapters
+  db/property_repository.py    MongoDB + in-memory repositories
+```
+
+## API
+
+`POST /api/property/resolve-location` with `{"address": "..."}` or `{"place_id": "..."}` returns the resolved property:
+- `property_id`, `formatted_address`, `coordinates`, `precision`, `place_id`, and `partial_match` for this request only;
+- `jurisdiction`: `id`, `levels[]` (`type`, `id`, `name`, `label`), `local_authority` (`id`, `name`, `kind`, `jurisdiction_id`, `competence`, `sources[]`) and `coverage`, plus a display summary (`country`, `region`, `municipality`, `city`);
+- `provenance`: request, geocode lookups, adapter and version;
+- `resolved_at`, `expires_at`.
+
+See `docs/architecture.md` §4.1 and §9.1 for identity, snapshot and jurisdiction semantics.
+
+`GET /api/property/{property_id}` returns a saved property (no `partial_match`), refreshing it from Google first if its snapshot has expired or was purged. A merged duplicate's ID returns the property it was merged into.
+
+`GET /health` (liveness) and `GET /health/ready` (storage reachable).
+
+Errors always have the shape `{"error": {"code": "...", "message": "..."}}`, including unexpected failures. Codes: `validation_error`, `address_not_found`, `not_found`, `rate_limited` (429, `Retry-After`), `service_not_configured`, `storage_unavailable`, `upstream_error`, `internal_error`.
+
+The app refuses to start without `MONGODB_URI` unless `ALLOW_EPHEMERAL_STORAGE=true`.
+
+## Maintenance
+
+```bash
+python -m app.maintenance purge-expired     # remove expired Google-derived fields (also automatic)
+python -m app.maintenance list-duplicates   # properties flagged as possible duplicates
+python -m app.maintenance merge <keep> <duplicate>   # fold a reviewed duplicate; its ID keeps working (safe to re-run)
+python -m app.maintenance resume-merges     # complete interrupted merges (also automatic at startup)
+```
+
+`POST /internal/maintenance/run` (header `X-Maintenance-Token`) runs the purge and resumes merges, for a scheduler. It is disabled (404) unless `MAINTENANCE_TOKEN` is set. Cleanup is best effort during the hackathon; expired data is never *served* regardless.

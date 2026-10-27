@@ -1,0 +1,66 @@
+/* Desktop: a fixed-width intelligence panel beside a map that fills the rest of the viewport. */
+.workspace {
+  display: grid;
+  grid-template-columns: var(--panel-width) 1fr;
+  height: calc(100dvh - var(--topbar-height));
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--color-canvas);
+  border-right: var(--border-width) solid var(--color-border);
+}
+
+.panelSearch {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.panelBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-8) var(--space-6) var(--space-6);
+}
+
+.mapArea {
+  position: relative;
+  min-height: 0;
+}
+
+.mapPlaceholder {
+  width: 100%;
+  height: 100%;
+  background: var(--color-surface-sunken);
+}
+
+/* Tablet and mobile: map first, details below, page scrolls naturally. */
+@media (max-width: 900px) {
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+
+  .panel {
+    display: contents;
+  }
+
+  .panelSearch {
+    order: 0;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .mapArea {
+    order: 1;
+    height: 46dvh;
+    min-height: 18rem;
+  }
+
+  .panelBody {
+    order: 2;
+    overflow: visible;
+    padding: var(--space-6) var(--space-4) var(--space-10);
+  }
+}

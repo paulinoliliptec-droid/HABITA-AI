@@ -241,3 +241,6 @@ npm-debug.log*
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Internal multi-agent review workspace (never commit)
+.ai-review/

@@ -7,7 +7,7 @@ The template is in [`/.env.example`](../.env.example) and holds placeholders onl
 | Variable | Used by | Secret? | Description |
 |---|---|---|---|
 | `MONGODB_URI` | backend | **Yes** | Atlas SRV connection string for the separate **"HABITA AI"** Atlas project. Use a dedicated DB user with least privilege. |
-| `MONGODB_DB_NAME` | backend | No | Database name (default `habita`). |
+| `MONGODB_DB_NAME` | backend | No | Database name (default `habita_ai`). |
 | `META_API_KEY` | backend | **Yes** | Meta Model API key. Sent as `Authorization: Bearer <key>`. Meta's docs call this `MODEL_API_KEY`; we use `META_API_KEY` to avoid naming collisions. |
 | `META_API_BASE_URL` | backend | No | `https://api.meta.ai/v1` |
 | `META_TEXT_MODEL` | backend | No | Reasoning/agent model, e.g. `muse-spark-1.3`. |

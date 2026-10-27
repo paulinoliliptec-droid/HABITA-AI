@@ -1,7 +1,7 @@
 # HABITA AI — Architecture
 
 > **Global Property Intelligence & Permitting OS**
-> Status: **pre-build design**. No components below are implemented yet. This document is the target architecture for the hackathon building window.
+> Status: **in build**. Implemented so far: the *Property → Location → Jurisdiction* slice (§7, steps 1–2). Everything else here is still target design.
 
 ## 1. System overview
 
@@ -58,6 +58,27 @@
 - **Optional:** Atlas Vector Search over regulation/code text for agent retrieval.
 - **Access:** connection string only via `MONGODB_URI` from Secret Manager. Network access is restricted. Use a least-privilege DB user.
 
+### 4.1 `properties` (implemented, schema v2)
+- **Identity.** `_id` is a HABITA ID (`prp_` + 16 hex), generated when a location is first resolved and never derived from a provider ID. A property is a *resolved premise*: address and building level, with units kept apart when Google returns one. A resolution attaches to an existing property, in order:
+  1. by `property_id` (refresh);
+  2. by **alias**: any Google place ID of this resolution in `place_ids` (unique multikey index), preferring the owner of the resolved primary ID; aliases recorded on a merging or merged duplicate resolve to its target;
+  3. by **address**: the same deterministic `address_key` (`jurisdiction.id | route | street number | unit`, from the official-language components; only for rooftop/interpolated results with a street number) **and** exactly one candidate within 50 m.
+
+  Otherwise a new property is created. Near-misses (same key but farther apart, or several candidates) are recorded as `possible_duplicates` and never merged automatically. Units are part of the key, so a unit never merges with another unit or with the building record.
+- **Concurrent creation.** The first property for an address key holds `premise_key` (unique partial index). Simultaneous creations of one premise collide on it, and the loser's retry attaches to the winner. Far-away homonyms are still created, without the claim.
+- **Reconciliation.** `python -m app.maintenance list-duplicates`, `merge <keep> <duplicate>` and `resume-merges`. The merge is an idempotent three-step state machine (`merging` → aliases attached → `merged`):
+  - the aliases stay recorded on the duplicate throughout;
+  - reads and alias lookups follow the target in every state;
+  - re-running, or the service's startup maintenance, completes an interrupted merge.
+- **Snapshot lifecycle.** Google-derived fields (formatted address, coordinates, GeoJSON point, precision, jurisdiction, address and premise keys) form a snapshot with `resolved_at` and `expires_at` (30 days).
+  - **Guaranteed:** an expired snapshot is never served as current. `GET` refreshes it from the stored place ID into the same property, and a write only replaces an older snapshot. Address matching may use an expired, not-yet-purged property's key and point *as identity evidence only*; its data is replaced by the fresh snapshot in the same save.
+  - **Best effort (hackathon):** physical removal of expired fields (`snapshot_state: "purged"`; HABITA ID, place IDs, request provenance and timestamps are kept). It runs at backend startup and every 6 h while an instance runs, and on demand via `python -m app.maintenance purge-expired` or the token-protected `POST /internal/maintenance/run` (enabled by `MAINTENANCE_TOKEN`). A scaled-to-zero service with no traffic does not purge until its next start; a fixed schedule (e.g. Cloud Scheduler calling the endpoint) is the production step.
+- **Request-scoped data.** `partial_match` describes one request. It is returned by `POST /resolve-location` and never stored. The frontend carries it in the workspace URL (`?match=partial`). `provenance` describes how the *current snapshot* was produced, including `identity` (`new | alias | address | refresh`).
+- **Concurrency.** Saves converge: a duplicate-key race (alias or premise) is retried and attaches to the winner, and alias additions skip IDs owned by another property instead of failing.
+- **Versioning.** Schema-0/1 documents are upgraded in place on their next resolution or read, keeping `_id`, URL and `created_at`.
+- **Retention basis (to be confirmed by the owner).** Place IDs are kept indefinitely; other Google content expires after 30 days. Which Maps service terms apply (EEA or non-EEA) depends on the billing account and must be confirmed before production.
+- **Storage required.** The backend refuses to start without `MONGODB_URI` unless `ALLOW_EPHEMERAL_STORAGE=true` (local dev/tests only).
+
 ## 5. Google Maps Platform
 - **Browser (Maps JavaScript API):** interactive map, markers, drawn areas.
 - **Server:** Geocoding (address → lat/lng + components), Places (autocomplete/details), optionally Static Maps / aerial imagery as inputs to SAM 3.1.
@@ -78,18 +99,21 @@
 ### 6.2 SAM 3.1: segmentation
 - Model: `sam-3.1` via `POST /v1/responses`. The Files API lets us reuse uploaded clips.
 - Role: segment site photos, aerial imagery or plans into structures, footprints, pools, driveways and similar. Results feed measurements and permit-relevant feature detection, e.g. "detached structure present".
+- **Imagery reference (contract for the SAM slice, not implemented).** Every SAM input is an explicit image reference: `{provider, source_id/url, captured_at, center {lat,lng} or bbox, zoom, ground_resolution_m_per_px, license}`. Styled interactive-map pixels are never a segmentation input. The workspace's Map/Satellite toggle is a view concern only.
+- **Attachment point.** Segmentation outputs (masks, measured features) are stored on `cases` / `agent_runs` and reference `property_id` plus the imagery reference. They never mutate the property document.
 
 ### 6.3 Muse Voice Transcribe: speech to text
 - Model: `muse-voice-transcribe-1.0`. Batch: `POST /v1/asr/transcribe`. Realtime: `wss://api.meta.ai/v1/asr/realtime`.
 - Role: voice-first intake, e.g. a homeowner describes the project or an inspector dictates notes. The backend proxies the audio so the browser never holds the API key. Transcripts are passed to Muse Spark.
+- **Transport constraint for the voice slice.** The current API is one JSON request → one JSON response, and CORS allows only `GET`/`POST` with `Content-Type`. Voice needs a WebSocket or chunked-upload route with its own partial/final message envelope, a CORS and header update (multipart for uploads), and a check of Cloud Run's behaviour for long-lived connections (request timeout, HTTP/2, session affinity).
 
 ### 6.4 Muse Image: image generation and editing
 - Model: `muse-image-1.0`. Endpoints: `POST /v1/images/generations`, `POST /v1/images/edits`, or the Responses API.
 - Role: visualize proposed changes (renovation or addition mock-ups) and annotate site images. Generated images are labeled as AI-generated and never presented as evidence of existing conditions.
 
 ## 7. Request flow example (target)
-1. User enters an address → frontend → `POST /properties/resolve`.
-2. Backend geocodes it (Maps) → upserts `properties` → resolves the jurisdiction chain (Mongo geo + Maps components).
+1. User enters an address (Places Autocomplete suggests, optional) → frontend → `POST /api/property/resolve-location`. **Implemented.**
+2. Backend geocodes it (Geocoding API), re-reads it in the country's official language when a jurisdiction adapter asks for one, resolves the jurisdiction chain from Maps components (`backend/app/services/jurisdiction/`), and upserts `properties`. **Implemented** (Maps components only; Mongo geo lookup not yet).
 3. User describes the project by voice → Voice Transcribe → text.
 4. Orchestrator (Muse Spark) selects the jurisdiction agent(s) → the agents retrieve rules and reason → structured permit checklist with citations.
 5. Optional: upload site photos → SAM 3.1 segments → features added to the agent context. Muse Image renders the proposal.
@@ -100,7 +124,16 @@
 - Images go to Artifact Registry (`$ARTIFACT_REGISTRY_REPO`). Secrets are mounted from Secret Manager as env vars. Each service runs as its own service account with minimal IAM.
 - Details in [`infrastructure/README.md`](../infrastructure/README.md).
 
-## 9. Jurisdiction agents
+## 9. Jurisdiction model and agents
+
+### 9.1 Jurisdiction model (implemented)
+`backend/app/services/jurisdiction/base.py` defines a country-neutral contract that per-country adapters fill in:
+- **`levels`**, from the country down, typed `country`, `region`, `subregion`, `municipality`, `subdivision` and `overlay` (overlay is reserved; nothing produces it yet). Each level has a local display `label` ("District", "County", "Commune"). `municipality` always means the permit-competent local government unit, never a postal place standing in for one. The postal place goes in `locality` (API: `city`).
+- **IDs.** Every level has an ID: a lowercase path such as `pt/lisboa/cascais`. Adapters build IDs from official-language names, so they don't depend on the user's language. `jurisdiction.id` is the governing level (the municipality when known). IDs from the generic fallback (`coverage: "unmodelled"`) are provisional. National statistical codes (e.g. INE codes for Portuguese municipalities) can be added as attributes when rule retrieval needs them.
+- **Authority entity.** `local_authority` is `{id, name, kind, jurisdiction_id, competence, sources[]}`, e.g. `pt/lisboa/cascais:camara-municipal` with the RJUE art. 5.º competence basis. Display formatting (Portuguese prepositions) lives in the adapter's helper; the entity is the contract.
+- **Adapters.** Portugal is modelled. Future adapters (France/Paris: région → département → commune → arrondissement; UK/London: country → region → borough; US/San Francisco: state → county → city) map onto the same level types. The generic adapter reports what Google returns under neutral labels and never asserts a municipality or authority.
+
+### 9.2 Jurisdiction agents
 Permitting rules are local. HABITA models them as **agents scoped to a jurisdiction level**, coordinated by an orchestrator:
 
 | Layer | Scope | Examples of concerns |
@@ -116,5 +149,12 @@ Permitting rules are local. HABITA models them as **agents scoped to a jurisdict
 - **Extensibility:** a new jurisdiction is a new data record plus optional prompt or config overrides, not new code, wherever possible.
 - **Safety:** output is decision support, not legal advice. The UI states this and links to the official sources.
 
-## 10. Out of scope until the build window
-All of the above is design only. No routes, agents, schemas, or UI are implemented yet.
+## 10. Implementation status
+- **Done (HR-001):**
+  - design system and app shell; address entry with Places Autocomplete;
+  - `POST /api/property/resolve-location` and `GET /api/property/{id}`;
+  - the jurisdiction model of §9.1 with a Portugal adapter and a generic fallback;
+  - property identity, snapshots and provenance of §4.1;
+  - an in-process spend limiter (429), structured errors with CORS on every path, and a readiness check;
+  - property workspace with map; privacy & terms page.
+- **Not started:** orchestrator and jurisdiction agents, Meta Model API integrations, permits, affordability.
