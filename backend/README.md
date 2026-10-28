@@ -78,13 +78,18 @@ The app refuses to start without `MONGODB_URI` unless `ALLOW_EPHEMERAL_STORAGE=t
 |---|---|
 | `GET /api/permit/status` | Whether the reasoning model is configured |
 | `POST /api/permit/matters` | Create a matter: `{"property_id", "question"}` |
-| `GET /api/permit/matters?property_id=…` | Matters for a property, newest first |
 | `GET /api/permit/matters/{id}` | Current state, missing inputs, draft, progress |
 | `POST /api/permit/matters/{id}/continue` | Run until NEEDS_INPUT, VERIFIED, ESCALATE or FAILED (resumable) |
 | `POST /api/permit/matters/{id}/inputs` | Supply requested information: `{"inputs": {key: answer}}` |
 | `GET /api/permit/matters/{id}/checklist` · `/evidence` · `/verification` | Persisted checklist, evidence records, latest verification report |
 
 Live Meta test (opt-in): `HABITA_META_LIVE=1 META_API_KEY=… pytest tests/test_permit_live.py`.
+
+## Official sources and planning context (HR-003)
+
+`GET /api/property/{property_id}/planning-context` returns the planning context (`status`: `resolved`, `partial`, `requires_manual_confirmation` or `not_supported`; instrument and version; classification only when an official layer determined it; documents to consult; reasons; competent authority; verification and retrieval dates) and the trusted official sources that apply to the property.
+
+Live source test (opt-in, fetches cascais.pt): `HABITA_LIVE_TESTS=1 pytest tests/test_sources_live.py`.
 
 ## Maintenance
 
@@ -93,6 +98,9 @@ python -m app.maintenance purge-expired     # remove expired Google-derived fiel
 python -m app.maintenance list-duplicates   # properties flagged as possible duplicates
 python -m app.maintenance merge <keep> <duplicate>   # fold a reviewed duplicate; its ID keeps working (safe to re-run)
 python -m app.maintenance resume-merges     # complete interrupted merges (also automatic at startup)
+python -m app.maintenance ingest-sources [jurisdiction]   # seed the source registry; fetch, snapshot and index trusted PDFs
+python -m app.maintenance list-sources      # registry with status and latest snapshot
+python -m app.maintenance set-source-status <source_id> <status> <operator> <reason…>   # operator lifecycle change
 ```
 
 `POST /internal/maintenance/run` (header `X-Maintenance-Token`) runs the purge and resumes merges, for a scheduler. It is disabled (404) unless `MAINTENANCE_TOKEN` is set. Cleanup is best effort during the hackathon; expired data is never *served* regardless.

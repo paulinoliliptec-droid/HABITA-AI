@@ -28,6 +28,8 @@ from app.core.errors import (
     ForbiddenError,
     NotFoundError,
     ServiceNotConfiguredError,
+    StorageUnavailableError,
+    TrustChangedError,
     UnauthorizedError,
 )
 from app.core.rate_limit import ResolutionLimiter
@@ -47,12 +49,24 @@ from app.schemas.permit import (
     ProcedureStep,
     ProgressEvent,
     Risk,
+    VerificationReport,
 )
 from app.services.permit import prompts, requirements
 from app.services.permit.model import ReasoningModel
-from app.services.permit.repository import PermitRepository, hash_token, new_access_token, new_matter_id
+from app.services.permit.repository import (
+    MatterAlreadyVerified,
+    PermitRepository,
+    hash_token,
+    new_access_token,
+    new_matter_id,
+)
 from app.services.permit.sources.base import SourceRegistry
+from app.services.planning.resolver import PlanningContextService
+from app.services.sources.registry import OfficialSourceRegistry, TrustPin
+from app.services.sources.retrieval import RegulatoryRetriever
 from app.services.permit.tools import TOOL_SPECS, PermitTools, compact_evidence
+from app.services.permit.admissibility import render_draft
+from app.services.permit.citations import reconcile_citations
 from app.services.permit.verifier import Verifier
 from app.services.property_location import PropertyLocationService
 
@@ -60,6 +74,8 @@ logger = logging.getLogger(__name__)
 
 MAX_TOOL_ROUNDS = 2
 MAX_REVISIONS = 1
+#: Final gate + atomic VERIFIED commit attempts while the registry keeps changing (then FAILED, resumable).
+COMMIT_ATTEMPTS = 3
 #: Investigation/draft passes per matter. With a fixed checklist a matter needs at most
 #: ~3 (ask → answer → draft, plus one revision); more means it isn't converging.
 MAX_ROUNDS = 4
@@ -78,6 +94,17 @@ LABELS = {
     MatterState.FAILED: "Interrupted; it can be resumed",
 }
 
+_BASES = {"none", "general_rule", "general_planning_explanation", "authority_confirmation", "parcel_determination",
+          "user_declaration"}
+
+
+def _basis(entry: dict) -> dict:
+    """The statement's declared planning dependency and quote (anything unexpected counts as none; rules check it)."""
+    basis = entry.get("planning_basis") if entry.get("planning_basis") in _BASES else "none"
+    quote = entry.get("quote") if isinstance(entry.get("quote"), str) else None
+    return {"planning_basis": basis, "quote": quote}
+
+
 class PermitWorkflow:
     def __init__(
         self,
@@ -85,15 +112,26 @@ class PermitWorkflow:
         repository: PermitRepository,
         properties: PropertyLocationService,
         sources: SourceRegistry,
+        official: OfficialSourceRegistry,
+        retriever: RegulatoryRetriever,
+        planning: PlanningContextService,
         model: ReasoningModel,
         limiter: ResolutionLimiter | None = None,
     ) -> None:
         self._repo = repository
         self._properties = properties
         self._sources = sources
+        self._official = official
+        self._retriever = retriever
+        self._planning = planning
         self._model = model
-        self._verifier = Verifier(model)
+        self._verifier = Verifier(model, official, self._planning_state)
         self._limiter = limiter
+
+    async def _planning_state(self, matter: PermitMatter):
+        """The resolver's answer for the property *now*; a parcel determination must still agree with it."""
+        prop = await self._properties.get(matter.property_id)
+        return await self._planning.resolve(prop) if prop is not None else None
 
     # --- public operations ----------------------------------------------------------
 
@@ -284,7 +322,7 @@ class PermitWorkflow:
 
         tools = self._tools(matter, checklist)
         # Baseline facts come from tools, deterministically, before the model reasons.
-        for name in ("get_property_context", "get_jurisdiction_context", "get_competent_authority"):
+        for name in ("get_property_context", "get_jurisdiction_context", "get_competent_authority", "get_planning_context"):
             await tools.execute(name, {})
         if not matter.tool_loop_done:
             await self._tool_loop(matter, checklist, tools)
@@ -292,7 +330,8 @@ class PermitWorkflow:
         # Whatever the model didn't search for, HABITA searches deterministically for each requirement.
         await self._fill_gaps(checklist, tools)
 
-        evidence = await self._repo.list_evidence(matter.matter_id)
+        # Only evidence admissible now (trusted, in-chain sources) settles items or reaches the drafter.
+        evidence = await tools.admissible_evidence()
         checklist.items = requirements.reconcile(checklist.intent, checklist.items, evidence)
         checklist.updated_at = datetime.now(UTC)
         await self._repo.save_checklist(checklist)
@@ -307,11 +346,11 @@ class PermitWorkflow:
             await self._escalate(matter, "HABITA could not find evidence for: " + ", ".join(gaps) + ".", checklist)
             return
         matter.missing_inputs = []
-        matter.draft = await self._draft(matter, checklist, evidence)
+        matter.draft = await self._draft(matter, checklist, evidence, tools)
         await self._transition(matter, MatterState.DRAFT_READY)
 
     async def _fill_gaps(self, checklist: Checklist, tools: PermitTools) -> None:
-        evidence = await self._repo.list_evidence(checklist.matter_id)
+        evidence = await tools.admissible_evidence()
         current = requirements.reconcile(checklist.intent, checklist.items, evidence)
         reqs = requirements.requirements_for(checklist.intent)
         for item in current:
@@ -320,7 +359,7 @@ class PermitWorkflow:
                 await tools.execute("search_regulatory_sources", {"topics": list(req.search_topics), "query": item.question})
 
     async def _tool_loop(self, matter: PermitMatter, checklist: Checklist, tools: PermitTools) -> None:
-        evidence = await self._repo.list_evidence(matter.matter_id)
+        evidence = await tools.admissible_evidence()
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": prompts.INVESTIGATOR},
             {"role": "user", "content": json.dumps({
@@ -348,8 +387,9 @@ class PermitWorkflow:
                 output = await tools.execute(call.name, call.arguments)
                 messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(output, ensure_ascii=False)})
 
-    async def _draft(self, matter: PermitMatter, checklist: Checklist, evidence: list[Evidence]) -> Draft:
-        conditions = requirements.conditions_for(checklist.intent, checklist.items)
+    async def _draft(self, matter: PermitMatter, checklist: Checklist, evidence: list[Evidence],
+                     tools: PermitTools) -> Draft:
+        conditions = requirements.conditions_for(checklist.intent, checklist.items, evidence)
         linked = {eid for i in checklist.items for eid in i.evidence_ids}
         payload = {
             "goal": matter.question,
@@ -363,21 +403,33 @@ class PermitWorkflow:
         }
         result = await self._call_model(prompts.DRAFTER, payload, prompts.DRAFT_SCHEMA, "draft")
         # The executor's draft is UNVERIFIED by construction; conditions come from the checklist, not the model.
-        return Draft(
+        draft = Draft(
             revision=matter.revision,
             conclusion=Conclusion(answer=result["conclusion"]["answer"], summary=result["conclusion"]["summary"],
-                                  evidence_ids=list(result["conclusion"]["evidence_ids"])),
+                                  evidence_ids=list(result["conclusion"]["evidence_ids"]),
+                                  **_basis(result["conclusion"])),
             # Materiality is HABITA's rule, not the model's label: any "material" flag in the output is ignored.
-            claims=[Claim(claim_id=f"K{n}", text=c["text"], evidence_ids=list(c["evidence_ids"]), material=True)
+            claims=[Claim(claim_id=f"K{n}", text=c["text"], evidence_ids=list(c["evidence_ids"]), material=True,
+                          **_basis(c))
                     for n, c in enumerate(result["claims"], start=1)],
             conditions=[Condition(**c) for c in conditions],
-            procedure=[ProcedureStep(step=p["step"], description=p["description"], evidence_ids=list(p["evidence_ids"]))
+            procedure=[ProcedureStep(step=p["step"], description=p["description"], evidence_ids=list(p["evidence_ids"]),
+                                     **_basis(p))
                        for p in result["procedure"]],
-            risks=[Risk(text=r["text"], evidence_ids=list(r["evidence_ids"])) for r in result["risks"]],
-            next_actions=[NextAction(text=a["text"], evidence_ids=list(a["evidence_ids"])) for a in result["next_actions"]],
+            risks=[Risk(text=r["text"], evidence_ids=list(r["evidence_ids"]), **_basis(r)) for r in result["risks"]],
+            next_actions=[NextAction(text=a["text"], evidence_ids=list(a["evidence_ids"]), **_basis(a))
+                          for a in result["next_actions"]],
             model_id=self._model.model_id,
             created_at=datetime.now(UTC),
         )
+        # Structured planning statements carry HABITA-derived text (quote, condition, determination), never the
+        # model's wording (CX-1); general explanations get HABITA's frame; the verifier checks all of them.
+        draft = render_draft(draft, evidence, matter)
+        # Evidence-first: a general explanation the model left without its official passage gets it linked by
+        # HABITA from this matter's admissible official text, when the match is strong and unambiguous (audited).
+        chain = await tools.jurisdiction_chain()
+        trusted = await self._official.trusted_ids(chain)
+        return reconcile_citations(draft, evidence, matter, chain, trusted)
 
     async def _verify(self, matter: PermitMatter) -> None:
         if matter.state == MatterState.DRAFT_READY:
@@ -386,12 +438,37 @@ class PermitWorkflow:
         if matter.draft is None or checklist is None:
             await self._transition(matter, MatterState.INVESTIGATING)
             return
-        evidence = await self._repo.list_evidence(matter.matter_id)
-        # The verifier sees the checklist reconciled against current evidence, never stale state.
-        checklist.items = requirements.reconcile(checklist.intent, checklist.items, evidence)
+        tools = self._tools(matter)
+        # The checklist is reconciled against evidence admissible *now* (a source retired since retrieval no
+        # longer counts); the verifier gets the full history to re-check every citation and report exclusions.
+        checklist.items = requirements.reconcile(checklist.intent, checklist.items, await tools.admissible_evidence())
         await self._repo.save_checklist(checklist)
-        chain = await self._tools(matter).jurisdiction_chain()
+        evidence = await self._repo.list_evidence(matter.matter_id)
+        chain = await tools.jurisdiction_chain()
         report = await self._verifier.verify(matter, checklist.model_copy(deep=True), matter.draft, evidence, chain)
+        if report.outcome == "VERIFIED":
+            # Final gate (CX-2): reconcile against evidence admissible now, read the registry once (``pin``: every
+            # applicable source's status and trust_version), re-run every rule on that read, and commit VERIFIED
+            # atomically *only while that pin still holds*. If a source changed after the gate, nothing is written
+            # and the gate re-runs on the new state; VERIFIED is never persisted from a stale read.
+            reviewed = report
+            for _ in range(COMMIT_ATTEMPTS):
+                checklist.items = requirements.reconcile(checklist.intent, checklist.items, await tools.admissible_evidence())
+                await self._repo.save_checklist(checklist)
+                pin = await self._official.pin(chain)
+                report = await self._verifier.final_gate(
+                    reviewed, matter, checklist.model_copy(deep=True), matter.draft,
+                    await self._repo.list_evidence(matter.matter_id), chain, pin)
+                report = report.model_copy(update={"unresolved": [i.key for i in checklist.items if i.status != "satisfied"]})
+                if report.outcome != "VERIFIED":
+                    break
+                if await self._commit_verified(matter, report, pin):
+                    return
+                logger.info("Permit VERIFIED commit refused, sources changed after the final gate: matter=%s",
+                            matter.matter_id)
+            else:
+                raise TrustChangedError("Official sources changed while this assessment was being verified. "
+                                        "It can be resumed.")
         await self._repo.save_verification(report)
         matter.latest_verification_id = report.verification_id
         matter.unresolved_items = report.unresolved
@@ -419,6 +496,40 @@ class PermitWorkflow:
                 i.message for i in report.issues[:2]]
             await self._escalate(matter, " ".join(reasons) or "The available sources do not settle this question.", checklist)
 
+    async def _commit_verified(self, matter: PermitMatter, report: VerificationReport, pin: TrustPin) -> bool:
+        """Persist the report and the VERIFIED transition as one atomic step bound to ``pin`` (see the repository's
+        ``commit_verified``). The in-memory matter changes only if the commit happened."""
+        now = datetime.now(UTC)
+        committed = matter.model_copy(deep=True)
+        committed.latest_verification_id = report.verification_id
+        committed.unresolved_items = report.unresolved
+        committed.verifier_feedback = []
+        committed.state = MatterState.VERIFIED
+        committed.updated_at = now
+        committed.progress.append(ProgressEvent(state=MatterState.VERIFIED, label=LABELS[MatterState.VERIFIED], at=now))
+        try:
+            ok = await self._repo.commit_verified(committed, report, pin, self._official.repository)
+        except StorageUnavailableError:
+            # The outcome may be unknown (lost acknowledgement): read it back before treating it as a failure.
+            if await self._adopt_if_committed(matter, report.verification_id):
+                return True
+            raise
+        if not ok:
+            return False
+        for field in ("latest_verification_id", "unresolved_items", "verifier_feedback", "state", "updated_at", "progress"):
+            setattr(matter, field, getattr(committed, field))
+        return True
+
+    async def _adopt_if_committed(self, matter: PermitMatter, verification_id: str | None = None) -> bool:
+        """If the stored matter is VERIFIED (by ``verification_id``, when given), take it as this run's state."""
+        stored = await self._repo.get_matter(matter.matter_id)
+        if stored is None or stored.state != MatterState.VERIFIED or (
+                verification_id is not None and stored.latest_verification_id != verification_id):
+            return False
+        for field in type(matter).model_fields:
+            setattr(matter, field, getattr(stored, field))
+        return True
+
     async def _escalate(self, matter: PermitMatter, reason: str, checklist: Checklist | None = None) -> None:
         matter.escalation_reason = reason
         if checklist is not None:
@@ -444,6 +555,7 @@ class PermitWorkflow:
 
     def _tools(self, matter: PermitMatter, checklist: Checklist | None = None) -> PermitTools:
         return PermitTools(matter=matter, repository=self._repo, properties=self._properties, sources=self._sources,
+                           official=self._official, retriever=self._retriever, planning=self._planning,
                            checklist={i.key: i for i in checklist.items} if checklist else {})
 
     async def _transition(self, matter: PermitMatter, state: MatterState) -> None:
@@ -451,7 +563,12 @@ class PermitWorkflow:
         matter.state = state
         matter.updated_at = now
         matter.progress.append(ProgressEvent(state=state, label=LABELS[state], at=now))
-        await self._repo.save_matter(matter)
+        try:
+            await self._repo.save_matter(matter)
+        except MatterAlreadyVerified:
+            # Only the atomic commit writes VERIFIED, and nothing overwrites it (e.g. a FAILED after an in-doubt
+            # commit that did commit): the stored, coherent VERIFIED matter wins.
+            await self._adopt_if_committed(matter)
 
 
 def _user_questions(matter: PermitMatter, checklist: Checklist, requested: list[MissingInput]) -> list[MissingInput]:

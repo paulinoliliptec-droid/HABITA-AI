@@ -12,6 +12,11 @@ the model. Each requirement declares:
 
 ``reconcile`` computes every item's status from the persisted evidence and the
 user's answers. Checklist completion is application state, not model output.
+
+HR-003: an AUTHORITY item is settled by HABITA only when planning-context evidence
+carries an authoritative determination (a ``resolved`` context from a trusted,
+machine-readable layer). Otherwise it stays a condition, and the condition names
+the exact official maps to check.
 """
 
 from dataclasses import dataclass
@@ -29,6 +34,8 @@ class Requirement:
     required: bool = True
     source_types: tuple[str, ...] = ()
     finding_ids: tuple[str, ...] = ()
+    #: Official-text passages of these registry sources also support the item.
+    source_ids: tuple[str, ...] = ()
     search_topics: tuple[Topic, ...] = ()
     #: For AUTHORITY / DOCUMENT items: the condition shown when HABITA can't settle it.
     condition: str | None = None
@@ -44,10 +51,12 @@ _AUTHORITY = Requirement(
 )
 _PLANNING = Requirement(
     "planning_constraints", "planning_framework", "What does the municipal plan allow on this parcel?", "AUTHORITY",
-    finding_ids=("pdm-land-use",), search_topics=("land_use_planning",),
+    source_types=("planning_context",), finding_ids=("pdm-land-use",), source_ids=("cascais-pdm",),
+    search_topics=("land_use_planning",),
     condition=(
-        "Confirm with the competent authority that the parcel's land-use category and urban parameters "
-        "in the municipal plan admit an additional dwelling."
+        "The land-use category applicable to this parcel has not yet been determined by HABITA. It must be "
+        "confirmed on the official PDM map or with the Câmara Municipal before concluding whether the operation "
+        "is admissible."
     ),
 )
 _PROCEDURE = Requirement(
@@ -118,6 +127,9 @@ def _supporting(req: Requirement, evidence: list[Evidence]) -> list[str]:
             ids.append(e.evidence_id)
         elif req.finding_ids and e.structured.get("finding_id") in req.finding_ids:
             ids.append(e.evidence_id)
+        elif (req.source_ids and e.verification_status == "official_text"
+              and e.structured.get("source_id") in req.source_ids):
+            ids.append(e.evidence_id)
         elif req.owner == "USER" and e.source_type == "user_statement" and e.structured.get("input_key") == req.key:
             ids.append(e.evidence_id)
     return ids
@@ -133,7 +145,14 @@ def reconcile(intent: str, items: list[ChecklistItem], evidence: list[Evidence])
             result.append(item.model_copy(update={"status": "open"}))
             continue
         ids = _supporting(req, evidence)
-        if req.owner in ("AUTHORITY", "DOCUMENT"):
+        by_id = {e.evidence_id: e for e in evidence}
+        determined = any(
+            by_id[i].source_type == "planning_context" and by_id[i].structured.get("authoritative_determination") is True
+            for i in ids
+        )
+        if req.owner in ("AUTHORITY", "DOCUMENT") and determined:
+            status = "satisfied"  # an official, machine-readable determination for this parcel
+        elif req.owner in ("AUTHORITY", "DOCUMENT"):
             # Sources describe the rule; only the authority can confirm it for this parcel.
             status = "blocked_external"
         elif ids:
@@ -146,10 +165,20 @@ def reconcile(intent: str, items: list[ChecklistItem], evidence: list[Evidence])
     return result
 
 
-def conditions_for(intent: str, items: list[ChecklistItem]) -> list[dict[str, str]]:
+def conditions_for(intent: str, items: list[ChecklistItem], evidence: list[Evidence] = ()) -> list[dict[str, str]]:
     reqs = requirements_for(intent)
-    return [
-        {"item_key": i.key, "text": reqs[i.key].condition or i.question}
-        for i in items
-        if i.status == "blocked_external" and i.key in reqs
-    ]
+    by_id = {e.evidence_id: e for e in evidence}
+    conditions = []
+    for i in items:
+        if i.status != "blocked_external" or i.key not in reqs:
+            continue
+        text = reqs[i.key].condition or i.question
+        # Name the exact official documents a planning context says must be checked.
+        for e in (by_id.get(eid) for eid in i.evidence_ids):
+            if e is not None and e.source_type == "planning_context":
+                docs = [d.get("designation") or d.get("title") for d in e.structured.get("documents_to_consult", [])]
+                if docs:
+                    text += " Check against the official documents: " + "; ".join(d for d in docs if d) + "."
+                break
+        conditions.append({"item_key": i.key, "text": text})
+    return conditions

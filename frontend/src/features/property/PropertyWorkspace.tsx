@@ -50,7 +50,7 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
             <>
               <title>{`${splitAddress(property.formatted_address).headline} · HABITA AI`}</title>
               <PropertyIdentity property={property} partialMatch={partialMatch} />
-              <JurisdictionSection jurisdiction={property.jurisdiction} />
+              <JurisdictionSection jurisdiction={property.jurisdiction} propertyId={property.property_id} />
               <PermitSection
                 propertyId={property.property_id}
                 authorityName={property.jurisdiction.local_authority?.name ?? null}

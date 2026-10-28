@@ -1,10 +1,11 @@
 import { Notice } from "@/components/ui/Notice";
 import { Section } from "@/components/ui/Section";
 import { jurisdictionHierarchy } from "./format";
+import { PlanningContextBlock } from "./PlanningContextBlock";
 import type { Jurisdiction } from "./types";
 import styles from "./JurisdictionSection.module.css";
 
-export function JurisdictionSection({ jurisdiction }: { jurisdiction: Jurisdiction }) {
+export function JurisdictionSection({ jurisdiction, propertyId }: { jurisdiction: Jurisdiction; propertyId: string }) {
   const levels = jurisdictionHierarchy(jurisdiction);
   const authority = jurisdiction.local_authority;
 
@@ -46,6 +47,8 @@ export function JurisdictionSection({ jurisdiction }: { jurisdiction: Jurisdicti
           is taken directly from Google Maps.
         </Notice>
       )}
+
+      {authority && <PlanningContextBlock propertyId={propertyId} />}
     </Section>
   );
 }

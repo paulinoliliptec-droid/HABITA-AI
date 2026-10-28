@@ -4,6 +4,11 @@ The model obtains facts only through these tools; HABITA executes them and
 returns structured results. Fact-bearing tools also record Evidence (deduplicated
 per underlying fact), and their results carry the evidence IDs the model must
 cite. Arguments are validated here, never trusted.
+
+HR-003: regulatory evidence comes only from sources the official registry trusts for
+the property's jurisdiction chain (curated findings and retrieved official passages),
+and carries its provenance. No tool takes a URL, and none can change a source's status.
+Planning context comes from the jurisdiction's PlanningContextResolver, never the model.
 """
 
 import json
@@ -13,10 +18,18 @@ from typing import Any
 
 from app.schemas.permit import ChecklistItem, Evidence, MissingInput, PermitMatter
 from app.schemas.property import ResolvedProperty
+from app.schemas.sources import SourceProvenance
+from app.services.permit.admissibility import partition
 from app.services.permit.repository import PermitRepository
 from app.services.permit.requirements import USER_QUESTIONS_PER_ROUND
 from app.services.permit.sources.base import SourceRegistry, Topic
+from app.services.planning.resolver import PlanningContextService
 from app.services.property_location import PropertyLocationService
+from app.services.sources.registry import OfficialSourceRegistry
+from app.services.sources.retrieval import RegulatoryRetriever
+
+#: Official passages returned per search (in addition to curated findings).
+PASSAGES_PER_SEARCH = 3
 
 TOPICS: tuple[Topic, ...] = (
     "licensing_procedure",
@@ -50,6 +63,12 @@ TOOL_SPECS: list[dict] = [
     _tool("get_jurisdiction_context", "Administrative hierarchy (country → municipality) governing the property.", {}, []),
     _tool("get_competent_authority", "The authority competent for building permits at the property, with its legal basis.", {}, []),
     _tool("get_available_evidence", "All evidence gathered so far for this matter, including user-supplied information.", {}, []),
+    _tool(
+        "get_planning_context",
+        "The planning instrument and zoning status at the property from official sources, or the official maps "
+        "that must be checked when the classification can't be determined automatically.",
+        {}, [],
+    ),
     _tool(
         "search_regulatory_sources",
         "Search authoritative regulatory sources that apply to the property's jurisdiction.",
@@ -94,6 +113,10 @@ class PermitTools:
     repository: PermitRepository
     properties: PropertyLocationService
     sources: SourceRegistry
+    #: HR-003: the official source registry (trust), official-text retrieval and planning context.
+    official: OfficialSourceRegistry | None = None
+    retriever: RegulatoryRetriever | None = None
+    planning: PlanningContextService | None = None
     #: The canonical checklist: request_missing_information may only reference these keys.
     checklist: dict[str, ChecklistItem] = field(default_factory=dict)
     _property: ResolvedProperty | None = field(default=None, init=False)
@@ -179,19 +202,68 @@ class PermitTools:
         )
         return {"evidence_id": evidence.evidence_id, "authority": authority.model_dump()}
 
-    async def _tool_get_available_evidence(self) -> dict[str, Any]:
+    async def admissible_evidence(self) -> list[Evidence]:
+        """The matter's evidence that may be relied on now: history minus records whose source is no
+        longer trusted for this jurisdiction (CX-2). Without a registry nothing sourced is admissible."""
         records = await self.repository.list_evidence(self.matter.matter_id)
-        return {"evidence": compact_evidence(records)}
+        chain = await self.jurisdiction_chain()
+        trusted = await self.official.trusted_ids(chain) if self.official is not None else set()
+        return partition(records, self.matter, chain, trusted)[0]
+
+    async def _tool_get_available_evidence(self) -> dict[str, Any]:
+        return {"evidence": compact_evidence(await self.admissible_evidence())}
+
+    async def _tool_get_planning_context(self) -> dict[str, Any]:
+        if self.planning is None or self.official is None:
+            raise ToolError("Planning context is not available.")
+        prop = await self.property()
+        context = await self.planning.resolve(prop)
+        if context.status == "not_supported" or context.instrument is None:
+            return {"evidence_id": None, "planning_context": context.model_dump(mode="json")}
+        instrument = await self.official.get(context.instrument.source_id)
+        if instrument is None or instrument.status != "trusted":
+            return {"evidence_id": None, "planning_context": None, "note": "The planning instrument is not trusted."}
+        documents = "; ".join(d.designation or d.title for d in context.documents_to_consult)
+        evidence = await self._record(
+            source_type="planning_context",
+            source_title=f"Planning context — {context.instrument.title}",
+            source_reference=" — ".join(filter(None, (context.instrument.version, documents))),
+            source_url=context.instrument.official_url,
+            jurisdiction_id=context.jurisdiction_id,
+            authority_id=context.competent_authority.id if context.competent_authority else None,
+            claim_supported="Planning classification of the parcel",
+            excerpt=context.guidance,
+            structured={**context.model_dump(mode="json"), "authoritative_determination": context.status == "resolved"},
+            confidence="high" if context.status == "resolved" else "low",
+            verification_status="system_record",
+            dedupe_key=f"planning:{prop.property_id}:{context.resolver}:{context.resolver_version}:"
+                       f"{context.status}:{context.instrument.version}",
+            provenance=SourceProvenance(
+                source_id=instrument.source_id, basis="planning_context", trust_status=instrument.status,
+                authority_class=instrument.authority_class, official_url=instrument.official_url,
+                version=instrument.version, locator=documents or None, retrieved_at=context.source_retrieved_at,
+            ),
+        )
+        return {"evidence_id": evidence.evidence_id, "planning_context": {
+            "status": context.status, "instrument": context.instrument.title, "guidance": context.guidance,
+            "classification": context.classification.label if context.classification else None,
+            "documents_to_consult": [d.designation or d.title for d in context.documents_to_consult],
+        }}
 
     async def _tool_search_regulatory_sources(self, topics: list[str], query: str) -> dict[str, Any]:
         unknown = [t for t in topics if t not in TOPICS]
         if unknown:
             raise ToolError(f"Unknown topics: {unknown}. Allowed: {list(TOPICS)}.")
+        if self.official is None:
+            raise ToolError("The official source registry is not available.")
         chain = await self.jurisdiction_chain()
-        hits = self.sources.search(chain, topics, query)
+        trusted = {s.source_id: s for s in await self.official.trusted(chain)}
         results = []
-        for hit in hits:
+        for hit in self.sources.search(chain, topics, query):
             src, finding = hit.source, hit.finding
+            registered = trusted.get(src.source_id)
+            if registered is None:
+                continue  # not trusted (or not registered) for this jurisdiction: never evidence
             evidence = await self._record(
                 source_type="regulatory_source",
                 source_title=src.title,
@@ -212,8 +284,39 @@ class PermitTools:
                 confidence="medium",
                 verification_status="curated_reference",
                 dedupe_key=f"source:{src.source_id}:{finding.finding_id}",
+                provenance=SourceProvenance(
+                    source_id=src.source_id, basis="curated_reference", trust_status=registered.status,
+                    authority_class=registered.authority_class, official_url=registered.official_url,
+                    version=registered.version, locator=finding.pinpoint,
+                ),
             )
             results.append(evidence)
+        if self.retriever is not None:
+            for passage in await self.retriever.search(chain, topics, query, k=PASSAGES_PER_SEARCH):
+                src, chunk, snapshot = passage.source, passage.chunk, passage.snapshot
+                locator = chunk.locator.label()
+                evidence = await self._record(
+                    source_type="regulatory_source",
+                    source_title=src.title,
+                    source_reference=f"{locator} — {src.version or f'retrieved {snapshot.retrieved_at:%Y-%m-%d}'}",
+                    source_url=src.official_url,
+                    jurisdiction_id=src.jurisdiction_id,
+                    authority_id=src.authority_id,
+                    claim_supported=", ".join(topics),
+                    excerpt=chunk.text[:1500],
+                    structured={"source_id": src.source_id, "chunk_id": chunk.chunk_id, "snapshot_id": snapshot.snapshot_id,
+                                "locator": chunk.locator.model_dump(), "retrieval": "official_text"},
+                    confidence="medium",
+                    verification_status="official_text",
+                    dedupe_key=f"official:{chunk.chunk_id}",
+                    provenance=SourceProvenance(
+                        source_id=src.source_id, basis="official_text", trust_status=src.status,
+                        authority_class=src.authority_class, official_url=snapshot.final_url, version=src.version,
+                        locator=locator, snapshot_id=snapshot.snapshot_id, sha256=snapshot.sha256,
+                        retrieved_at=snapshot.retrieved_at,
+                    ),
+                )
+                results.append(evidence)
         return {"jurisdiction_chain": chain, "results": compact_evidence(results)}
 
     async def _tool_request_missing_information(self, items: list[dict[str, Any]]) -> dict[str, Any]:
@@ -254,10 +357,12 @@ def compact_evidence(records: list[Evidence], only: set[str] | None = None) -> l
         {
             "id": e.evidence_id,
             "type": e.source_type,
+            "basis": e.verification_status,
             "source": e.source_title[:80],
             "ref": e.source_reference[:120],
             "jurisdiction": e.jurisdiction_id,
-            "fact": e.excerpt[:280],
+            # Official passages need more of their own wording to be read correctly.
+            "fact": e.excerpt[:600 if e.verification_status == "official_text" or e.source_type == "planning_context" else 280],
         }
         for e in records
         if only is None or e.evidence_id in only

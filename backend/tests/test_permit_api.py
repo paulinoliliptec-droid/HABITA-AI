@@ -1,5 +1,6 @@
 """Permit API: schemas, structured errors and tool contracts."""
 
+import json
 import pytest
 
 from app.services.permit.sources.base import SourceRegistry
@@ -102,7 +103,12 @@ def test_continue_is_rate_limited():
 def test_tool_specs_follow_the_meta_function_contract():
     names = [t["function"]["name"] for t in TOOL_SPECS]
     assert names == ["get_property_context", "get_jurisdiction_context", "get_competent_authority",
-                     "get_available_evidence", "search_regulatory_sources", "request_missing_information"]
+                     "get_available_evidence", "get_planning_context", "search_regulatory_sources",
+                     "request_missing_information"]
+    # No tool accepts a URL, and none can change a source's trust status (HR-003).
+    for spec in TOOL_SPECS:
+        assert "url" not in json.dumps(spec["function"]["parameters"]).lower()
+        assert "status" not in spec["function"]["parameters"]["properties"]
     for spec in TOOL_SPECS:
         params = spec["function"]["parameters"]
         assert spec["type"] == "function" and params["type"] == "object"

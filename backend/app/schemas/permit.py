@@ -11,6 +11,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, computed_field, field_validator
 
+from app.schemas.sources import SourceProvenance
+
 
 class MatterState(StrEnum):
     PLANNING = "PLANNING"
@@ -77,9 +79,10 @@ SourceType = Literal[
     "jurisdiction_record",
     "authority_record",
     "regulatory_source",
+    "planning_context",
     "user_statement",
 ]
-VerificationStatus = Literal["system_record", "curated_reference", "user_declared"]
+VerificationStatus = Literal["system_record", "curated_reference", "official_text", "user_declared"]
 
 
 class Evidence(BaseModel):
@@ -97,10 +100,13 @@ class Evidence(BaseModel):
     structured: dict[str, Any] = Field(default_factory=dict)
     confidence: Literal["high", "medium", "low"]
     #: system_record: HABITA's own resolved data. curated_reference: a reviewed summary of
-    #: an authoritative source, not its live official text. user_declared: stated by the user.
+    #: an authoritative source, not its live official text. official_text: a passage of a
+    #: retrieved official document (snapshot-pinned). user_declared: stated by the user.
     verification_status: VerificationStatus
     #: Deduplication key: one evidence record per underlying fact.
     dedupe_key: str
+    #: Registry source behind regulatory and planning evidence (HR-003); checked by the verifier.
+    provenance: SourceProvenance | None = None
 
 
 class MissingInput(BaseModel):
@@ -112,7 +118,29 @@ class MissingInput(BaseModel):
     owner: Literal["USER"] = "USER"
 
 
-class Claim(BaseModel):
+#: A statement's declared planning dependency (HR-003 CX-1), checked in code, never trusted:
+#: - none: no planning content; must be grounded in its cited non-planning evidence;
+#: - general_rule: a planning or regulatory rule, rendered by HABITA as a verbatim quote of cited evidence;
+#: - general_planning_explanation: how planning works in general (model wording, framed by HABITA as general); it may
+#:   cite only regulatory records and must not refer to this property or any particular place;
+#: - user_declaration: the user's own answer, rendered verbatim and attributed ("You stated …, not verified"); user
+#:   answers can support nothing else (never planning);
+#: - authority_confirmation: defers the parcel's planning to the authority, rendered as HABITA's own condition;
+#: - parcel_determination: rendered by HABITA from an admissible authoritative determination for this property.
+PlanningBasis = Literal[
+    "none", "general_rule", "general_planning_explanation", "authority_confirmation", "parcel_determination",
+    "user_declaration"]
+
+
+class _Statement(BaseModel):
+    planning_basis: PlanningBasis = "none"
+    #: general_rule only: the verbatim passage (from a cited record) that HABITA renders as the statement.
+    quote: str | None = None
+    #: The model's own wording, kept for audit when HABITA rendered the statement from a structured basis.
+    model_text: str | None = None
+
+
+class Claim(_Statement):
     claim_id: str
     text: str
     #: Set by HABITA, never by the model: every model-written claim is material and must cite evidence.
@@ -120,13 +148,13 @@ class Claim(BaseModel):
     evidence_ids: list[str]
 
 
-class ProcedureStep(BaseModel):
+class ProcedureStep(_Statement):
     step: str
     description: str
     evidence_ids: list[str] = Field(default_factory=list)
 
 
-class Risk(BaseModel):
+class Risk(_Statement):
     text: str
     evidence_ids: list[str] = Field(default_factory=list)
 
@@ -134,13 +162,13 @@ class Risk(BaseModel):
 ConclusionAnswer = Literal["likely_possible", "conditional", "likely_not_possible", "undetermined"]
 
 
-class Conclusion(BaseModel):
+class Conclusion(_Statement):
     answer: ConclusionAnswer
     summary: str
     evidence_ids: list[str] = Field(default_factory=list)
 
 
-class NextAction(BaseModel):
+class NextAction(_Statement):
     text: str
     evidence_ids: list[str] = Field(default_factory=list)
 
@@ -150,6 +178,21 @@ class Condition(BaseModel):
 
     item_key: str
     text: str
+
+
+class CitationLink(BaseModel):
+    """Audit record of HABITA's claim-to-evidence reconciliation for one general planning explanation that the model
+    left without admissible official text. Added by the system, never by the model; IDs only from this matter."""
+
+    statement: str  # label: conclusion, K1, procedure 1, risk 1, next action 1
+    outcome: Literal["linked", "ambiguous", "no_match"]
+    evidence_id: str | None = None  # set only when linked
+    score: int = 0  # shared planning concepts with the best passage
+    coverage: float = 0.0  # share of the statement's planning concepts found in that passage
+    matched: list[str] = Field(default_factory=list)
+    candidates: list[str] = Field(default_factory=list)  # best-scoring passages (more than one = ambiguous)
+    method: str = "concept-overlap-v1"
+    added_by: Literal["system"] = "system"
 
 
 class Draft(BaseModel):
@@ -165,6 +208,8 @@ class Draft(BaseModel):
     next_actions: list[NextAction]
     model_id: str
     created_at: datetime
+    #: Citations HABITA added or declined to add (see CitationLink); empty when nothing needed reconciling.
+    citation_reconciliation: list[CitationLink] = Field(default_factory=list)
 
 
 VerifierOutcome = Literal["VERIFIED", "NEEDS_INPUT", "ESCALATE", "REJECTED"]
@@ -195,10 +240,16 @@ class VerificationReport(BaseModel):
     checks: dict[str, bool]
     #: Checklist keys not satisfied at verification time (conditions and gaps).
     unresolved: list[str] = Field(default_factory=list)
+    #: Records kept as history but not admissible at verification time (retired or untrusted source,
+    #: foreign jurisdiction, another property's planning context): {"evidence_id", "reason"}.
+    excluded_evidence: list[dict[str, str]] = Field(default_factory=list)
     suggested_follow_up: list[FollowUp] = Field(default_factory=list)
     model_review: dict[str, Any] | None = None
     model_id: str | None = None
     created_at: datetime
+    #: The registry state the final gate decided on, {source_id: "status@trust_version"}; a VERIFIED report is
+    #: committed only while every one of these is unchanged (HR-003 CX-2).
+    trust_pin: dict[str, str] = Field(default_factory=dict)
 
 
 class ProgressEvent(BaseModel):

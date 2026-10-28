@@ -68,15 +68,34 @@ export interface PermitMatter {
   outcome_note: string | null;
 }
 
+export interface SourceProvenance {
+  source_id: string;
+  basis: "official_text" | "curated_reference" | "planning_context";
+  trust_status: "candidate" | "validated" | "trusted" | "retired";
+  version: string | null;
+  locator: string | null;
+  snapshot_id: string | null;
+  sha256: string | null;
+  retrieved_at: string | null;
+}
+
 export interface Evidence {
   evidence_id: string;
-  source_type: "property_record" | "jurisdiction_record" | "authority_record" | "regulatory_source" | "user_statement";
+  source_type:
+    | "property_record"
+    | "jurisdiction_record"
+    | "authority_record"
+    | "regulatory_source"
+    | "planning_context"
+    | "user_statement";
   source_title: string;
   source_reference: string;
   source_url: string | null;
   jurisdiction_id: string;
   excerpt: string;
-  verification_status: "system_record" | "curated_reference" | "user_declared";
+  verification_status: "system_record" | "curated_reference" | "official_text" | "user_declared";
+  /** Registry source behind regulatory and planning evidence. */
+  provenance?: SourceProvenance | null;
 }
 
 export interface VerificationReport {

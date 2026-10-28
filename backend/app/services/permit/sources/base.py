@@ -8,21 +8,19 @@ apply to a municipal property, and nothing from another jurisdiction does.
 HR-002 ships curated references for Portugal and Cascais: reviewed summaries of
 official instruments with their references and links, not live copies of their
 text. ``retrieval`` makes that explicit to the verifier and the UI.
+
+HR-003: every curated source is also an entry of the official source registry
+(same ``source_id``); the Permit tools only use findings whose source is trusted
+there. Official text is retrieved separately (``app.services.sources.retrieval``).
 """
 
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Literal, Protocol
 
-Topic = Literal[
-    "licensing_procedure",
-    "change_of_use",
-    "unit_division",
-    "horizontal_property",
-    "habitability",
-    "land_use_planning",
-    "competent_authority",
-]
+from app.schemas.sources import Topic
+
+__all__ = ["Topic", "SourceFinding", "RegulatorySource", "SourceHit", "SourceRegistry"]
 
 
 @dataclass(frozen=True)

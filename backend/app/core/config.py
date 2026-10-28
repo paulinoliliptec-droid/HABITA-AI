@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     permit_burst: int = 3
     permit_max_concurrency: int = 2
 
+    # HR-003 official sources. Ingestion (fetching official documents) normally runs from
+    # `python -m app.maintenance ingest-sources`; this runs it once at startup instead, in the
+    # background (useful with the in-memory store, which starts empty).
+    source_ingest_on_startup: bool = False
+    source_fetch_timeout_seconds: float = 60.0
+
     mongodb_uri: SecretStr | None = None
     mongodb_db_name: str = "habita_ai"
     mongodb_timeout_ms: int = 5000

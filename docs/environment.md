@@ -24,6 +24,8 @@ The template is in [`/.env.example`](../.env.example) and holds placeholders onl
 | `GOOGLE_APPLICATION_CREDENTIALS` | local only | **Yes (file)** | Optional. Prefer `gcloud auth application-default login`. Never on Cloud Run, which uses the service identity. |
 | `NEXT_PUBLIC_API_BASE_URL` | frontend | No | Backend base URL. |
 | `BACKEND_CORS_ORIGINS` | backend | No | Comma-separated allowed origins. |
+| `SOURCE_INGEST_ON_STARTUP` | backend | No | `true` fetches and indexes the trusted Cascais documents once at startup, in the background (useful with the in-memory store). Default `false`: use `python -m app.maintenance ingest-sources`. |
+| `SOURCE_FETCH_TIMEOUT_SECONDS` | backend | No | Timeout for official-source fetches (default 60). |
 | `APP_ENV` | both | No | `development` / `production`. |
 
 ### Secret handling rules

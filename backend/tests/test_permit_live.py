@@ -132,6 +132,18 @@ DEMO_ANSWERS = {
 }
 
 
+def _statements(draft: dict | None, evidence: list[dict]) -> list[dict]:
+    if not draft:
+        return []
+    kinds = {e["evidence_id"]: f"{e['source_type']}/{e['verification_status']}" for e in evidence}
+    sections = [("conclusion", [draft["conclusion"]])] + [(k, draft[k]) for k in ("claims", "procedure", "risks", "next_actions")]
+    return [{"section": name, "n": n, "basis": st.get("planning_basis"),
+             "text": (st.get("text") or st.get("summary") or st.get("description") or "")[:220],
+             "model_text": (st.get("model_text") or "")[:220] or None,
+             "evidence": {i: kinds.get(i, "?") for i in st.get("evidence_ids", [])}}
+            for name, items in sections for n, st in enumerate(items, 1)]
+
+
 @meta
 def test_full_permit_run_with_muse_spark():
     """The demo path on the real model: ask only user-owned facts, resume, draft, verify, converge."""
@@ -142,7 +154,14 @@ def test_full_permit_run_with_muse_spark():
     metered = MeteredModel(_meta_model(http))
     started = time.monotonic()
     with TestClient(create_app(settings, permit_model=metered)) as client:
-        prop = client.post("/api/property/resolve-location", json={"address": "Avenida 25 de Abril 1011, Cascais"}).json()
+        # HR-003: index the official Cascais documents first (real fetch through the SafeFetcher).
+        from app.services.sources.fetcher import SafeFetcher
+        from app.services.sources.ingest import SourceIngestor
+        from app.services.sources.registry import OFFICIAL_HOSTS
+        ingestor = SourceIngestor(client.app.state.official_sources, SafeFetcher(OFFICIAL_HOSTS))
+        ingested = client.portal.call(ingestor.ingest_jurisdiction, "pt/lisboa/cascais")
+        assert {r.outcome for r in ingested} <= {"new_snapshot", "unchanged"}, ingested
+        prop = client.post("/api/property/resolve-location", json={"address": "Praça 5 de Outubro, Cascais"}).json()
         created = client.post("/api/permit/matters", json={"property_id": prop["property_id"],
                                                            "question": "Can I convert this property into two residential units?"}).json()
         mid = created["matter"]["matter_id"]
@@ -183,16 +202,26 @@ def test_full_permit_run_with_muse_spark():
         "call_seconds": [round(c["seconds"], 1) for c in metered.calls],
         "duration_seconds": round(duration, 1),
         "evidence": len(evidence),
+        "official_text_evidence": [e["source_reference"][:70] for e in evidence if e["verification_status"] == "official_text"],
+        "planning_context": [e["structured"]["status"] for e in evidence if e["source_type"] == "planning_context"],
         "checklist": {i["key"]: i["status"] for i in checklist["items"]},
         "verification": verification.json() if verification.status_code == 200 else None,
         "conclusion": (final.get("draft") or {}).get("conclusion"),
         "escalation_reason": final.get("escalation_reason"),
+        # The draft as verified: each statement's basis and citations (with each record's type / basis), and the
+        # citations HABITA reconciled — so a rejection can be traced to the exact statement and evidence.
+        "draft_statements": _statements(final.get("draft"), evidence),
+        "citation_reconciliation": (final.get("draft") or {}).get("citation_reconciliation"),
     }
     print("\nPERMIT_LIVE_METRICS " + json.dumps(metrics, ensure_ascii=False, default=str))
 
     # Convergence, not a forced verdict.
     assert final["state"] in {"VERIFIED", "NEEDS_INPUT", "ESCALATE", "REJECTED"}, final
     assert len(questions) <= 3 and set(questions) <= set(DEMO_ANSWERS)
+    # HR-003: zoning is never guessed, and every regulatory record carries trusted provenance.
+    assert metrics["planning_context"] == ["requires_manual_confirmation"]
+    assert all(e["provenance"] and e["provenance"]["trust_status"] == "trusted"
+               for e in evidence if e["source_type"] in ("regulatory_source", "planning_context"))
     assert final["draft"] is None or final["draft"]["status"] == "UNVERIFIED"
     assert any(e["source_type"] == "regulatory_source" for e in evidence)
     assert len(metered.calls) <= 8

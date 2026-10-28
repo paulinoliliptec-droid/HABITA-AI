@@ -52,29 +52,48 @@ def _ids(payload: dict, kind: str) -> list[str]:
     return [e["id"] for e in payload["evidence"] if e["type"] == kind]
 
 
+def _by_title(payload: dict, *needles: str) -> list[str]:
+    return [e["id"] for e in payload["evidence"] if e["type"] == "regulatory_source"
+            and e.get("basis") == "curated_reference" and any(n in e["source"] for n in needles)]
+
+
 def default_draft(payload: dict) -> dict:
+    """A contract-abiding draft: free text grounded in what it cites, planning only through structured bases."""
     authority = _ids(payload, "authority_record")
-    sources = _ids(payload, "regulatory_source")
+    planning = _ids(payload, "planning_context")
+    civil = _by_title(payload, "Código Civil")
+    rjue = _by_title(payload, "RJUE")
+    rgeu = _by_title(payload, "RGEU")
     user = _ids(payload, "user_statement")
     answer = "conditional" if payload["conditions"] else "likely_possible"
+    none = {"planning_basis": "none", "quote": None}
+    conclusion = (
+        {"evidence_ids": civil + rgeu, "summary": "A division may be possible if each new dwelling is autonomous, "
+                                                  "subject to the conditions."}
+        if civil else
+        {"evidence_ids": rjue + authority, "summary": "Works need municipal prior control, subject to the conditions."}
+    )
     return {
-        "conclusion": {"answer": answer, "evidence_ids": sources[:2],
-                       "summary": "A division may be possible if each unit is autonomous and the PDM allows it on this parcel."},
+        "conclusion": {"answer": answer, **conclusion, **none},
         "claims": [
-            {"text": "The Câmara Municipal de Cascais is the competent authority.", "evidence_ids": authority},
-            {"text": "Each new unit must be autonomous with its own exit.", "evidence_ids": sources[:2]},
-        ] + ([{"text": "You state each unit can have its own entrance.", "evidence_ids": user}] if user else []),
-        "procedure": [{"step": "Confirm the parcel's PDM category", "description": "Check the planta de ordenamento.",
-                       "evidence_ids": sources[-1:]}],
-        "risks": [{"text": "The parcel's land-use category may limit dwellings.", "evidence_ids": sources[-1:]}],
-        "next_actions": [{"text": "Request the parcel's planning information from the Câmara Municipal.",
-                          "evidence_ids": authority}],
+            {"text": "The Câmara Municipal de Cascais is the competent authority.", "evidence_ids": authority, **none},
+        ] + ([{"text": "Each new unit must be autonomous with its own exit.", "evidence_ids": civil, **none}] if civil else [])
+        + ([{"text": "You state each floor has its own street door.", "evidence_ids": user, **none}] if user else []),
+        "procedure": [{"step": "Apply for municipal prior control",
+                       "description": "Submit the application to the Câmara Municipal under the RJUE.",
+                       "evidence_ids": rjue + authority, **none}],
+        "risks": [{"text": "Without its own exit, a unit can't be in horizontal property and the title is null.",
+                   "evidence_ids": civil, **none}] if civil else [],
+        "next_actions": [{"text": "Request confirmation of the conditions from the Câmara Municipal de Cascais.",
+                          "evidence_ids": authority, **none}]
+        + ([{"text": "Check the planning position with the Câmara.", "evidence_ids": planning,
+             "planning_basis": "authority_confirmation", "quote": None}] if planning else []),
     }
 
 
 def default_verification(payload: dict) -> dict:
     return {"outcome": "VERIFIED", "conclusion_follows": True, "issues": [], "suggested_follow_up": [],
-            "summary": "Supported by the cited evidence."}
+            "parcel_planning_statements": [], "summary": "Supported by the cited evidence."}
 
 
 class ScriptedModel:

@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/Badge";
-import { ANSWER, EVIDENCE_STATUS, OUTCOME } from "./present";
+import { ANSWER, OUTCOME, evidenceBasis } from "./present";
 import type { Evidence, PermitMatter } from "./types";
 import styles from "./Permit.module.css";
 
@@ -140,7 +140,7 @@ export function PermitResult({
                   ) : (
                     e.source_reference
                   )}{" "}
-                  · {EVIDENCE_STATUS[e.verification_status]}
+                  · {evidenceBasis(e)}
                 </p>
               </li>
             ))}

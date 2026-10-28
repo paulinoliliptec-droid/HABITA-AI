@@ -46,8 +46,19 @@ export const ANSWER: Record<ConclusionAnswer, string> = {
 export const EVIDENCE_STATUS: Record<Evidence["verification_status"], string> = {
   system_record: "HABITA record",
   curated_reference: "Curated reference — check the official text",
+  official_text: "Official text",
   user_declared: "Stated by you",
 };
+
+/** How an evidence record is grounded, e.g. "Official text · retrieved 28 Oct 2026". */
+export function evidenceBasis(e: Evidence): string {
+  const label = e.source_type === "planning_context" ? "Official planning sources" : EVIDENCE_STATUS[e.verification_status];
+  const at = e.verification_status === "official_text" ? e.provenance?.retrieved_at : null;
+  if (!at) return label;
+  const date = new Date(at);
+  if (Number.isNaN(date.getTime())) return label;
+  return `${label} · retrieved ${date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}`;
+}
 
 /**
  * Structured answers for checklist items with a small, known answer space (canonical keys from the backend's

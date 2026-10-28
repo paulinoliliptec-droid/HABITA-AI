@@ -44,7 +44,34 @@ Role: DRAFTER. Write a structured draft answer from the checklist, the evidence 
 - Everything you write is checked against evidence: every claim, procedure step, risk, next action and the
   conclusion must cite one or more evidence ids ("E3") from the evidence list. Do not cite anything else. If you
   can't cite evidence for a statement, leave the statement out.
-- Curated references summarise official sources; describe them as such, never as quotations.
+- Curated references summarise official sources; describe them as such, never as quotations. Official-text evidence
+  is a passage of an official document: cite its article or page as given, and don't extend it beyond its wording.
+- Planning contract (enforced by HABITA's code). Every statement declares "planning_basis":
+  - "user_declaration": what the user told you (their answers). Cite ONLY the user's answer record(s); HABITA shows
+    the answer verbatim as "You stated (declared by you, not verified by HABITA): …". User answers support nothing
+    else: never cite them for another statement, and never treat anything the user says about zoning, land-use
+    category, planning classification or what the Câmara confirmed as established (only the planning context can).
+  - "none": your own words, with NO planning content (no zoning, land use, plan, area, residential/urban designation
+    or planning rule), using only facts from the evidence it cites; it must not cite planning-context or PDM records.
+    Unsupported words make it fail.
+  - "general_rule": a rule from a cited regulatory record. Put a verbatim passage (at least 20 characters, copied
+    exactly from that record's "fact") in "quote"; HABITA shows the quote as the statement, not your wording.
+  - "general_planning_explanation": your own words explaining how planning works IN GENERAL (e.g. "The PDM classifies
+    and qualifies municipal land", "The land-use category conditions the admissible uses and urban parameters").
+    Its evidence_ids MUST include at least one record whose "basis" is "official_text" and whose passage states that
+    rule. Curated references, the property record, the user's answers, the authority record and the planning-context
+    record never support a planning rule (you may add the property record or user answers only as context). No
+    official_text record for it → leave the statement out. It must NEVER say or imply which category, zone, regime
+    or parameters apply to the property / parcel / its street or area, nor turn the general rule into a sentence about
+    "the parcel's land-use category". HABITA shows it labelled "not a determination for this property".
+  - "authority_confirmation": the parcel's planning must be confirmed with the authority; HABITA shows its own
+    planning condition (with the official maps) as the statement. Cite the planning-context record. While the
+    planning-context record's status is not "resolved", this is the ONLY way to mention the parcel's planning, in any
+    section (conclusion, claims, procedure, risks, next actions): the category is not yet determined and must be
+    confirmed on the official PDM map or with the Câmara before concluding whether the operation is admissible.
+  - "parcel_determination": only if a planning-context record has status "resolved" for this property; cite it;
+    HABITA shows the official classification as the statement.
+  Use "quote": null unless the basis is "general_rule". Never describe the parcel's planning in your own words.
 - The checklist status is computed by HABITA. "conditions" lists what only the authority can settle: if it is not
   empty, the answer must be "conditional" (or "undetermined" if the evidence cannot support a view), and the summary
   must mention the conditions. Use "likely_possible" / "likely_not_possible" only when there are no conditions.
@@ -59,6 +86,13 @@ Given the user's goal, the checklist, the evidence list and the draft, decide:
 - Are there contradictions between claims, or between claims and evidence?
 - Is any claim stronger than its evidence (for example a curated reference treated as a definitive rule)?
 - Is information missing that the conclusion depends on?
+- Does the draft state a zoning or land-use category for the parcel that no resolved planning-context evidence gives?
+In "parcel_planning_statements", list the label of EVERY draft statement (from "statements") that assigns, implies or
+relies on WHICH zoning, land-use class, planning category, zone or planning regime applies to THIS property, however
+it is worded (including indirect phrasing). Do not list general explanations of how planning works that say nothing
+about which category applies to this property, nor statements that the property's planning position must be
+confirmed with the authority. DO list a "user_declaration" statement whose quoted answer claims the property's
+zoning, planning category or band (however worded, even "confirmed by the Câmara"). List none if there are none.
 The checklist status and the conditions were computed by HABITA from the evidence; do not change them.
 Outcomes: "VERIFIED" (sound and supported, with the conditions stated), "REJECTED" (unsupported, contradictory or
 overstated; the draft must be revised), "ESCALATE" (cannot be decided from the available sources; needs a qualified
@@ -68,6 +102,10 @@ suggested_follow_up; it will be reviewed separately and does not change the chec
 
 _NULLABLE_STRING = {"anyOf": [{"type": "string"}, {"type": "null"}]}
 _IDS = {"type": "array", "items": {"type": "string"}}
+_BASIS = {"type": "string", "enum": [
+    "none", "general_rule", "general_planning_explanation", "authority_confirmation", "parcel_determination",
+    "user_declaration"]}
+_QUOTE = {"anyOf": [{"type": "string"}, {"type": "null"}]}
 
 
 def _obj(properties: dict[str, Any]) -> dict[str, Any]:
@@ -97,15 +135,18 @@ DRAFT_SCHEMA = _obj(
                 "answer": {"type": "string", "enum": ["likely_possible", "conditional", "likely_not_possible", "undetermined"]},
                 "summary": {"type": "string"},
                 "evidence_ids": _IDS,
+                "planning_basis": _BASIS, "quote": _QUOTE,
             }
         ),
-        "claims": {"type": "array", "items": _obj({"text": {"type": "string"}, "evidence_ids": _IDS})},
+        "claims": {"type": "array", "items": _obj({"text": {"type": "string"}, "evidence_ids": _IDS, "planning_basis": _BASIS, "quote": _QUOTE})},
         "procedure": {
             "type": "array",
-            "items": _obj({"step": {"type": "string"}, "description": {"type": "string"}, "evidence_ids": _IDS}),
+            "items": _obj({"step": {"type": "string"}, "description": {"type": "string"}, "evidence_ids": _IDS,
+                           "planning_basis": _BASIS, "quote": _QUOTE}),
         },
-        "risks": {"type": "array", "items": _obj({"text": {"type": "string"}, "evidence_ids": _IDS})},
-        "next_actions": {"type": "array", "items": _obj({"text": {"type": "string"}, "evidence_ids": _IDS})},
+        "risks": {"type": "array", "items": _obj({"text": {"type": "string"}, "evidence_ids": _IDS, "planning_basis": _BASIS, "quote": _QUOTE})},
+        "next_actions": {"type": "array", "items": _obj({"text": {"type": "string"}, "evidence_ids": _IDS,
+                                                         "planning_basis": _BASIS, "quote": _QUOTE})},
     }
 )
 
@@ -130,6 +171,8 @@ VERIFIER_SCHEMA = _obj(
             "type": "array",
             "items": _obj({"area": {"type": "string", "enum": _AREAS}, "text": {"type": "string"}}),
         },
+        # Labels of draft statements that assign, imply or rely on the parcel's planning classification.
+        "parcel_planning_statements": {"type": "array", "items": {"type": "string"}},
         "summary": {"type": "string"},
     }
 )

@@ -55,6 +55,13 @@ class ConflictError(AppError):
     code = "conflict"
 
 
+class TrustChangedError(AppError):
+    """Official sources kept changing between the final gate and the VERIFIED commit (HR-003 CX-2)."""
+
+    status_code = 409
+    code = "trust_changed"
+
+
 class ServiceNotConfiguredError(AppError):
     status_code = 503
     code = "service_not_configured"

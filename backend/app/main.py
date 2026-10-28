@@ -11,6 +11,7 @@ from pymongo import AsyncMongoClient
 
 from app.api import maintenance as maintenance_api
 from app.api import permit as permit_api
+from app.api import planning as planning_api
 from app.api import property as property_api
 from app.core.config import Settings, get_settings
 from app.core.errors import register_error_handlers
@@ -28,7 +29,15 @@ from app.services.permit.sources.portugal import PortugalSources
 from app.services.permit.workflow import PermitWorkflow
 from app.services.jurisdiction import JurisdictionResolver
 from app.services.permit.model import ReasoningModel
+from app.services.planning.cascais import cascais_resolver
+from app.services.planning.resolver import PlanningContextService
 from app.services.property_location import PropertyLocationService
+from app.services.sources.catalog import ALL_SOURCES
+from app.services.sources.fetcher import SafeFetcher
+from app.services.sources.ingest import SourceIngestor
+from app.services.sources.registry import OFFICIAL_HOSTS, OfficialSourceRegistry
+from app.services.sources.repository import InMemorySourceRepository, MongoSourceRepository
+from app.services.sources.retrieval import RegulatoryRetriever
 
 logger = logging.getLogger("habita")
 
@@ -63,6 +72,14 @@ async def _maintain_periodically(repository: PropertyRepository, interval_hours:
         await asyncio.sleep(interval_hours * 3600)
 
 
+async def _ingest_sources_once(ingestor: SourceIngestor) -> None:
+    try:
+        for report in await ingestor.ingest_jurisdiction("pt/lisboa/cascais"):
+            logger.info("Source ingestion: %s %s %s", report.source_id, report.outcome, report.detail)
+    except Exception as exc:
+        logger.warning("Source ingestion failed: %s", type(exc).__name__)
+
+
 def create_app(
     settings: Settings | None = None,
     *,
@@ -88,10 +105,13 @@ def create_app(
             repository = mongo_repo
             permit_repo = MongoPermitRepository(mongo, settings.mongodb_db_name)
             await permit_repo.ensure_indexes()
+            source_repo = MongoSourceRepository(mongo, settings.mongodb_db_name)
+            await source_repo.ensure_indexes()
         elif settings.allow_ephemeral_storage:
             logger.warning("MONGODB_URI not set: properties are kept in memory for this process only.")
             repository = InMemoryPropertyRepository()
             permit_repo = InMemoryPermitRepository()
+            source_repo = InMemorySourceRepository()
         else:
             # Never acknowledge saves into memory unless explicitly allowed.
             raise ConfigurationError("MONGODB_URI is required (set ALLOW_EPHEMERAL_STORAGE=true for a local in-memory store).")
@@ -100,6 +120,12 @@ def create_app(
             logger.warning("GOOGLE_MAPS_API_KEY not set: address resolution will return 503.")
         if not settings.meta_api_key:
             logger.warning("META_API_KEY not set: permit intelligence will return 503.")
+
+        official = OfficialSourceRegistry(source_repo, ALL_SOURCES)
+        await official.seed()
+        planning = PlanningContextService([cascais_resolver(official)])
+        app.state.official_sources = official
+        app.state.planning = planning
 
         async with httpx.AsyncClient(
             timeout=settings.geocoding_timeout_seconds, transport=http_transport
@@ -122,6 +148,9 @@ def create_app(
                 repository=permit_repo,
                 properties=property_service,
                 sources=SourceRegistry([PortugalSources()]),
+                official=official,
+                retriever=RegulatoryRetriever(official),
+                planning=planning,
                 model=permit_model
                 or MetaChatModel(
                     meta_http,
@@ -135,10 +164,16 @@ def create_app(
                 ),
             )
             maintenance = asyncio.create_task(_maintain_periodically(repository, settings.snapshot_purge_interval_hours))
+            ingestion = None
+            if settings.source_ingest_on_startup:
+                fetcher = SafeFetcher(OFFICIAL_HOSTS, timeout_seconds=settings.source_fetch_timeout_seconds)
+                ingestion = asyncio.create_task(_ingest_sources_once(SourceIngestor(official, fetcher)))
             try:
                 yield
             finally:
                 maintenance.cancel()
+                if ingestion is not None:
+                    ingestion.cancel()
                 await meta_http.aclose()
                 if mongo is not None:
                     await mongo.close()
@@ -159,6 +194,7 @@ def create_app(
     app.include_router(property_api.router)
     app.include_router(maintenance_api.router)
     app.include_router(permit_api.router)
+    app.include_router(planning_api.router)
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:
