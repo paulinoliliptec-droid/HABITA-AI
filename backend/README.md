@@ -19,6 +19,8 @@ Configuration comes from the repo-root `.env` (git-ignored) or the process envir
 | `GOOGLE_MAPS_API_KEY` | Geocoding (server key) | `POST /api/property/resolve-location` returns `503 service_not_configured` |
 | `MONGODB_URI` | Persisting properties | Startup fails, unless `ALLOW_EPHEMERAL_STORAGE=true` (local dev/tests: in-memory store) |
 | `BACKEND_CORS_ORIGINS` | Browser access | Defaults to `http://localhost:3000` |
+| `META_API_KEY` | Permit Intelligence (Muse Spark) | `/api/permit/*/continue` returns `503 service_not_configured`; `/api/permit/status` reports `available: false` |
+| `META_TEXT_MODEL` | Reasoning model | Defaults to `muse-spark-1.3` (contributor variants are refused) |
 
 ## Test
 
@@ -69,6 +71,20 @@ See `docs/architecture.md` §4.1 and §9.1 for identity, snapshot and jurisdicti
 Errors always have the shape `{"error": {"code": "...", "message": "..."}}`, including unexpected failures. Codes: `validation_error`, `address_not_found`, `not_found`, `rate_limited` (429, `Retry-After`), `service_not_configured`, `storage_unavailable`, `upstream_error`, `internal_error`.
 
 The app refuses to start without `MONGODB_URI` unless `ALLOW_EPHEMERAL_STORAGE=true`.
+
+## Permit Intelligence (HR-002)
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/permit/status` | Whether the reasoning model is configured |
+| `POST /api/permit/matters` | Create a matter: `{"property_id", "question"}` |
+| `GET /api/permit/matters?property_id=…` | Matters for a property, newest first |
+| `GET /api/permit/matters/{id}` | Current state, missing inputs, draft, progress |
+| `POST /api/permit/matters/{id}/continue` | Run until NEEDS_INPUT, VERIFIED, ESCALATE or FAILED (resumable) |
+| `POST /api/permit/matters/{id}/inputs` | Supply requested information: `{"inputs": {key: answer}}` |
+| `GET /api/permit/matters/{id}/checklist` · `/evidence` · `/verification` | Persisted checklist, evidence records, latest verification report |
+
+Live Meta test (opt-in): `HABITA_META_LIVE=1 META_API_KEY=… pytest tests/test_permit_live.py`.
 
 ## Maintenance
 

@@ -149,6 +149,23 @@ Permitting rules are local. HABITA models them as **agents scoped to a jurisdict
 - **Extensibility:** a new jurisdiction is a new data record plus optional prompt or config overrides, not new code, wherever possible.
 - **Safety:** output is decision support, not legal advice. The UI states this and links to the official sources.
 
+### 9.3 Permit Intelligence workflow (HR-002, implemented foundation)
+`backend/app/services/permit/` implements the first agentic workflow: **GOAL → CHECKLIST → TOOLS → EVIDENCE → DRAFT (UNVERIFIED) → INDEPENDENT VERIFICATION → FINAL STATE**.
+
+- **Model.** Meta **Muse Spark** (`muse-spark-1.3`, standard mode; `-contributor` variants are refused) via the Meta Model API Chat Completions endpoint, with function tools and strict JSON-schema structured output (`integrations/meta/client.py`). The workflow depends on a provider-neutral `ReasoningModel` protocol; tests use a scripted implementation.
+- **States** (persisted on `permit_matters`): `PLANNING → INVESTIGATING → (NEEDS_INPUT) → DRAFT_READY → VERIFYING → VERIFIED | ESCALATE | NEEDS_INPUT`, and `FAILED` with the state to resume. A verifier `REJECTED` sends the draft back for one revision, then escalates. Each step persists its output before changing state, so `continue` resumes from saved checklist and evidence instead of starting over. A per-matter lease prevents concurrent runs.
+- **Checklist.** Canonical requirements per intent (`requirements.py`) with fixed IDs and an information owner (USER / SYSTEM_TOOL / AUTHORITY / DOCUMENT / UNKNOWN). Status is reconciled from evidence in code: satisfied, needs_input (USER only), blocked_external (a condition for the authority) or open (an evidence gap). Only USER items become questions; matters converge within a bounded number of rounds to VERIFIED, NEEDS_INPUT, ESCALATE or REJECTED.
+- **Roles.**
+  - **Planner:** classifies the intent and may rephrase canonical questions; it can't add items.
+  - **Investigator:** a bounded tool loop. Baseline context tools always run first.
+  - **Drafter:** writes a structured draft that is always `UNVERIFIED`.
+  - **Verifier:** separate, and never sees the executor's conversation. Deterministic rules run first: checklist coverage, every material claim citing existing evidence, evidence jurisdiction within the property's chain, authority consistency, and a conclusion proportionate to what is missing. Then an independent Muse Spark review that can only tighten the outcome.
+- **Tools.** `get_property_context`, `get_jurisdiction_context`, `get_competent_authority`, `get_available_evidence`, `search_regulatory_sources`, `request_missing_information`. HABITA executes them; the model only requests them.
+- **Evidence.** One record per fact (`permit_evidence`), cited by ID (`E1…`), with source type, title, reference/URL, jurisdiction, authority, retrieval time, the claim it supports, an excerpt, and a status: `system_record` (HABITA data), `curated_reference` (reviewed summary of an official source, not its live text) or `user_declared`.
+- **Sources.** `sources/base.py` defines providers filtered by the jurisdiction chain. `sources/portugal.py` ships curated references for Portugal (RJUE, Simplex Urbanístico, Código Civil on horizontal property, RGEU) and Cascais (PDM). A new jurisdiction is a new provider.
+- **Collections.** `permit_matters`, `permit_checklists`, `permit_evidence`, `permit_verifications`.
+- **Scope.** Unit conversions and general orientation for Portuguese properties, with Cascais municipal sources. Other intents and jurisdictions escalate. No SAM, Live, Afford, image generation or automatic submission.
+
 ## 10. Implementation status
 - **Done (HR-001):**
   - design system and app shell; address entry with Places Autocomplete;
@@ -157,4 +174,5 @@ Permitting rules are local. HABITA models them as **agents scoped to a jurisdict
   - property identity, snapshots and provenance of §4.1;
   - an in-process spend limiter (429), structured errors with CORS on every path, and a readiness check;
   - property workspace with map; privacy & terms page.
-- **Not started:** orchestrator and jurisdiction agents, Meta Model API integrations, permits, affordability.
+- **Done (HR-002 foundation):** Permit Intelligence workflow (§9.3) with Muse Spark, tools, evidence, independent verifier, resumable state and the workspace's Permit section.
+- **Not started:** SAM 3.1, voice, Muse Image, Afford, HABITA Live, broader jurisdiction coverage and sources.

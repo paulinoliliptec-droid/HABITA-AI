@@ -30,6 +30,11 @@ class UnauthorizedError(AppError):
     code = "unauthorized"
 
 
+class ForbiddenError(AppError):
+    status_code = 403
+    code = "forbidden"
+
+
 class NotFoundError(AppError):
     status_code = 404
     code = "not_found"
@@ -43,6 +48,11 @@ class AddressNotFoundError(AppError):
 class RateLimitedError(AppError):
     status_code = 429
     code = "rate_limited"
+
+
+class ConflictError(AppError):
+    status_code = 409
+    code = "conflict"
 
 
 class ServiceNotConfiguredError(AppError):

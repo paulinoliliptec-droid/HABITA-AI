@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pymongo import AsyncMongoClient
 
 from app.api import maintenance as maintenance_api
+from app.api import permit as permit_api
 from app.api import property as property_api
 from app.core.config import Settings, get_settings
 from app.core.errors import register_error_handlers
@@ -20,7 +21,13 @@ from app.db.property_repository import (
     PropertyRepository,
 )
 from app.integrations.maps.geocoding import GeocodingClient
+from app.integrations.meta.client import MetaChatModel
+from app.services.permit.repository import InMemoryPermitRepository, MongoPermitRepository, PermitRepository
+from app.services.permit.sources.base import SourceRegistry
+from app.services.permit.sources.portugal import PortugalSources
+from app.services.permit.workflow import PermitWorkflow
 from app.services.jurisdiction import JurisdictionResolver
+from app.services.permit.model import ReasoningModel
 from app.services.property_location import PropertyLocationService
 
 logger = logging.getLogger("habita")
@@ -60,6 +67,8 @@ def create_app(
     settings: Settings | None = None,
     *,
     http_transport: httpx.AsyncBaseTransport | None = None,
+    meta_transport: httpx.AsyncBaseTransport | None = None,
+    permit_model: ReasoningModel | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
 
@@ -77,15 +86,20 @@ def create_app(
             mongo_repo = MongoPropertyRepository(mongo, settings.mongodb_db_name)
             await mongo_repo.ensure_indexes()
             repository = mongo_repo
+            permit_repo = MongoPermitRepository(mongo, settings.mongodb_db_name)
+            await permit_repo.ensure_indexes()
         elif settings.allow_ephemeral_storage:
             logger.warning("MONGODB_URI not set: properties are kept in memory for this process only.")
             repository = InMemoryPropertyRepository()
+            permit_repo = InMemoryPermitRepository()
         else:
             # Never acknowledge saves into memory unless explicitly allowed.
             raise ConfigurationError("MONGODB_URI is required (set ALLOW_EPHEMERAL_STORAGE=true for a local in-memory store).")
 
         if not settings.google_maps_api_key:
             logger.warning("GOOGLE_MAPS_API_KEY not set: address resolution will return 503.")
+        if not settings.meta_api_key:
+            logger.warning("META_API_KEY not set: permit intelligence will return 503.")
 
         async with httpx.AsyncClient(
             timeout=settings.geocoding_timeout_seconds, transport=http_transport
@@ -93,7 +107,7 @@ def create_app(
             api_key = settings.google_maps_api_key.get_secret_value() if settings.google_maps_api_key else None
             app.state.repository = repository
             app.state.settings = settings
-            app.state.property_service = PropertyLocationService(
+            app.state.property_service = property_service = PropertyLocationService(
                 geocoder=GeocodingClient(http, api_key),
                 resolver=JurisdictionResolver(),
                 repository=repository,
@@ -103,11 +117,29 @@ def create_app(
                     settings.resolve_rate_per_minute, settings.resolve_burst, settings.resolve_max_concurrency
                 ),
             )
+            meta_http = httpx.AsyncClient(timeout=settings.meta_timeout_seconds, transport=meta_transport)
+            app.state.permit_workflow = PermitWorkflow(
+                repository=permit_repo,
+                properties=property_service,
+                sources=SourceRegistry([PortugalSources()]),
+                model=permit_model
+                or MetaChatModel(
+                    meta_http,
+                    api_key=settings.meta_api_key.get_secret_value() if settings.meta_api_key else None,
+                    base_url=settings.meta_api_base_url,
+                    model_id=settings.meta_text_model,
+                    reasoning_effort=settings.meta_reasoning_effort,
+                ),
+                limiter=ResolutionLimiter(
+                    settings.permit_rate_per_minute, settings.permit_burst, settings.permit_max_concurrency
+                ),
+            )
             maintenance = asyncio.create_task(_maintain_periodically(repository, settings.snapshot_purge_interval_hours))
             try:
                 yield
             finally:
                 maintenance.cancel()
+                await meta_http.aclose()
                 if mongo is not None:
                     await mongo.close()
 
@@ -120,11 +152,13 @@ def create_app(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_methods=["GET", "POST"],
-        allow_headers=["Content-Type"],
+        # Authorization carries a permit matter's capability token.
+        allow_headers=["Content-Type", "Authorization"],
         expose_headers=["Retry-After"],
     )
     app.include_router(property_api.router)
     app.include_router(maintenance_api.router)
+    app.include_router(permit_api.router)
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:

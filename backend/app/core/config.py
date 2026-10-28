@@ -36,6 +36,19 @@ class Settings(BaseSettings):
     resolve_burst: int = 10
     resolve_max_concurrency: int = 4
 
+    # Meta Model API (HR-002 Permit Intelligence). Standard-mode models only: the
+    # "-contributor" variants let Meta train on content and are refused.
+    meta_api_key: SecretStr | None = None
+    meta_api_base_url: str = "https://api.meta.ai/v1"
+    meta_text_model: str = "muse-spark-1.3"
+    meta_timeout_seconds: float = 90.0
+    # Optional reasoning effort ("minimal" … "max"); omitted from requests when unset.
+    meta_reasoning_effort: str | None = None
+
+    permit_rate_per_minute: float = 6
+    permit_burst: int = 3
+    permit_max_concurrency: int = 2
+
     mongodb_uri: SecretStr | None = None
     mongodb_db_name: str = "habita_ai"
     mongodb_timeout_ms: int = 5000

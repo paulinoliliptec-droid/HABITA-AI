@@ -5,6 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Notice } from "@/components/ui/Notice";
+import { PermitSection } from "@/features/permit/PermitSection";
 import { ApiError } from "@/lib/api";
 import { AddressSearch } from "./AddressSearch";
 import { getCachedProperty, getProperty, subscribeToProperties } from "./api";
@@ -50,6 +51,10 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
               <title>{`${splitAddress(property.formatted_address).headline} · HABITA AI`}</title>
               <PropertyIdentity property={property} partialMatch={partialMatch} />
               <JurisdictionSection jurisdiction={property.jurisdiction} />
+              <PermitSection
+                propertyId={property.property_id}
+                authorityName={property.jurisdiction.local_authority?.name ?? null}
+              />
               <LocationSection property={property} />
             </>
           ) : failed ? (

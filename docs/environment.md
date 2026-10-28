@@ -10,7 +10,8 @@ The template is in [`/.env.example`](../.env.example) and holds placeholders onl
 | `MONGODB_DB_NAME` | backend | No | Database name (default `habita_ai`). |
 | `META_API_KEY` | backend | **Yes** | Meta Model API key. Sent as `Authorization: Bearer <key>`. Meta's docs call this `MODEL_API_KEY`; we use `META_API_KEY` to avoid naming collisions. |
 | `META_API_BASE_URL` | backend | No | `https://api.meta.ai/v1` |
-| `META_TEXT_MODEL` | backend | No | Reasoning/agent model, e.g. `muse-spark-1.3`. |
+| `META_TEXT_MODEL` | backend | No | Reasoning/agent model for Permit Intelligence; default `muse-spark-1.3`. Never a `-contributor` variant. |
+| `META_REASONING_EFFORT` | backend | No | Optional `reasoning_effort` (`minimal`…`max`); omitted when unset. |
 | `META_IMAGE_MODEL` | backend | No | `muse-image-1.0` |
 | `META_TRANSCRIBE_MODEL` | backend | No | `muse-voice-transcribe-1.0` |
 | `META_SEGMENTATION_MODEL` | backend | No | `sam-3.1` |
