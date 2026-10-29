@@ -264,3 +264,37 @@ async def test_boundaries_inside_the_deferred_question_do_not_split_it():
     report = await verify("Whether the works need licensing and parking provision must be confirmed with the Câmara.",
                           ["E13"])
     assert "unsupported_legal_claim" not in codes(report.issues), report.issues
+
+
+# --- V2 (Codex confirmation pass on c6e3be4): a rule with several numeric limits -----------------------------------
+
+V2B = ("Single-family houses with a construction area for enlargement up to 20 % of the existing area may be enlarged "
+       "to a construction area of up to 200 m2, except classified buildings.")
+
+
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_a_limit_attached_to_another_quantity_is_rejected(section):
+    report = await verify(V2B, ["E30"], section)
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
+@pytest.mark.parametrize("text", [
+    "Single-family houses with a construction area of up to 200 m2 may be enlarged by up to 20 % of the existing area, "
+    "except classified buildings.",
+    pytest.param(
+        "Nas moradias unifamiliares com área de construção até 200 m2, é admitida a ampliação até 20 % da área "
+        "existente, exceto em edifícios classificados.",
+        marks=pytest.mark.xfail(strict=True, reason="known limitation (pre-existing at c6e3be4): a PT definite plural "
+                                "of a place noun ('nas moradias') is read as this matter, not as a generic scope")),
+])
+async def test_a_multi_limit_rule_restated_in_the_passage_order_verifies(text):
+    report = await verify(text, ["E30"])
+    assert report.outcome == "VERIFIED", report.issues
+
+
+async def test_a_reordered_multi_limit_paraphrase_must_be_quoted_instead():
+    """The known cost of the V2 rule: correct but reordered limits are not read back from a paraphrase."""
+    text = ("Single-family houses may be enlarged by up to 20 % of the existing area if their construction area is up "
+            "to 200 m2, except classified buildings.")
+    report = await verify(text, ["E30"])
+    assert report.outcome == "REJECTED", report.issues

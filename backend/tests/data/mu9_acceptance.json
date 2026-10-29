@@ -3394,7 +3394,7 @@
    "harness": "verifier",
    "final_gate": false,
    "fixed_in_phase": 1,
-   "status": "open",
+   "status": "closed",
    "observed": {
     "98af6af": {
      "verified": 4,
@@ -3408,15 +3408,10 @@
      "passes": false
     },
     "phase1": {
-     "verified": 4,
+     "verified": 0,
      "runs": 4,
-     "verified_runs": [
-      "num/general_planning_explanation/claim",
-      "num/general_planning_explanation/procedure",
-      "num/general_planning_explanation/risk",
-      "num/general_planning_explanation/next action"
-     ],
-     "passes": false
+     "verified_runs": [],
+     "passes": true
     }
    }
   },

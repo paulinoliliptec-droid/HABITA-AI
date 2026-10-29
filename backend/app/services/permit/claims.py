@@ -226,6 +226,7 @@ class _Sentence:
     required: frozenset[str]  # its restrictive concepts (all but inclusion lists)
     slots: frozenset[tuple]   # every bound slot of the sentence (see ``_slots``)
     required_slots: frozenset[tuple]  # its bound slots outside inclusion lists
+    limits: tuple[tuple, ...] = ()  # its numeric limits in order (see ``_limits``)
 
 
 _UNITS = {"M2", "PCT"}
@@ -254,6 +255,24 @@ def _slots(concepts: list[tuple[str, set[str]]]) -> set[tuple]:
         elif alts & _OPERATORS and 0 < i < len(seq) - 1:
             op = next(iter(alts & _OPERATORS))
             out.add(("OP", op, frozenset({seq[i - 1], seq[i + 1]})))
+    return out
+
+
+def _limits(concepts: list[tuple[str, set[str]]]) -> tuple[tuple, ...]:
+    """The numeric limits in the order they appear: (comparator, number, unit)."""
+    return tuple(slot[1:4] for _, slot in _numbered_slots(concepts))
+
+
+def _numbered_slots(concepts: list[tuple[str, set[str]]]) -> list[tuple[int, tuple]]:
+    seq = [frozenset(alts) for _, alts in concepts]
+    out = []
+    for i, alts in enumerate(seq):
+        number = next((c for c in alts if c.startswith("NUM:")), None)
+        if number:
+            before = next((next(iter(seq[j])) for j in range(max(0, i - 2), i) if seq[j] & _COMPARATORS), None)
+            after = next((next(iter(seq[j] & _UNITS)) for j in range(i + 1, min(len(seq), i + 2)) if seq[j] & _UNITS),
+                         None)
+            out.append((i, ("NUM", before, number, after)))
     return out
 
 
@@ -287,7 +306,8 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
             required = {next(iter(a)) if len(a) == 1 else min(a) for a in core} - {"INCL"}
             if allowed:
                 out.append(_Sentence(e.evidence_id, frozenset(allowed), frozenset(required),
-                                     frozenset(_slots(concepts)), frozenset(_slots(core_concepts))))
+                                     frozenset(_slots(concepts)), frozenset(_slots(core_concepts)),
+                                     _limits(concepts)))
     return out
 
 
@@ -299,9 +319,15 @@ def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence) -> bool:
     if not all(r in present or (_ALTERNATIVES.get(r, set()) & present) for r in s.required):
         return False
     # Bound slots, both ways: no number, limit, unit or alternative moved to another place or changed, none dropped.
-    slots = _slots([(t, alts) for t, alts in atom_concepts if alts != {"COND"}])
-    return (all(_slot_matches(x, set(s.slots)) for x in slots)
-            and all(_slot_matches(r, slots) for r in s.required_slots))
+    concepts = [(t, alts) for t, alts in atom_concepts if alts != {"COND"}]
+    slots = _slots(concepts)
+    if not (all(_slot_matches(x, set(s.slots)) for x in slots)
+            and all(_slot_matches(r, slots) for r in s.required_slots)):
+        return False
+    # A rule with several numeric limits: which limit binds which quantity can't be read reliably from a paraphrase
+    # (MU-9 V2), so the paraphrase must keep the passage's limits in the passage's order, each with its comparator and
+    # unit; anything else has to be quoted (general_rule).
+    return len(s.limits) < 2 or _limits(concepts) == s.limits
 
 
 # --- classification ----------------------------------------------------------------------------------------------
