@@ -286,3 +286,23 @@ async def test_a_literal_transcription_is_about_its_source_not_the_property():
     assert rejected(await explained(text, "E33"))
     report = await explained(f"If the works are in urban land, {HEIGHT[0].lower()}{HEIGHT[1:]}", "E33")
     assert rejected(report)
+
+
+# --- Codex normative round 1 (2026-10-29): exact cases ------------------------------------------------------------
+
+E78 = official("E78", "TEST FIXTURE Artigo 978.º Dispensa 1 - As operações urbanísticas de edificação até 200 m2 são "
+                      "dispensadas de licenciamento, incluindo aquelas que envolvam edifícios classificados apenas se "
+                      "tiverem parecer favorável da Câmara.")
+RECS.append(E78)
+
+
+async def test_normative_round1_an_act_that_removes_a_duty_is_normative():
+    """'O PDM revoga …' removes a duty: held to the quote-only rule (and unsupported by E13 anyway)."""
+    assert rejected(await explained("O PDM revoga a dotação de estacionamento.", "E13"))
+
+
+async def test_normative_round1_an_inclusion_that_restricts_is_not_an_omissible_list():
+    """'incluindo … apenas se …' carries a condition: a quote that leaves it out drops it."""
+    short = "As operações urbanísticas de edificação até 200 m2 são dispensadas de licenciamento."
+    assert rejected(await explained(short, "E78"))
+    assert rejected(await quoted(short[:-1], "E78"))

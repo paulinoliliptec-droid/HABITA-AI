@@ -385,7 +385,7 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
     for paragraph in _PARAGRAPH.split(_HEADER.sub("", text, count=1)):
         for sentence in _sentences(re.sub(r"^\s*\d+\s*-\s*", "", paragraph)):
             concepts = _concepts_of(_tokens(sentence))
-            core_concepts = _concepts_of(_tokens(_INCLUSION.sub(" ", sentence)))
+            core_concepts = _concepts_of(_tokens(_without_inclusions(sentence, _INCLUSION)))
             allowed = {c for _, alts in concepts for c in alts}
             core = {frozenset(alts) for _, alts in core_concepts}
             required = {next(iter(a)) if len(a) == 1 else min(a) for a in core} - {"INCL"}
@@ -394,8 +394,8 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
                                      frozenset(_slots(concepts)), frozenset(_slots(core_concepts)),
                                      _limits(concepts), _exceptions(sentence),
                                      frozenset(c for _, alts in _main_concepts(sentence) for c in alts),
-                                     _representatives(_main_concepts(_INCLUSION.sub(" ", sentence))),
-                                     (_norm(sentence), _norm(_INCLUSION_CLAUSE.sub(" ", sentence)))))
+                                     _representatives(_main_concepts(_without_inclusions(sentence, _INCLUSION))),
+                                     (_norm(sentence), _norm(_without_inclusions(sentence, _INCLUSION_CLAUSE)))))
     return out
 
 
@@ -403,6 +403,23 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
 #: quote may leave it out, since it names cases the scope already covers (it restricts nothing, see ``required``).
 _INCLUSION_CLAUSE = re.compile(r",?\s*\b(?:incluindo|including|nomeadamente|designadamente|namely)\b[^,;:]*,?",
                                re.IGNORECASE)
+
+
+#: What makes a span restrictive: a condition, exclusivity, negation, modality, exception, limit, tense or quantifier.
+_RESTRICTIVE = {"COND", "ONLY", "NEG", "OBLIG", "PERM", "EXC", "UPTO", "ATLEAST", "M2", "PCT", "TARGET", "TENSE", "ALL",
+                "SOME"}
+
+
+def _without_inclusions(sentence: str, pattern: re.Pattern) -> str:
+    """The sentence without its inclusion lists. A span that restricts anything ("incluindo … apenas se tiverem
+    parecer favorável", "including works of up to 50 m2") is not a mere list of covered cases: it stays."""
+    def drop(m: re.Match) -> str:
+        span = m.group(0)
+        folded = _fold(span.lower())
+        restrictive = any(c in _RESTRICTIVE or c.startswith("NUM:")
+                          for _, alts in _concepts_of(_tokens(span)) for c in alts)
+        return m.group(0) if restrictive or _legal(folded) or _DEONTIC_WORDS.search(folded) else " "
+    return pattern.sub(drop, sentence)
 
 
 def _literal(atom: str, s: _Sentence) -> bool:
@@ -462,6 +479,12 @@ _LEGAL = re.compile(
 #: Permission words. A permission with no explicit general scope ("Two dwellings are permitted", "São permitidos
 #: dois fogos") is about the matter (MU-9 M1); with one ("in urban land", "each category", "depending on …") it is a
 #: general statement.
+#: Prohibitions, and acts that remove or override a duty, whatever their grammar ("é proibida", "interdita", "o PDM
+#: revoga …", "is waived", "deixa de ser exigida").
+_DEONTIC_WORDS = re.compile(
+    r"\b(?:proib\w*|prohibit\w*|interdit\w*|forbid\w*|forbidden|vedad\w*|impedid\w*|revog\w*|revok\w*|"
+    r"revoca\w*|repeal\w*|derrog\w*|suspend\w*|suspens\w*|anul\w*|annul\w*|isen[tc]\w*|exempt\w*|dispens\w*|"
+    r"waiv\w*|prevalec\w*|prevail\w*|overrid\w*|substitu\w*|replac\w*|cessa\w*|deixa\w* de|no longer)\b")
 _PERMISSION = re.compile(r"\b(?:permitted|permissible|permitid\w*|permite\w*|allow\w*|admit\w*|admiss\w*)\b")
 _GENERIC_SCOPE = re.compile(
     r"\b(?:each|every|any|cada|qualquer|tod[oa]s?|depending|depend\w*|consoante|conforme|according)\b"
@@ -602,8 +625,6 @@ def _precise(concepts: list[tuple[str, set[str]]], tokens: list[str] = (), folde
     return _deontic_permission(list(tokens), folded)
 
 
-#: Prohibitions, whatever their grammar ("é proibida", "is prohibited", "interdita").
-_PROHIBITION = re.compile(r"\b(?:proib\w*|prohibit\w*|interdit\w*|forbid\w*|forbidden|vedad\w*|impedid\w*)\b")
 
 
 def _normative(concepts: list[tuple[str, set[str]]], tokens: list[str], folded: str, legal: bool) -> bool:
@@ -611,8 +632,9 @@ def _normative(concepts: list[tuple[str, set[str]]], tokens: list[str], folded: 
     permission asserted as the predicate, prohibition, number, limit, unit, exception or exclusivity. Its words can be
     checked against the passage, but not their grammatical roles (which noun is the object, which the scope), so it
     is supported only as the passage's own wording. A permission named as an object ("defines the admissible uses")
-    or hedged by a dependency ("may depend on the plan") grants nothing and stays descriptive."""
-    return legal or _precise(concepts, tokens, folded) or bool(_PROHIBITION.search(folded))
+    or hedged by a dependency ("may depend on the plan") grants nothing and stays descriptive. A prohibition, or an
+    act that removes or overrides a duty (revokes, repeals, suspends, waives, exempts), is normative too."""
+    return legal or _precise(concepts, tokens, folded) or bool(_DEONTIC_WORDS.search(folded))
 
 
 def _restates_case_records(tokens: list[str], cited: list[Evidence]) -> tuple[str, ...]:

@@ -16345,6 +16345,77 @@
     }
    },
    "status": "closed"
+  },
+  {
+   "id": "ACC-NRM-01",
+   "group": "NRM",
+   "statement": "O PDM revoga a dotação de estacionamento.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex normative review round 1, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 1e7d396)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E13 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "act removing a duty (revocation)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "Unsupported legal effect on a requirement, not held to the normative rule; VERIFIED on 1e7d396 (and on 04e3681). Fixed: acts that remove or override a duty are normative.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_normative_round1_an_act_that_removes_a_duty_is_normative"
+  },
+  {
+   "id": "ACC-NRM-02",
+   "group": "NRM",
+   "statement": "As operações urbanísticas de edificação até 200 m2 são dispensadas de licenciamento.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex normative review round 1, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 1e7d396)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E78 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_planning_explanation",
+    "general_rule"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "partial quote dropping a condition inside an inclusion",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "The inclusion span carried a condition (apenas se …); treating it as an omissible list dropped it; VERIFIED on 1e7d396 (and on 04e3681). Fixed: a restrictive span is not an inclusion list.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_normative_round1_an_inclusion_that_restricts_is_not_an_omissible_list"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
@@ -16434,6 +16505,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "owner decision after the quote-only task: a normative statement (requirement, duty, permission, prohibition, number, limit, exception or legal instrument) verifies only in the official passage's own wording (inclusion lists may be left out). ACC-QO-09 and ACC-ROLE-01 close; ACC-LEG-RULE-03 and ACC-LEG-COND-02 expected REJECTED (policy change)."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "normative quote-only round 1 (Codex): acts that remove a duty are normative; an inclusion span that restricts is not omissible. ACC-NRM-01..02 added."
   }
  ]
 }
