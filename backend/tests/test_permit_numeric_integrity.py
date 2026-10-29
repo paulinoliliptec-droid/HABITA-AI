@@ -888,3 +888,26 @@ async def test_owner_rules_r4_a_noun_phrase_title_is_a_title(title):
     RECS.append(official(eid, f"TEST FIXTURE Artigo 998.º {title} 1 - Em solo urbano, as obras são permitidas."))
     report = await quoted("Em solo urbano, as obras são permitidas.", eid)
     assert report.outcome == "VERIFIED", report.issues
+
+
+# --- OPEN (owner-rules task, Codex round 5, the last allowed): registered with reproducible tests, not patched -------
+
+SYN_HVERB = official("SYN-HVERB-0", "TEST FIXTURE Artigo 997.º Obras necessitam de vistoria municipal 1 - Em solo urbano, "
+                                    "as obras são permitidas.")
+ADM_FRAME = record("ADM-FRAME", "regulatory_source", "TEST FIXTURE Artigo 996.º Usos 1 - Nas operações urbanísticas, o PDM "
+                   "define os usos admissíveis.", source="cascais-pdm", basis="official_text",
+                   authority_class="municipal_instrument",
+                   title="PDM-Cascais — Operações Urbanísticas, Usos Admissíveis (TEST FIXTURE)", status="official_text")
+RECS.extend([SYN_HVERB, ADM_FRAME])
+
+
+@pytest.mark.xfail(strict=True, reason="OPEN P1 (ACC-NRM-44): a verb outside the closed lists ('necessitam') leaves a "
+                                       "requirement in the header read as a title, so the quote omits it")
+async def test_open_nrm44_a_header_with_an_unlisted_verb():
+    assert rejected(await quoted("Em solo urbano, as obras são permitidas.", "SYN-HVERB-0"))
+
+
+@pytest.mark.xfail(strict=True, reason="OPEN P2 (ACC-NRM-45): the restatement test treats source-title concepts as "
+                                       "framing, so 'usos permitidos' paraphrases 'usos admissíveis' and verifies")
+async def test_open_nrm45_admissibility_paraphrased_under_a_title_that_names_it():
+    assert rejected(await explained("Nas operações urbanísticas, o PDM define usos permitidos.", "ADM-FRAME"))
