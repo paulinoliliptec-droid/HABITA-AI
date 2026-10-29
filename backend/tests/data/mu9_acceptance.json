@@ -3200,6 +3200,82 @@
    "covered_by": "tests/test_permit_numeric_integrity.py::test_round1_a_pt_definite_plural_class_scope_verifies"
   },
   {
+   "id": "ACC-QO-04",
+   "group": "QO",
+   "statement": "[conclusion, general_rule quote of E30 + E20 resolved determination, answer likely_possible, no conditions]",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex quote-only review round 2, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on f238c02)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E33/E36 (unit-test fixtures)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general requirement, verbatim (PT)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "the determination proves classification only, not the facts the quoted rule needs",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_round2_a_quote_plus_the_parcel_determination_gives_no_definitive_answer"
+  },
+  {
+   "id": "ACC-QO-05",
+   "group": "QO",
+   "statement": "Em solo urbano, salvo em edifícios classificados, a altura das edificações não pode exceder 9 m.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex quote-only review round 2, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on f238c02)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E33/E36 (unit-test fixtures)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general requirement, verbatim (PT)",
+    "modality": "assertion"
+   },
+   "expected": "VERIFIED",
+   "rationale": "exception placed before the main clause, same meaning (false positive fixed)",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_round2_an_exception_placed_before_the_main_clause_verifies"
+  },
+  {
    "id": "ACC-CXP1-07",
    "group": "CXP1",
    "statement": "The property holds a licence, which must be confirmed with the Câmara.",
@@ -14764,6 +14840,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "quote-only task round 1: exception spans bound; definitive answers need property-specific evidence; PT definite plural is generic (L-6 fixed). ACC-QO-01..03 added."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "quote-only task round 2: definitive answers never VERIFIED with current capabilities; exception spans end at the clause boundary. ACC-QO-04..05 added."
   }
  ]
 }

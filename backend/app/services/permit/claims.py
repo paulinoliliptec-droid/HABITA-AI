@@ -253,6 +253,7 @@ class _Sentence:
     slots: frozenset[tuple]   # every bound slot of the sentence (see ``_slots``)
     required_slots: frozenset[tuple]  # its bound slots outside inclusion lists
     limits: tuple[tuple, ...] = ()  # its numeric limits in order (see ``_limits``)
+    exceptions: frozenset = frozenset()  # what each exception covers (see ``_exceptions``)
 
 
 _UNITS = {"M2", "PCT"}
@@ -281,16 +282,18 @@ def _slots(concepts: list[tuple[str, set[str]]]) -> set[tuple]:
         elif alts & _OPERATORS and 0 < i < len(seq) - 1:
             op = next(iter(alts & _OPERATORS))
             out.add(("OP", op, frozenset({seq[i - 1], seq[i + 1]})))
-        elif "EXC" in alts:
-            # What the exception covers: the concepts after it, up to the next exception or condition, so an
-            # exception can't swap with the rule's scope ("em solo urbano … salvo em edifícios classificados").
-            span = []
-            for nxt in seq[i + 1:]:
-                if nxt & {"EXC", "COND", "INCL"}:
-                    break
-                span.append(nxt)
-            out.add(("EXC", frozenset(span)))
     return out
+
+
+#: An exception and what it covers, up to the next clause boundary: "salvo em edifícios classificados", "except
+#: classified buildings". Read from the text, because the concept list keeps no punctuation.
+_EXCEPTION = re.compile(r"\b(?:salvo|exceto|excepto|except|unless|excluding|com exce[cç][aã]o d\w+)\b([^,;:.()]*)")
+
+
+def _exceptions(text: str) -> frozenset[frozenset]:
+    """Each exception's span as the set of its concepts, so an exception can't swap with the rule's scope."""
+    return frozenset(frozenset(frozenset(alts) for _, alts in _concepts_of(_tokens(m.group(1))))
+                     for m in _EXCEPTION.finditer(_fold(text.lower())))
 
 
 def _limits(concepts: list[tuple[str, set[str]]]) -> tuple[tuple, ...]:
@@ -312,8 +315,6 @@ def _numbered_slots(concepts: list[tuple[str, set[str]]]) -> list[tuple[int, tup
 
 
 def _slot_matches(slot: tuple, others: set[tuple]) -> bool:
-    if slot[0] == "EXC":
-        return any(o[0] == "EXC" and _same_span(slot[1], o[1]) for o in others)
     if slot[0] == "OP":
         return any(o[0] == "OP" and o[1] == slot[1] and _same_pair(slot[2], o[2]) for o in others)
     # Same comparator, number and unit, limiting the same thing: what the atom says the limit applies to (the two
@@ -355,13 +356,14 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
             if allowed:
                 out.append(_Sentence(e.evidence_id, frozenset(allowed), frozenset(required),
                                      frozenset(_slots(concepts)), frozenset(_slots(core_concepts)),
-                                     _limits(concepts)))
+                                     _limits(concepts), _exceptions(sentence)))
     return out
 
 
-def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence, verbatim: bool = False) -> bool:
+def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence, verbatim: bool = False,
+              exceptions: frozenset = frozenset()) -> bool:
     """Whether one passage sentence supports the atom in the direction stated. ``verbatim``: the atom is a literal
-    quote rendered by HABITA (``general_rule``)."""
+    quote rendered by HABITA (``general_rule``). ``exceptions``: the atom's own (``_exceptions``)."""
     if len(s.limits) >= 2 and not verbatim:
         # A rule with several numeric limits (MU-9 V2, owner decision 2026-10-29): which limit binds which quantity,
         # and in which role, can't be read back reliably from a paraphrase, so only a literal quote is admitted.
@@ -372,6 +374,10 @@ def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence, verbatim:
     present = {c for _, alts in atom_concepts for c in alts}
     if not all(r in present or (_ALTERNATIVES.get(r, set()) & present) for r in s.required):
         return False  # also a partial quote that drops a limit, a condition or an exception
+    # Each exception covers the same thing, both ways (none moved onto the scope, none invented or dropped).
+    if not (all(any(_same_span(x, y) for y in s.exceptions) for x in exceptions)
+            and all(any(_same_span(y, x) for x in exceptions) for y in s.exceptions)):
+        return False
     # Bound slots, both ways: no number, limit, unit or alternative moved to another place or changed, none dropped.
     concepts = [(t, alts) for t, alts in atom_concepts if alts != {"COND"}]
     slots = _slots(concepts)
@@ -545,17 +551,19 @@ def _restates_case_records(tokens: list[str], cited: list[Evidence]) -> tuple[st
     return ()
 
 
-def _directional(tokens: list[str], cited: list[Evidence], verbatim: bool = False) -> tuple[tuple[str, ...], bool]:
+def _directional(tokens: list[str], cited: list[Evidence], verbatim: bool = False,
+                 text: str = "") -> tuple[tuple[str, ...], bool]:
     """(supporting evidence ids, quote_required): the ids are empty when nothing supports the atom;
     ``quote_required`` says a cited multi-limit sentence would support it as a literal quote."""
     concepts = _concepts_of(tokens)
+    exceptions = _exceptions(text)
     quote_required = False
     for e in cited:
         if is_official_text(e):
             for s in _passage_sentences(e):
-                if _supports(concepts, s, verbatim):
+                if _supports(concepts, s, verbatim, exceptions):
                     return (e.evidence_id,), False
-                quote_required = quote_required or (len(s.limits) >= 2 and _supports(concepts, s, True))
+                quote_required = quote_required or (len(s.limits) >= 2 and _supports(concepts, s, True, exceptions))
     return (), quote_required
 
 
@@ -576,7 +584,7 @@ def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False) 
     folded = _fold(atom.lower())
     legal = _legal(folded)
     if verbatim:
-        supported, _ = _directional(tokens, cited, verbatim=True)
+        supported, _ = _directional(tokens, cited, verbatim=True, text=atom)
         enforced = legal or _precise(_concepts_of(tokens), tokens, folded)
         return Atom(atom, "general_rule" if supported else "unsupported", "source", supported,
                     None if supported else _UNSUPPORTED, enforced=enforced)
@@ -613,7 +621,7 @@ def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False) 
         return Atom(atom, "unsupported", "matter", (),
                     "says something about this matter that its cited case records don't state; a general rule can't "
                     "establish it")
-    supported, quote_required = _directional(tokens, cited, verbatim)
+    supported, quote_required = _directional(tokens, cited, verbatim, text=atom)
     kind = ("conditional_rule" if conditional else "general_rule") if supported else "unsupported"
     enforced = legal or _precise(_concepts_of(tokens), tokens, folded)
     problem = None if supported else _QUOTE_REQUIRED if quote_required else _UNSUPPORTED

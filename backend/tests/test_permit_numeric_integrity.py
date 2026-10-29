@@ -191,16 +191,29 @@ async def test_round1_a_definitive_answer_from_a_general_explanation_is_rejected
     assert report.outcome == "REJECTED" and "definitive_without_property_evidence" in codes(report.issues)
 
 
-async def test_a_definitive_answer_citing_a_resolved_determination_for_this_property_is_not_refused_for_that():
+QUOTE_E30 = ("Nas moradias unifamiliares com área de construção até 200 m2, é admitida a ampliação até 20 % da área "
+             "existente, exceto em edifícios classificados.")
+
+
+async def test_round2_a_quote_plus_the_parcel_determination_gives_no_definitive_answer():
+    """Codex quote-only round 2: the determination proves the parcel's classification, not the dwelling type,
+    construction area or exception status the quoted rule needs; no record proves them."""
     from tests.test_permit_admissibility import resolved_state
 
     async def state(_matter):
         return resolved_state()
-    d = draft(claim("t", "E1"), conclusion=Conclusion(answer="likely_possible", summary="x", evidence_ids=["E20"],
-                                                      planning_basis="parcel_determination"), conditions=[])
+    d = draft(claim("t", "E1"), conclusion=Conclusion(answer="likely_possible", summary="x", evidence_ids=["E30", "E20"],
+                                                      planning_basis="general_rule", quote=QUOTE_E30), conditions=[])
     report = await Verifier(Reviewer(VERIFIED), TRUSTED, state).verify(matter(), checklist(),
                                                                        render_draft(d, RECS, matter()), RECS, CHAIN)
-    assert "definitive_without_property_evidence" not in codes(report.issues), report.issues
+    assert report.outcome == "REJECTED" and "definitive_without_property_evidence" in codes(report.issues)
+
+
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_round2_an_exception_placed_before_the_main_clause_verifies(section):
+    text = "Em solo urbano, salvo em edifícios classificados, a altura das edificações não pode exceder 9 m."
+    report = await explained(text, "E33", section)
+    assert report.outcome == "VERIFIED", report.issues
 
 
 @pytest.mark.parametrize("section", SECTIONS)

@@ -199,15 +199,16 @@ def rule_checks(
             issues.append(VerificationIssue(code="authority_mismatch", evidence_id=eid, origin="rule",
                                             message=f"{eid} concerns {e.authority_id}, not the competent authority {matter.authority_id}."))
 
-    conclusion_records = [by_id[i] for i in draft.conclusion.evidence_ids if i in by_id
-                          and inadmissibility(by_id[i], matter, jurisdiction_chain, trusted_sources) is None]
-    if draft.conclusion.answer in DEFINITIVE and not any(is_determination(e, matter) for e in conclusion_records):
-        # MU-9 (owner criterion: a rule, quoted or explained, is not an authorisation): a definitive answer about this
-        # property needs property-specific evidence; the only such record is a resolved parcel determination.
+    if draft.conclusion.answer in DEFINITIVE:
+        # MU-9 (owner criterion: a rule, quoted or explained, is not an authorisation): a definitive answer says this
+        # property meets (or fails) a rule. That needs evidence of the property's own facts (use, areas, type,
+        # exceptions) and of its legal status, and no record type proves them: a parcel determination proves only
+        # the classification. Until such a capability exists, a verified conclusion is conditional.
         issues.append(VerificationIssue(code="definitive_without_property_evidence", origin="rule",
-                                        message="The conclusion gives a definitive answer about this property but "
-                                                "cites no property-specific evidence; general rules, quoted or "
-                                                "explained, show what the law says, not that this property meets it."))
+                                        message="The conclusion gives a definitive answer about this property, but "
+                                                "no available evidence proves the property's own facts or legal "
+                                                "status; general rules, quoted or explained, and the parcel's "
+                                                "classification show what applies, not that this property meets it."))
     if draft.conditions and draft.conclusion.answer in DEFINITIVE:
         issues.append(VerificationIssue(code="definitive_with_conditions", origin="rule",
                                         message="The conclusion is definitive although conditions remain to be confirmed: "
