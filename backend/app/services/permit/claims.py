@@ -674,11 +674,6 @@ def _precise(concepts: list[tuple[str, set[str]]], tokens: list[str] = (), folde
 
 
 
-#: Admissibility vocabulary (owner rule after ACC-NRM-37): "os usos admissíveis", "admitted", "permissible" say what
-#: is allowed, so a statement using it is held to the official wording, as a description or otherwise.
-_ADMISSIBILITY = re.compile(r"^(?:admit|admiss|admis|permissib|permitid|permitted|allowed|allowable)\w*$")
-
-
 def _normative(concepts: list[tuple[str, set[str]]], tokens: list[str], folded: str, legal: bool) -> bool:
     """A normative statement (owner decision, ACC-QO-09 / ACC-ROLE-01): a legal instrument, or a requirement, duty,
     permission asserted as the predicate, prohibition, number, limit, unit, exception or exclusivity. Its words can be
@@ -688,8 +683,7 @@ def _normative(concepts: list[tuple[str, set[str]]], tokens: list[str], folded: 
     act that removes or overrides a duty (revokes, repeals, suspends, waives, exempts), is normative too, and so is a
     use designation ("os espaços destinam-se a …", "intended for …"): it says which uses the land admits."""
     return (legal or _precise(concepts, tokens, folded) or bool(_DEONTIC_WORDS.search(folded))
-            or any("INTENDED" in alts for _, alts in concepts) or _stative(tokens, folded)
-            or any(_ADMISSIBILITY.match(t) for t in tokens))
+            or any("INTENDED" in alts for _, alts in concepts) or _stative(tokens, folded))
 
 
 #: A participle or a "-vel" / "-ble" adjective: the form of a legal state ("consentida", "autorizadas", "allowed",
@@ -895,7 +889,8 @@ def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
                 return False  # a duty, permission or limit taken from the cited text is its content, not structure
             continue
         # The closed concept table names what a structure is about, not a claim; a deontic or restrictive concept
-        # ("allowed", "only", "never") is a claim unless the cited text has it.
+        # ("allowed", "only", "never") is a claim unless the cited text has it. Admissibility has no exception, not even
+        # "os usos admissíveis" (owner rule after ACC-NRM-37).
         if not any(c.startswith("w:") for c in alts) and not deontic:
             continue
         return False
