@@ -380,48 +380,24 @@ def _same_pair(a: frozenset, b: frozenset) -> bool:
     return bool((a[0] & b[0] and a[1] & b[1]) or (a[0] & b[1] and a[1] & b[0]))
 
 
-def _normative_text(text: str) -> bool:
-    """A normative unit of an official text. There, "X depende de Y" is a condition, not a hedge."""
-    tokens, folded = _tokens(text), _fold(text.lower())
-    return (_normative(_concepts_of(tokens), tokens, folded, _legal(folded))
-            or any(_DEPENDENCY_VERB.match(t) for t in tokens) or bool(_DEPENDENCY_CLAUSE.search(folded)))
-
-
 def _heading(text: str) -> bool:
     """A heading ("Princípios gerais do solo urbano"), not a statement: no closing punctuation."""
     return not re.search(r"[.!?;:]\s*$", text.strip())
 
 
-def _structural_unit(text: str) -> bool:
-    """An official unit that only describes structure: a structural predicate, no rule content."""
-    tokens, folded = _tokens(text), _fold(text.lower())
-    # A structural verb, not a participle or adjective ("Excetuam-se os edifícios classificados" states content).
-    verb = any(_META.fullmatch(t) and not _STATE_FORM.match(t) for t in tokens)
-    # …and nothing that gives anything a state, a condition, a limit or an exception: "define como excluídas desta
-    # permissão as obras …" is content, however structural its verb.
-    state = any(_STATE_FORM.match(t) and not _META.fullmatch(t) for t in tokens)
-    restrictive = any(alts & (_DEONTIC_CONCEPTS | {"COND"}) for _, alts in _concepts_of(tokens))
-    return (verb and not state and not restrictive and not _normative_text(text) and not _CONTENT_CLAUSE.search(folded)
-            and not _NEGATION & set(tokens) and not _predicative(tokens))
-
-
 def _passage_sentences(e: Evidence) -> list[_Sentence]:
     text = e.excerpt.lower()  # folded by _tokens, which keeps PT "é" apart from "e"
     out = []
-    # Coreference runs across numbered paragraphs: "1 - … é permitida. 2 - Essa permissão depende …" is one unit.
     paragraphs = [re.sub(r"^\s*\d+\s*-\s*", "", p) for p in _PARAGRAPH.split(_HEADER.sub("", text, count=1))]
     # A heading is only the title before "1 - " ("Princípios gerais do solo urbano"); a last paragraph without a
     # closing stop is still a statement.
     title = paragraphs[0] if len(paragraphs) > 1 and _heading(paragraphs[0]) else None
-    units = ([title] if title else []) + _merge_coreferent(
-        [s for p in paragraphs[1 if title else 0:] for s in _full_sentences(p, coreference=False)])
-    # A unit may be quoted alone only when every other unit of the excerpt only describes its structure ("A
-    # qualificação … consta da Planta", "Esta secção define …"). Otherwise a condition or exception may sit in any of
-    # them, however it refers back or is worded ("O exercício dessa faculdade depende de …", "Excetuam-se …"): the
-    # quote is the whole excerpt.
-    body = " ".join(u.strip() for u in units if u is not title)
-    units_whole = [(u if all(v is title or _structural_unit(v) for j, v in enumerate(units) if j != i) else body, u)
-                   for i, u in enumerate(units)]
+    units = ([title] if title else []) + [s for p in paragraphs[1 if title else 0:] for s in _full_sentences(p)]
+    # Owner rule (after ACC-NRM-36): an excerpt with more than one unit besides its title is quoted whole. Which other
+    # unit conditions, excepts or merely describes can't be read reliably from its words, so none is left out.
+    statements = [u for u in units if u is not title]
+    body = " ".join(u.strip() for u in statements)
+    units_whole = [(body if len(statements) > 1 else u, u) for u in units]
     for whole, sentence in ((w, c) for w, u in units_whole for c in _sentences(u)):
         concepts = _concepts_of(_tokens(sentence))
         core_concepts = _concepts_of(_tokens(_without_inclusions(sentence, _INCLUSION)))
@@ -438,22 +414,8 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
     return out
 
 
-_ANAPHORA = {"esta", "este", "estas", "estes", "essa", "esse", "essas", "esses", "aquela", "aquele", "tal", "tais",
-             "referida", "referido", "referidas", "referidos", "neste", "nesta", "nesse", "nessa", "nestes", "nessas",
-             "this", "these", "that", "those", "such", "said", "it", "they", "o mesmo", "a mesma", "os mesmos",
-             "as mesmas", "em tal", "in this", "in that", "in such"}
-
-
-_SUBJECT_PRONOUNS = {"ele", "ela", "eles", "elas", "it", "they", "isto", "isso", "aquilo"}
-#: Demonstratives that stand alone as the subject when a verb follows ("Esta depende de …", "This requires …");
-#: before a noun they are determiners ("Esta secção define …").
-_DEMONSTRATIVES = {"este", "esta", "estes", "estas", "esse", "essa", "esses", "essas", "this", "these", "that", "those",
-                   "such"}
-
-
-def _full_sentences(text: str, coreference: bool = True) -> list[str]:
-    """Sentences up to . ! ? (``_sentences`` also stops at ";", which ends a clause, not a sentence). ``coreference``
-    (official passages): a sentence that takes up the previous one is part of it."""
+def _full_sentences(text: str) -> list[str]:
+    """Sentences up to . ! ? (``_sentences`` also stops at ";", which ends a clause, not a sentence)."""
     out, current = [], ""
     for piece in _sentences(text):
         current += piece
@@ -462,46 +424,7 @@ def _full_sentences(text: str, coreference: bool = True) -> list[str]:
             current = ""
     if current:
         out.append(current)
-    out = [s for s in out if s.strip()]
-    return _merge_coreferent(out) if coreference else out
-
-
-def _merge_coreferent(sentences: list[str]) -> list[str]:
-    """A sentence that takes up the previous one ("Essa permissão depende de …", "Ela depende de …") is part of it: a
-    quote of the first alone would leave out what conditions it."""
-    merged: list[str] = []
-    for sentence in sentences:
-        # A sentence that only describes structure ("Ela consta da Planta de Ordenamento.") conditions nothing.
-        if merged and _takes_up(merged[-1], sentence) and not _structural_unit(sentence):
-            merged[-1] = f"{merged[-1].rstrip()} {sentence.lstrip()}"
-        else:
-            merged.append(sentence)
-    return merged
-
-
-def _stems(text: str) -> set[str]:
-    return {t[:5] for t in _tokens(text) if len(t) >= 4 and t not in _FUNCTION}
-
-
-def _takes_up(previous: str, sentence: str) -> bool:
-    """Whether a sentence refers back to the previous one: a determiner whose head takes up one of the previous
-    sentence's words ("… é permitida. A permissão depende …", "Para exercer esta permissão, …"); "Esta secção define
-    …" opens a new subject."""
-    words = _tokens(sentence)
-    previous_stems = _stems(previous)
-
-    def head_after(i: int) -> bool:
-        head = next((w for w in words[i + 1:i + 4] if w not in _FUNCTION and w not in _ANAPHORA), None)
-        return head is not None and head[:5] in previous_stems
-    # A subject pronoun opening the sentence takes up the previous one ("Ela depende de parecer …").
-    if words and (words[0] in _SUBJECT_PRONOUNS or words[0] in _DEMONSTRATIVES and len(words) > 1 and (
-            words[1] in _FINITE or _DEPENDENCY_VERB.match(words[1]) or words[1].endswith(("requires", "depends")))):
-        return True
-    # A definite subject that takes up the previous sentence ("A permissão depende …"), or an anaphoric determiner
-    # anywhere ("Para exercer esta permissão, …").
-    if words and words[0] in _DEFINITE | {"the"} and head_after(0):
-        return True
-    return any(w in _ANAPHORA and head_after(i) for i, w in enumerate(words))
+    return [s for s in out if s.strip()]
 
 
 def _clauses(text: str) -> list[tuple[str, str]]:
@@ -510,10 +433,9 @@ def _clauses(text: str) -> list[tuple[str, str]]:
 
 
 def _statement_clauses(text: str) -> list[tuple[tuple[str, ...], str]]:
-    """(the runs of consecutive sentences that contain it, one clause), clause by clause. A statement's sentences are
-    not merged by coreference (its next sentence may be about the property: "… The property holds that licence."):
-    a quote is literal when one of those runs is a whole official unit."""
-    sentences = [w.strip() for w in _full_sentences(text, coreference=False)]
+    """(the runs of consecutive sentences that contain it, one clause), clause by clause: a quote of several sentences
+    is literal when one of those runs is a whole official excerpt."""
+    sentences = [w.strip() for w in _full_sentences(text)]
     out = []
     for k, whole in enumerate(sentences):
         runs = tuple(" ".join(sentences[a:b]) for a in range(k + 1) for b in range(k + 1, len(sentences) + 1))
@@ -752,6 +674,11 @@ def _precise(concepts: list[tuple[str, set[str]]], tokens: list[str] = (), folde
 
 
 
+#: Admissibility vocabulary (owner rule after ACC-NRM-37): "os usos admissíveis", "admitted", "permissible" say what
+#: is allowed, so a statement using it is held to the official wording, as a description or otherwise.
+_ADMISSIBILITY = re.compile(r"^(?:admit|admiss|admis|permissib|permitid|permitted|allowed|allowable)\w*$")
+
+
 def _normative(concepts: list[tuple[str, set[str]]], tokens: list[str], folded: str, legal: bool) -> bool:
     """A normative statement (owner decision, ACC-QO-09 / ACC-ROLE-01): a legal instrument, or a requirement, duty,
     permission asserted as the predicate, prohibition, number, limit, unit, exception or exclusivity. Its words can be
@@ -761,7 +688,8 @@ def _normative(concepts: list[tuple[str, set[str]]], tokens: list[str], folded: 
     act that removes or overrides a duty (revokes, repeals, suspends, waives, exempts), is normative too, and so is a
     use designation ("os espaços destinam-se a …", "intended for …"): it says which uses the land admits."""
     return (legal or _precise(concepts, tokens, folded) or bool(_DEONTIC_WORDS.search(folded))
-            or any("INTENDED" in alts for _, alts in concepts) or _stative(tokens, folded))
+            or any("INTENDED" in alts for _, alts in concepts) or _stative(tokens, folded)
+            or any(_ADMISSIBILITY.match(t) for t in tokens))
 
 
 #: A participle or a "-vel" / "-ble" adjective: the form of a legal state ("consentida", "autorizadas", "allowed",
@@ -942,36 +870,6 @@ _DEONTIC_CONCEPTS = (_RESTRICTIVE - {"ALL", "SOME", "COND"}) | {"LICENSED_STATE"
                                                                  "LEGAL_CONDITIONS"}
 
 
-#: What may stand between "uses" and "admits": the scope of the uses ("the uses each district or zone admits").
-_SCOPE_STEMS = ("zon", "distrit", "district", "categor", "espac", "space")
-
-
-def _qualifies_uses(words: list[str], i: int) -> bool:
-    """Whether admissibility qualifies a category of uses: next to it ("os usos admissíveis", "the admissible uses") or
-    as the verb of "(which) uses each zone admits" / "que usos … admite", with only topic words between; not "uso"
-    elsewhere ("a dotação … admissível para o uso …")."""
-    after = [w for w in words[i + 1:i + 3] if w not in _ARTICLES]
-    if after and after[0].startswith(("uso", "use")):  # adjacent: a preposition ("para o uso") breaks it
-        return True
-    content = [(j, w) for j, w in enumerate(words) if w not in _FUNCTION]
-    k = next(n for n, (j, _) in enumerate(content) if j == i)
-    for _, w in reversed(content[max(0, k - 5):k]):
-        if w.startswith(("uso", "use")):
-            return True
-        if not (w.startswith(_SCOPE_STEMS) or w in {"each", "cada", "which", "quais", "or", "ou", "and", "e"}):
-            return False  # "os usos da área admissível": admissibility qualifies the area
-    return False
-
-
-#: Kinds of use: naming one beside "the admissible uses" ("…, incluindo estacionamento") says that use is admissible.
-_USE_KINDS = {"HOUSING", "COMMERCE", "SERVICES", "PARKING", "INCL"}
-
-
-def _names_a_use(tokens: list[str]) -> bool:
-    return any(alts & _USE_KINDS for _, alts in _concepts_of(tokens)) or bool(
-        {"como", "such", "e.g", "nomeadamente", "designadamente"} & set(tokens))
-
-
 def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
     """Whether every content word of a structural description is a structural or generic word, the attribution to a
     cited source, or a concept of a cited official sentence: it describes the cited text and adds no claim of its own
@@ -991,10 +889,6 @@ def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
             continue
         # "os usos admissíveis", "which uses each zone admits": admissibility names a category of uses; qualifying
         # anything else ("a dotação … admissível") is a claim.
-        admissible = t.startswith(("admit", "admiss"))
-        if admissible and (hedged and _MODAL_AUX & set(words)
-                           or _qualifies_uses(words, words.index(t)) and not _names_a_use(tokens)):
-            continue
         deontic = bool(alts & _DEONTIC_CONCEPTS)
         if alts & allowed:
             if deontic:

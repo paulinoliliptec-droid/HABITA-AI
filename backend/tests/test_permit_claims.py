@@ -232,14 +232,26 @@ async def test_codex_phase1_false_positive_a_verbatim_pt_rule_with_esta_verifies
 
 @pytest.mark.parametrize("text", [
     "The PDM classifies and qualifies municipal land.",
-    "Each land-use category sets the admissible uses and the urban parameters for building.",
+    "Each land-use category sets the urban parameters for building.",
     "Housing use may depend on the applicable plan.",
 ])
-def test_attributive_or_epistemic_permission_wording_stays_a_shadow_verdict(text):
-    """F2's fix enforces permissions asserted as the predicate; naming or hedging one is not asserting it."""
+def test_structural_or_epistemic_wording_stays_a_shadow_verdict(text):
+    """A structural description or a hedged dependency asserts no rule. (Admissibility vocabulary, even attributive,
+    is held to the wording since the owner rule after ACC-NRM-37.)"""
     from tests.test_permit_admissibility import official
     atoms = assess(text, EXPLANATION, None, [official("E3")])
     assert atoms and not any(a.enforced and a.problem for a in atoms)
+
+
+@pytest.mark.parametrize("text", [
+    "Each land-use category sets the admissible uses and the urban parameters for building.",
+    "O zonamento do plano municipal define os usos admitidos em cada distrito ou zona urbanística.",
+    "Housing may be admissible, depending on the land category set by the plan.",
+])
+def test_admissibility_vocabulary_is_held_to_the_wording(text):
+    """Owner rule after ACC-NRM-37: admissibility vocabulary makes a statement normative, attributive or hedged."""
+    from tests.test_permit_admissibility import official
+    assert any(a.enforced and a.problem for a in assess(text, EXPLANATION, None, [official("E3")]))
 
 
 # --- Codex Phase 1 re-review (2026-10-29, gpt-6-sol): exact cases ---------------------------------------------------

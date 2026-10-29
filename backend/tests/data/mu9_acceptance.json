@@ -17014,14 +17014,20 @@
     "claim_type": "complete quote wrongly merged with \"Esta secção …\" (P2 regression)",
     "modality": "quote"
    },
-   "expected": "VERIFIED",
-   "rationale": "REJECTED on 1d8c23e. Fixed: \"Esta secção\" opens a new subject (its head takes up nothing), so the sentence stays independent.",
+   "expected": "REJECTED",
+   "rationale": "REJECTED on 1d8c23e. Fixed: \"Esta secção\" opens a new subject (its head takes up nothing), so the sentence stays independent. Owner rule after ACC-NRM-36 (2026-10-29): an excerpt with more than one unit is quoted whole, so this standalone quote is now rejected.",
    "harness": "unit_test",
    "final_gate": false,
    "fixed_in_phase": 1,
    "status": "not_run",
    "observed": {},
-   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_task_r3_a_sentence_with_a_new_subject_stays_independent"
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_task_r3_a_sentence_with_a_new_subject_stays_independent",
+   "policy_change": {
+    "date": "2026-10-29",
+    "by": "owner",
+    "from": "VERIFIED",
+    "to": "REJECTED"
+   }
   },
   {
    "id": "ACC-NRM-20",
@@ -17504,14 +17510,20 @@
     "claim_type": "standalone quote beside \"Ela consta da Planta …\" rejected (P3)",
     "modality": "quote"
    },
-   "expected": "VERIFIED",
-   "rationale": "REJECTED on 7b9162f. Fixed: a structural sentence that takes up the previous one conditions nothing and is not merged.",
+   "expected": "REJECTED",
+   "rationale": "REJECTED on 7b9162f. Fixed: a structural sentence that takes up the previous one conditions nothing and is not merged. Owner rule after ACC-NRM-36 (2026-10-29): an excerpt with more than one unit is quoted whole, so this standalone quote is now rejected.",
    "harness": "unit_test",
    "final_gate": false,
    "fixed_in_phase": 1,
    "status": "not_run",
    "observed": {},
-   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r3_a_structural_sentence_taking_up_the_rule_conditions_nothing"
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r3_a_structural_sentence_taking_up_the_rule_conditions_nothing",
+   "policy_change": {
+    "date": "2026-10-29",
+    "by": "owner",
+    "from": "VERIFIED",
+    "to": "REJECTED"
+   }
   },
   {
    "id": "ACC-NRM-34",
@@ -17610,13 +17622,13 @@
     "modality": "quote"
    },
    "expected": "REJECTED",
-   "rationale": "OPEN (round limit): VERIFIED on ef0b524; normative verbs (condiciona, define exceção) pass as structural. A candidate fix (units that take up the quoted unit's words block a standalone quote) closed it but broke 41 legitimate cases; not applied.",
+   "rationale": "VERIFIED on ef0b524. Closed by the owner rule: an excerpt with more than one unit besides its title is quoted whole.",
    "harness": "unit_test",
    "final_gate": false,
    "fixed_in_phase": 1,
    "status": "not_run",
    "observed": {},
-   "covered_by": "tests/test_permit_numeric_integrity.py::test_open_nrm36_a_structural_verb_stating_a_condition_or_exception (strict xfail)"
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm36_a_structural_verb_stating_a_condition_or_exception"
   },
   {
    "id": "ACC-NRM-37",
@@ -17645,13 +17657,13 @@
     "modality": "assertion"
    },
    "expected": "REJECTED",
-   "rationale": "OPEN (round limit): VERIFIED on ef0b524; \"residenciais\" is a planning topic, so no use is named.",
+   "rationale": "VERIFIED on ef0b524. Closed by the owner rule: admissibility vocabulary makes a statement normative, held to the official wording.",
    "harness": "unit_test",
    "final_gate": false,
    "fixed_in_phase": 1,
    "status": "not_run",
    "observed": {},
-   "covered_by": "tests/test_permit_numeric_integrity.py::test_open_nrm37_a_use_named_by_an_adjective (strict xfail)"
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm37_a_use_named_by_an_adjective"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
@@ -17826,6 +17838,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "NRM-22..24 task round 5 (Codex, last): ACC-NRM-36..37 (P1) open, registered with strict xfail tests; a candidate fix was tested (41 regressions) and not applied."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "owner rules after ACC-NRM-36/37: an excerpt with more than one unit besides its title is quoted whole; admissibility vocabulary is normative. ACC-NRM-36..37 closed; ACC-NRM-19 and ACC-NRM-33 expected REJECTED (policy change)."
   }
  ]
 }

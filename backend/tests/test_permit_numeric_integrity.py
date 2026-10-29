@@ -578,8 +578,10 @@ async def test_nrm_task_r3_a_sentence_whose_subject_takes_up_the_previous_one_be
     assert report.outcome == "VERIFIED", report.issues
 
 
-async def test_nrm_task_r3_a_sentence_with_a_new_subject_stays_independent():
-    report = await quoted("A dotação de estacionamento deve ser assegurada.", "E298")  # exact: "Esta secção …"
+async def test_nrm_task_r3_a_sentence_with_a_new_subject_is_quoted_with_its_excerpt():
+    """Policy change (owner rule after ACC-NRM-36): "Esta secção …" is a second unit, so the excerpt is quoted whole."""
+    assert rejected(await quoted("A dotação de estacionamento deve ser assegurada.", "E298"))
+    report = await quoted(E298.excerpt.split(" 1 - ", 1)[1], "E298")
     assert report.outcome == "VERIFIED", report.issues
 
 
@@ -702,8 +704,10 @@ async def test_nrm_r1_a_long_linked_quote_verifies():
     assert report.outcome == "VERIFIED", report.issues
 
 
-async def test_nrm_r1_one_normative_unit_beside_a_descriptive_one_is_quoted_alone():
-    report = await quoted("A dotação de estacionamento deve ser assegurada.", "E989")
+async def test_nrm_r1_an_excerpt_of_several_units_is_quoted_whole_even_beside_a_description():
+    """Owner rule after ACC-NRM-36 (policy change from 'quoted alone'): more than one unit → the whole excerpt."""
+    assert rejected(await quoted("A dotação de estacionamento deve ser assegurada.", "E989"))
+    report = await quoted(E989.excerpt.split(" 1 - ", 1)[1], "E989")
     assert report.outcome == "VERIFIED", report.issues
 
 
@@ -754,8 +758,10 @@ async def test_nrm_r3_a_last_paragraph_without_a_stop_is_not_a_heading():
     assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E998"))
 
 
-async def test_nrm_r3_a_structural_sentence_taking_up_the_rule_conditions_nothing():
-    report = await quoted("A multifuncionalidade do solo é permitida.", "E988")
+async def test_nrm_r3_a_two_sentence_excerpt_is_quoted_whole():
+    """Policy change (owner rule after ACC-NRM-36): even when the second sentence only says where the rule is mapped."""
+    assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E988"))
+    report = await quoted(E988.excerpt.split(" 1 - ", 1)[1], "E988")
     assert report.outcome == "VERIFIED", report.issues
 
 
@@ -790,7 +796,7 @@ async def test_nrm_r4_a_predicative_complement_alone_makes_a_unit_content():
     assert rejected(await quoted("Em solo urbano, as obras são permitidas.", "PX12"))
 
 
-# --- OPEN (NRM-22..24 task, Codex round 5, the last allowed): registered with reproducible tests, not patched -------
+# --- NRM-22..24 task, Codex round 5 (ACC-NRM-36..37), closed by the two owner rules ------------------------------
 
 RCOND = official("RCOND", "TEST FIXTURE Artigo 999.º Obras 1 - Em solo urbano, as obras são permitidas. 2 - O PDM "
                           "condiciona a permissão à vistoria municipal.")
@@ -800,14 +806,17 @@ D2 = official("D2", "TEST FIXTURE Artigo 995.º Residência 1 - Nas operações 
 RECS.extend([RCOND, REXC, D2])
 
 
-@pytest.mark.xfail(strict=True, reason="OPEN P1 (ACC-NRM-36): 'condiciona' / 'define exceção' pass as structural "
-                                       "verbs, so the condition or exception paragraph may be left out of a quote")
 @pytest.mark.parametrize("eid", ["RCOND", "REXC"])
-async def test_open_nrm36_a_structural_verb_stating_a_condition_or_exception(eid):
+async def test_nrm36_a_structural_verb_stating_a_condition_or_exception(eid):
     assert rejected(await quoted("Em solo urbano, as obras são permitidas.", eid))
 
 
-@pytest.mark.xfail(strict=True, reason="OPEN P1 (ACC-NRM-37): 'residenciais' is a planning topic, so 'os usos "
-                                       "admissíveis residenciais' names no use and a duty reads as admissibility")
-async def test_open_nrm37_a_use_named_by_an_adjective():
+async def test_nrm37_a_use_named_by_an_adjective():
     assert rejected(await explained("Nas operações urbanísticas, o PDM define os usos admissíveis residenciais.", "D2"))
+
+
+@pytest.mark.parametrize("eid", ["RCOND", "REXC"])
+async def test_nrm36_the_whole_excerpt_quoted_verifies(eid):
+    e = next(r for r in RECS if r.evidence_id == eid)
+    report = await quoted(e.excerpt.split(" 1 - ", 1)[1], eid)
+    assert report.outcome == "VERIFIED", report.issues
