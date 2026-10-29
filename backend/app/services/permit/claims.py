@@ -384,7 +384,7 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
     text = e.excerpt.lower()  # folded by _tokens, which keeps PT "é" apart from "e"
     out = []
     for paragraph in _PARAGRAPH.split(_HEADER.sub("", text, count=1)):
-        for sentence in _sentences(re.sub(r"^\s*\d+\s*-\s*", "", paragraph)):
+        for whole, sentence in _clauses(re.sub(r"^\s*\d+\s*-\s*", "", paragraph)):
             concepts = _concepts_of(_tokens(sentence))
             core_concepts = _concepts_of(_tokens(_without_inclusions(sentence, _INCLUSION)))
             allowed = {c for _, alts in concepts for c in alts}
@@ -396,8 +396,26 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
                                      _limits(concepts), _exceptions(sentence),
                                      frozenset(c for _, alts in _main_concepts(sentence) for c in alts),
                                      _representatives(_main_concepts(_without_inclusions(sentence, _INCLUSION))),
-                                     (_norm(sentence),)))
+                                     (_norm(whole),)))
     return out
+
+
+def _full_sentences(text: str) -> list[str]:
+    """Sentences up to . ! ? (``_sentences`` also stops at ";", which ends a clause, not a sentence)."""
+    out, current = [], ""
+    for piece in _sentences(text):
+        current += piece
+        if not piece.rstrip().endswith(";"):
+            out.append(current)
+            current = ""
+    if current:
+        out.append(current)
+    return [s for s in out if s.strip()]
+
+
+def _clauses(text: str) -> list[tuple[str, str]]:
+    """(the whole sentence, one of its clauses), clause by clause."""
+    return [(whole, clause) for whole in _full_sentences(text) for clause in _sentences(whole)]
 
 
 #: What makes a span restrictive: a condition, exclusivity, negation, modality, exception, limit, tense or quantifier.
@@ -633,7 +651,26 @@ def _normative(concepts: list[tuple[str, set[str]]], tokens: list[str], folded: 
     act that removes or overrides a duty (revokes, repeals, suspends, waives, exempts), is normative too, and so is a
     use designation ("os espaços destinam-se a …", "intended for …"): it says which uses the land admits."""
     return (legal or _precise(concepts, tokens, folded) or bool(_DEONTIC_WORDS.search(folded))
-            or any("INTENDED" in alts for _, alts in concepts))
+            or any("INTENDED" in alts for _, alts in concepts) or _stative(tokens, folded))
+
+
+#: A participle or a "-vel" / "-ble" adjective: the form of a legal state ("consentida", "autorizadas", "allowed",
+#: "admissível", "permissible"), whatever the verb.
+_STATE_FORM = re.compile(r"^\w{3,}(?:ad[oa]s?|id[oa]s?|ed|vel|veis|ble)$")
+
+
+def _stative(tokens: list[str], folded: str) -> bool:
+    """Whether a copula gives its subject a state ("a edificação é consentida", "works are allowed", "o uso é
+    admissível"). Decided by the form of the predicate, not by a list of permission words. A possibility under an
+    explicit dependency ("may be admissible, depending on the land category") asserts no state."""
+    if _DEPENDENCY_CLAUSE.search(folded) and _MODAL_AUX & set(tokens):
+        return False
+    for i, t in enumerate(tokens):
+        if t in _COPULA | {"ficam", "estao", "sejam", "seja", "esteja", "estejam", "being", "been"}:
+            nxt = [w for w in tokens[i + 1:i + 4] if w not in _SKIP and w not in {"not", "nao", "never", "nunca"}]
+            if nxt and _STATE_FORM.match(nxt[0]):
+                return True
+    return False
 
 
 def _restates_case_records(tokens: list[str], cited: list[Evidence]) -> tuple[str, ...]:
@@ -670,7 +707,7 @@ def _restates(concepts: list[tuple[str, set[str]]], cited: list[Evidence]) -> bo
 
 
 def _directional(tokens: list[str], cited: list[Evidence], verbatim: bool = False,
-                 text: str = "", literal: bool = False) -> tuple[tuple[str, ...], bool]:
+                 text: str = "", literal: bool = False, whole: str | None = None) -> tuple[tuple[str, ...], bool]:
     """(supporting evidence ids, quote_required): the ids are empty when nothing supports the atom;
     ``quote_required`` says a cited sentence would support it as a literal quote. ``literal``: only the sentence's
     own wording supports it (a normative statement, see ``_normative``)."""
@@ -681,7 +718,7 @@ def _directional(tokens: list[str], cited: list[Evidence], verbatim: bool = Fals
     for e in cited:
         if is_official_text(e):
             for s in _passage_sentences(e):
-                if (not literal or _literal(text, s)) and _supports(concepts, s, verbatim, exceptions, main):
+                if (not literal or _literal(whole or text, s)) and _supports(concepts, s, verbatim, exceptions, main):
                     return (e.evidence_id,), False
                 quote_required = quote_required or ((literal or len(s.limits) >= 2)
                                                     and _supports(concepts, s, True, exceptions, main))
@@ -695,7 +732,7 @@ _QUOTE_REQUIRED = ("restates a normative rule (a requirement, duty, permission, 
                    "passage (planning_basis general_rule)")
 
 
-def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False) -> Atom:
+def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False, whole: str | None = None) -> Atom:
     """A general explanation atom. Enforced when it touches a legal instrument or outcome, or gives the matter a legal
     position; otherwise the planning contract decides and the directional verdict is recorded in shadow.
 
@@ -707,7 +744,7 @@ def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False) 
     legal = _legal(folded)
     if verbatim:
         # A quote is held to the whole sentence: a part can leave out a condition in any wording.
-        supported, _ = _directional(tokens, cited, verbatim=True, text=atom, literal=True)
+        supported, _ = _directional(tokens, cited, verbatim=True, text=atom, literal=True, whole=whole)
         enforced = _normative(_concepts_of(tokens), tokens, folded, legal) or _restates(_concepts_of(tokens), cited)
         return Atom(atom, "general_rule" if supported else "unsupported", "source", supported,
                     None if supported else _UNSUPPORTED, enforced=enforced)
@@ -745,7 +782,7 @@ def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False) 
                     "says something about this matter that its cited case records don't state; a general rule can't "
                     "establish it")
     normative = _normative(_concepts_of(tokens), tokens, folded, legal) or _restates(_concepts_of(tokens), cited)
-    supported, quote_required = _directional(tokens, cited, verbatim, text=atom, literal=normative)
+    supported, quote_required = _directional(tokens, cited, verbatim, text=atom, literal=normative, whole=whole)
     kind = ("conditional_rule" if conditional else "general_rule") if supported else "unsupported"
     enforced = normative
     problem = None if supported else _QUOTE_REQUIRED if quote_required else _UNSUPPORTED
@@ -793,18 +830,23 @@ def atoms(text: str) -> list[str]:
     return [a.strip() for a in _sentences(text) if _tokens(a)]
 
 
+def _statement_clauses(text: str) -> list[tuple[str, str]]:
+    return [(w.strip(), a.strip()) for w, a in _clauses(text) if _tokens(a)]
+
+
 def assess(text: str, basis: str, step: str | None, cited: list[Evidence]) -> list[Atom]:
     """The atoms of one model statement, each with its verdict. Rendered statements are HABITA's own text."""
     cited = [e for e in cited if not is_user_declared(e)]
     if basis == "general_rule":
         # A verbatim quote is the source's own words, but a partial one can drop the rule's scope, alternatives or
         # exceptions ("deve ser assegurada a dotação de estacionamento"): it is held to the same support check.
-        return [_explanation_atom(a, cited, verbatim=True) for a in atoms(text)]
+        # The literal test reads the whole sentence each clause belongs to: a clause ending in ";" is not a sentence.
+        return [_explanation_atom(a, cited, verbatim=True, whole=w) for w, a in _statement_clauses(text)]
     if basis in RENDERED:
         return []
     if basis == EXPLANATION:
         body = text[len(EXPLANATION_FRAME):] if text.startswith(EXPLANATION_FRAME) else text
-        return [_explanation_atom(a, cited) for a in atoms(body)]
+        return [_explanation_atom(a, cited, whole=w) for w, a in _statement_clauses(body)]
     full = ". ".join(filter(None, (step, text)))
     return [_free_text_atom(a, cited) for a in atoms(full)]
 

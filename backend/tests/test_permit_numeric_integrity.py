@@ -379,3 +379,33 @@ async def test_normative_round2_a_prefix_of_the_sentence_is_not_a_quote():
     assert rejected(await quoted(prefix, "E88"))
     report = await quoted(prefix + ", incluindo obras de ampliação", "E88")
     assert report.outcome == "VERIFIED", report.issues
+
+
+# --- Codex normative round 3 (2026-10-29): exact cases ------------------------------------------------------------
+
+E91 = official("E91", "TEST FIXTURE Artigo 991.º Edificação 1 - Em solo urbano, as edificações são permitidas; apenas "
+                      "se tiverem parecer favorável da Câmara.")
+RECS.append(E91)
+WHOLE_E91 = E91.excerpt.split(" 1 - ", 1)[1]
+
+
+@pytest.mark.parametrize("text", [
+    "Em solo urbano, a edificação é consentida.",  # exact (E33)
+    "Em solo urbano, as edificações são autorizadas.",
+    "In urban land, building is allowed.",
+    "Em solo urbano, o uso habitacional é admissível.",
+])
+async def test_normative_round3_a_state_given_by_a_copula_is_normative_whatever_the_word(text):
+    assert rejected(await explained(text, "E33"))
+
+
+async def test_normative_round3_a_clause_ending_in_a_semicolon_is_not_the_sentence():
+    clause = "Em solo urbano, as edificações são permitidas;"
+    assert rejected(await explained(clause, "E91"))
+    assert rejected(await quoted(clause, "E91"))
+
+
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_normative_round3_the_whole_sentence_with_its_semicolon_verifies(section):
+    for report in (await explained(WHOLE_E91, "E91", section), await quoted(WHOLE_E91, "E91", section)):
+        assert report.outcome == "VERIFIED", report.issues
