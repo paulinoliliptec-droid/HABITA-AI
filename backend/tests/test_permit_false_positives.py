@@ -120,3 +120,9 @@ async def test_a_clause_after_a_deferral_is_an_assertion_of_its_own(text):
     """Found while checking round 4 (pre-existing in claims): a relative or coordinated clause after a deferral was
     read as part of it, so a legal claim about the property verified with every word grounded."""
     assert "VERIFIED" not in await outcomes(text)
+
+
+async def test_a_negated_competence_is_never_the_records():
+    """Codex FP review round 5 (exact, P2); fixed after the last round, not re-reviewed."""
+    text = "No licensing of urban operations, including building permits, is handled by Câmara Municipal de Cascais."
+    assert "VERIFIED" not in await outcomes(text)

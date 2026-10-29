@@ -415,7 +415,8 @@ def case_restatement(text: str, cited: list[Evidence]) -> bool:
     corpus |= {_stem(w) for w in _META}
     authorities = [e for e in cited if e.source_type == "authority_record"]
     words = _tokens(text)
-    if authorities and all(_competence_oriented(_tokens(x), authorities, restating=True) for x in _sentences(text)):
+    if (authorities and not _NEGATED.search(fold(text))
+            and all(_competence_oriented(_tokens(x), authorities, restating=True) for x in _sentences(text))):
         # "… is handled by the Câmara" restating the authority's own competence record (FP-3): the neutral competence
         # predicate is grounded by that record; every other word still has to be.
         corpus |= {_stem(w) for w in _COMPETENCE_PREDICATES}
@@ -428,6 +429,11 @@ _GLUE = {"is", "are", "be", "by", "for", "e", "sao", "por", "pela", "pelo", "the
 
 def _in_order_run(words: list[str], record: list[str]) -> bool:
     return bool(words) and any(record[i:i + len(words)] == words for i in range(len(record) - len(words) + 1))
+
+
+#: A negation anywhere: a competence restatement states the record, never its opposite ("No licensing … is handled by
+#: the Câmara"; FP review round 5).
+_NEGATED = re.compile(r"\b(?:no|not|never|none|nor|without|nao|nunca|nenhum|nenhuma|nem|sem)\b")
 
 
 def _competence_oriented(words: list[str], authorities: list[Evidence], restating: bool = False) -> bool:
