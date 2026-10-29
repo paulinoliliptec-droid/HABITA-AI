@@ -17512,6 +17512,76 @@
    "status": "not_run",
    "observed": {},
    "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r3_a_structural_sentence_taking_up_the_rule_conditions_nothing"
+  },
+  {
+   "id": "ACC-NRM-34",
+   "group": "NRM",
+   "statement": "Em solo urbano, as obras são permitidas.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex NRM-22..24 task round 4, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 34662a7)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "PX11 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_rule"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "source",
+    "object": "see claim_type",
+    "claim_type": "quote leaving out \"O PDM define como excluídas desta permissão …\" (P1)",
+    "modality": "quote"
+   },
+   "expected": "REJECTED",
+   "rationale": "VERIFIED on 34662a7 (the exclusion read as a structural unit). Fixed: a structural unit has no predicative complement, no state-giving participle and no restrictive or deontic concept.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r4_a_structural_verb_with_a_predicative_exclusion_is_content"
+  },
+  {
+   "id": "ACC-NRM-35",
+   "group": "NRM",
+   "statement": "Nas operações urbanísticas, o PDM define os usos admissíveis, incluindo estacionamento.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex NRM-22..24 task round 4, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 34662a7)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "PX13 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "duty presented as an admissible use (P1)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "VERIFIED on 34662a7. Fixed: \"the admissible uses\" is structural only when no kind of use is named or listed beside it.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r4_naming_a_use_beside_the_admissible_uses_admits_it"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
@@ -17676,6 +17746,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "NRM-22..24 task round 3 (Codex): modal-only hedge; title-only headings; structural sentences are not merged. ACC-NRM-31..33 added."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "NRM-22..24 task round 4 (Codex): structural units carry no predicative complement, state or restriction; naming a use beside the admissible uses admits it. ACC-NRM-34..35 added."
   }
  ]
 }

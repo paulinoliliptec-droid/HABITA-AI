@@ -397,8 +397,12 @@ def _structural_unit(text: str) -> bool:
     tokens, folded = _tokens(text), _fold(text.lower())
     # A structural verb, not a participle or adjective ("Excetuam-se os edifícios classificados" states content).
     verb = any(_META.fullmatch(t) and not _STATE_FORM.match(t) for t in tokens)
-    return (verb and not _normative_text(text) and not _CONTENT_CLAUSE.search(folded)
-            and not _NEGATION & set(tokens))
+    # …and nothing that gives anything a state, a condition, a limit or an exception: "define como excluídas desta
+    # permissão as obras …" is content, however structural its verb.
+    state = any(_STATE_FORM.match(t) and not _META.fullmatch(t) for t in tokens)
+    restrictive = any(alts & (_DEONTIC_CONCEPTS | {"COND"}) for _, alts in _concepts_of(tokens))
+    return (verb and not state and not restrictive and not _normative_text(text) and not _CONTENT_CLAUSE.search(folded)
+            and not _NEGATION & set(tokens) and not _predicative(tokens))
 
 
 def _passage_sentences(e: Evidence) -> list[_Sentence]:
@@ -959,6 +963,15 @@ def _qualifies_uses(words: list[str], i: int) -> bool:
     return False
 
 
+#: Kinds of use: naming one beside "the admissible uses" ("…, incluindo estacionamento") says that use is admissible.
+_USE_KINDS = {"HOUSING", "COMMERCE", "SERVICES", "PARKING", "INCL"}
+
+
+def _names_a_use(tokens: list[str]) -> bool:
+    return any(alts & _USE_KINDS for _, alts in _concepts_of(tokens)) or bool(
+        {"como", "such", "e.g", "nomeadamente", "designadamente"} & set(tokens))
+
+
 def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
     """Whether every content word of a structural description is a structural or generic word, the attribution to a
     cited source, or a concept of a cited official sentence: it describes the cited text and adds no claim of its own
@@ -978,8 +991,9 @@ def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
             continue
         # "os usos admissíveis", "which uses each zone admits": admissibility names a category of uses; qualifying
         # anything else ("a dotação … admissível") is a claim.
-        if t.startswith(("admit", "admiss")) and (hedged and _MODAL_AUX & set(words)
-                                                  or _qualifies_uses(words, words.index(t))):
+        admissible = t.startswith(("admit", "admiss"))
+        if admissible and (hedged and _MODAL_AUX & set(words)
+                           or _qualifies_uses(words, words.index(t)) and not _names_a_use(tokens)):
             continue
         deontic = bool(alts & _DEONTIC_CONCEPTS)
         if alts & allowed:
@@ -1007,13 +1021,17 @@ def _meta_descriptive(tokens: list[str], folded: str, cited: list[Evidence] = ()
     if m := _APPLICABILITY.search(folded):
         if not all(t in _FUNCTION or t in _GENERIC_RULES for t in _tokens(folded[m.end():])):
             return False
-    # Anywhere after the verb, however long the object (ACC-NRM-10). EN "as" needs an object between ("classifies land
-    # as"); after "e", "de", "todas" … it is the PT article ("define a dotação e as regras"), whatever the language
-    # of the rest (a PT source name in an EN sentence).
-    return not any((t == "como" and any(_META.match(w) for w in tokens[:i]))
-                   or (t == "as" and tokens[i - 1] not in _PT_BEFORE_ARTICLE
-                       and any(_META.match(w) for w in tokens[:i - 1]))
-                   for i, t in enumerate(tokens))
+    return not _predicative(tokens)
+
+
+def _predicative(tokens: list[str]) -> bool:
+    """A predicative complement after a structural verb ("classifies X as Y", "define X como Y"), anywhere after the
+    verb however long the object (ACC-NRM-10). EN "as" needs an object between ("classifies land as"); after "e",
+    "de", "todas" … it is the PT article ("define a dotação e as regras"), whatever the language of the rest."""
+    return any((t == "como" and any(_META.match(w) for w in tokens[:i]))
+               or (t == "as" and tokens[i - 1] not in _PT_BEFORE_ARTICLE
+                   and any(_META.match(w) for w in tokens[:i - 1]))
+               for i, t in enumerate(tokens))
 
 
 def _no_provider(kind: str) -> str | None:

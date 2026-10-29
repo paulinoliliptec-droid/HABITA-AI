@@ -757,3 +757,34 @@ async def test_nrm_r3_a_last_paragraph_without_a_stop_is_not_a_heading():
 async def test_nrm_r3_a_structural_sentence_taking_up_the_rule_conditions_nothing():
     report = await quoted("A multifuncionalidade do solo é permitida.", "E988")
     assert report.outcome == "VERIFIED", report.issues
+
+
+# --- NRM-22..24 task, Codex round 4 (2026-10-29): exact cases -------------------------------------------------------
+
+PX11 = official("PX11", "TEST FIXTURE Artigo 11.º Obras 1 - Em solo urbano, as obras são permitidas. 2 - O PDM define "
+                        "como excluídas desta permissão as obras de demolição.")
+PX13 = official("PX13", "TEST FIXTURE Artigo 13.º Estacionamento 1 - Nas operações urbanísticas, a dotação de "
+                        "estacionamento deve ser assegurada.")
+RECS.extend([PX11, PX13])
+
+
+async def test_nrm_r4_a_structural_verb_with_a_predicative_exclusion_is_content():
+    assert rejected(await quoted("Em solo urbano, as obras são permitidas.", "PX11"))
+    report = await quoted(PX11.excerpt.split(" 1 - ", 1)[1], "PX11")
+    assert report.outcome == "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("text", [
+    "Nas operações urbanísticas, o PDM define os usos admissíveis, incluindo estacionamento.",  # exact
+    "Nas operações urbanísticas, o PDM define os usos admissíveis, como o estacionamento.",
+    "The PDM sets the admissible uses, such as parking.",
+])
+async def test_nrm_r4_naming_a_use_beside_the_admissible_uses_admits_it(text):
+    assert rejected(await explained(text, "PX13"))
+
+
+async def test_nrm_r4_a_predicative_complement_alone_makes_a_unit_content():
+    e = official("PX12", "TEST FIXTURE Artigo 12.º Obras 1 - Em solo urbano, as obras são permitidas. 2 - O PDM classifica "
+                         "como solo rústico a faixa costeira.")
+    RECS.append(e)
+    assert rejected(await quoted("Em solo urbano, as obras são permitidas.", "PX12"))
