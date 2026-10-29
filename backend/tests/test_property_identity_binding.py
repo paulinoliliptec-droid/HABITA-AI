@@ -130,3 +130,24 @@ def test_a_property_write_after_the_gate_is_never_committed_and_the_gate_re_runs
         state = repo.matters[mid].state
     assert results[0] is False  # bound to the stale read: refused, nothing written
     assert results[-1] is True and state == "VERIFIED"  # the gate re-ran on the current property
+
+
+# --- Codex Phase 2 binding review, round 1 (2026-10-29): exact cases ----------------------------------------------
+
+async def test_a_merge_without_aliases_still_moves_the_kept_identity():
+    repo, collection = make_repo()
+    keep = (await repo.save(snapshot(place_id="ChIJ-k"), {"ChIJ-k"})).property_id
+    collection.docs["prp_legacy"] = {"_id": "prp_legacy", "place_id": "ChIJ-old", "identity_version": 0,
+                                     "snapshot_state": "current", "created_at": T0}  # a legacy duplicate, no place_ids
+    before = await repo.identity(keep)
+    await repo.merge(keep=keep, duplicate="prp_legacy")
+    assert (await repo.identity(keep)).version > before.version
+
+
+async def test_an_older_in_memory_save_that_attaches_an_alias_moves_the_identity():
+    from app.db.property_repository import InMemoryPropertyRepository
+    repo = InMemoryPropertyRepository()
+    pid = (await repo.save(snapshot(resolved_at=T0 + timedelta(hours=1)), {"ChIJ-a"})).property_id
+    captured = await repo.identity(pid)
+    await repo.save(snapshot(), {"ChIJ-a", "ChIJ-late"})  # older snapshot, new alias
+    assert not repo.identity_holds(captured)

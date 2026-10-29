@@ -222,10 +222,13 @@ class InMemoryPropertyRepository:
         if pid is None:
             identity, pid = "new", new_property_id()
 
-        for alias in aliases:
-            self._owner_by_alias.setdefault(alias, pid)
+        claimed = [alias for alias in aliases if alias not in self._owner_by_alias]
+        for alias in claimed:
+            self._owner_by_alias[alias] = pid
         current = self._items.get(pid)
         if current is not None and current.resolved_at >= snapshot.resolved_at:
+            if claimed:
+                self.touch(pid)  # an older snapshot still attached aliases: a write
             return current
         self._items[pid] = ResolvedProperty(**_with_identity(snapshot, identity).model_dump(), property_id=pid)
         self._versions[pid] = self._versions.get(pid, -1) + 1
@@ -442,6 +445,12 @@ class MongoPropertyRepository:
                 try:
                     if aliases:
                         await self._add_aliases(keep, aliases)
+                    else:  # nothing to attach, but `keep` now stands for the duplicate too: a write (C2)
+                        result = await self._collection.update_one(
+                            {"_id": keep, "merged_into": {"$exists": False}, "merging_into": {"$exists": False}},
+                            _BUMP)
+                        if result.matched_count == 0:
+                            raise _RetrySave("target merged before the merge write")
                     break
                 except _RetrySave:
                     canonical = await self._canonical_doc(await self._collection.find_one({"_id": keep}))
