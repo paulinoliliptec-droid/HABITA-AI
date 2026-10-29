@@ -13,7 +13,9 @@ decides what it *claims*. It only ever adds rejections, and it decides by allowl
   the atom (nothing dropped: no antecedent, alternative, limit or exception). Concepts are compared through a
   closed bilingual table (``_CONCEPTS``); a word outside it must appear literally. An unknown word therefore
   fails closed. The matter may appear only inside an ``if`` antecedent ("If the works are …, …"), never in the
-  consequent.
+  consequent. A **normative** atom (``_normative``: a legal instrument, requirement, duty, asserted permission,
+  prohibition, number, limit or exception) must also be the sentence's own wording (``_literal``): concept sets keep
+  the words but not their roles (object vs scope, ACC-QO-09 / ACC-ROLE-01), so a paraphrase is never supported.
 - A **free-text** atom (basis ``none``) that touches a legal instrument or outcome (licence, permit, prior
   communication, approval, validity, exemption …) is admissible only as the authority's competence in its own
   record's words, or as a deferral / recommendation that asserts nothing about the matter.
@@ -33,8 +35,8 @@ from dataclasses import dataclass
 
 from app.schemas.permit import Evidence
 from app.services.permit.admissibility import (
-    _DEFERRAL, _UNASSERTED, EXPLANATION, EXPLANATION_FRAME, _sentences, evidence_capabilities, is_official_text,
-    is_user_declared,
+    _DEFERRAL, _UNASSERTED, EXPLANATION, EXPLANATION_FRAME, _norm, _sentences, evidence_capabilities,
+    is_official_text, is_user_declared,
 )
 
 #: Bases whose text HABITA renders itself.
@@ -257,6 +259,8 @@ class _Sentence:
     exceptions: frozenset = frozenset()  # what each exception covers (see ``_exceptions``)
     main: frozenset = frozenset()  # the concepts outside the exceptions (see ``_main_concepts``)
     main_required: frozenset = frozenset()  # the restrictive ones among them (all but inclusion lists)
+    #: The sentence's own wording, normalised (``_norm``), whole and without its inclusion lists, for ``_literal``.
+    wordings: tuple[str, ...] = ()
 
 
 _UNITS = {"M2", "PCT"}
@@ -390,8 +394,22 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
                                      frozenset(_slots(concepts)), frozenset(_slots(core_concepts)),
                                      _limits(concepts), _exceptions(sentence),
                                      frozenset(c for _, alts in _main_concepts(sentence) for c in alts),
-                                     _representatives(_main_concepts(_INCLUSION.sub(" ", sentence)))))
+                                     _representatives(_main_concepts(_INCLUSION.sub(" ", sentence))),
+                                     (_norm(sentence), _norm(_INCLUSION_CLAUSE.sub(" ", sentence)))))
     return out
+
+
+#: An inclusion list with its commas ("…de edificação, incluindo obras de ampliação …, sujeitas a …"): a literal
+#: quote may leave it out, since it names cases the scope already covers (it restricts nothing, see ``required``).
+_INCLUSION_CLAUSE = re.compile(r",?\s*\b(?:incluindo|including|nomeadamente|designadamente|namely)\b[^,;:]*,?",
+                               re.IGNORECASE)
+
+
+def _literal(atom: str, s: _Sentence) -> bool:
+    """Whether the atom is the sentence's own wording, in its own order (accents, case and spacing aside), whole words
+    only; the sentence's inclusion lists may be left out."""
+    a = _norm(atom)
+    return bool(a) and any(re.search(rf"(?<!\w){re.escape(a)}(?!\w)", w) for w in s.wordings)
 
 
 def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence, verbatim: bool = False,
@@ -584,6 +602,19 @@ def _precise(concepts: list[tuple[str, set[str]]], tokens: list[str] = (), folde
     return _deontic_permission(list(tokens), folded)
 
 
+#: Prohibitions, whatever their grammar ("é proibida", "is prohibited", "interdita").
+_PROHIBITION = re.compile(r"\b(?:proib\w*|prohibit\w*|interdit\w*|forbid\w*|forbidden|vedad\w*|impedid\w*)\b")
+
+
+def _normative(concepts: list[tuple[str, set[str]]], tokens: list[str], folded: str, legal: bool) -> bool:
+    """A normative statement (owner decision, ACC-QO-09 / ACC-ROLE-01): a legal instrument, or a requirement, duty,
+    permission asserted as the predicate, prohibition, number, limit, unit, exception or exclusivity. Its words can be
+    checked against the passage, but not their grammatical roles (which noun is the object, which the scope), so it
+    is supported only as the passage's own wording. A permission named as an object ("defines the admissible uses")
+    or hedged by a dependency ("may depend on the plan") grants nothing and stays descriptive."""
+    return legal or _precise(concepts, tokens, folded) or bool(_PROHIBITION.search(folded))
+
+
 def _restates_case_records(tokens: list[str], cited: list[Evidence]) -> tuple[str, ...]:
     """The case records (property, jurisdiction, authority) a matter atom only restates, or () if it says more."""
     records = [e for e in cited if e.source_type in ("property_record", "jurisdiction_record", "authority_record")]
@@ -596,9 +627,10 @@ def _restates_case_records(tokens: list[str], cited: list[Evidence]) -> tuple[st
 
 
 def _directional(tokens: list[str], cited: list[Evidence], verbatim: bool = False,
-                 text: str = "") -> tuple[tuple[str, ...], bool]:
+                 text: str = "", literal: bool = False) -> tuple[tuple[str, ...], bool]:
     """(supporting evidence ids, quote_required): the ids are empty when nothing supports the atom;
-    ``quote_required`` says a cited multi-limit sentence would support it as a literal quote."""
+    ``quote_required`` says a cited sentence would support it as a literal quote. ``literal``: only the sentence's
+    own wording supports it (a normative statement, see ``_normative``)."""
     concepts = _concepts_of(tokens)
     exceptions = _exceptions(text)
     main = _main_concepts(text, tokens)
@@ -606,17 +638,18 @@ def _directional(tokens: list[str], cited: list[Evidence], verbatim: bool = Fals
     for e in cited:
         if is_official_text(e):
             for s in _passage_sentences(e):
-                if _supports(concepts, s, verbatim, exceptions, main):
+                if (not literal or _literal(text, s)) and _supports(concepts, s, verbatim, exceptions, main):
                     return (e.evidence_id,), False
-                quote_required = quote_required or (len(s.limits) >= 2
+                quote_required = quote_required or ((literal or len(s.limits) >= 2)
                                                     and _supports(concepts, s, True, exceptions, main))
     return (), quote_required
 
 
 _UNSUPPORTED = ("is not supported, in the direction stated, by any one sentence of the official text it cites (it "
                 "adds or drops a condition, alternative, limit, exception, status, tense or object)")
-_QUOTE_REQUIRED = ("restates a rule with several numeric limits in its own words; such a rule can only be stated as a "
-                   "literal quote of the official passage (planning_basis general_rule)")
+_QUOTE_REQUIRED = ("restates a normative rule (a requirement, duty, permission, prohibition, number, limit or "
+                   "exception) in its own words; such a rule can only be stated as a literal quote of the official "
+                   "passage (planning_basis general_rule)")
 
 
 def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False) -> Atom:
@@ -667,9 +700,10 @@ def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False) 
         return Atom(atom, "unsupported", "matter", (),
                     "says something about this matter that its cited case records don't state; a general rule can't "
                     "establish it")
-    supported, quote_required = _directional(tokens, cited, verbatim, text=atom)
+    normative = _normative(_concepts_of(tokens), tokens, folded, legal)
+    supported, quote_required = _directional(tokens, cited, verbatim, text=atom, literal=normative)
     kind = ("conditional_rule" if conditional else "general_rule") if supported else "unsupported"
-    enforced = legal or _precise(_concepts_of(tokens), tokens, folded)
+    enforced = normative
     problem = None if supported else _QUOTE_REQUIRED if quote_required else _UNSUPPORTED
     return Atom(atom, kind, "general", supported, problem, enforced=enforced)
 

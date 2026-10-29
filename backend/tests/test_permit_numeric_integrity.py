@@ -2,8 +2,9 @@
 
 Three levels, each verified as it must be:
 - a literal transcription (planning_basis general_rule): proves what the source says, nothing about the property;
-- a supported general explanation (one sentence of official text, every limit, condition and exception kept;
-  only for rules with a single numeric limit);
+- a general explanation: a normative statement (a requirement, duty, permission, prohibition, number, limit or
+  exception) only as the official sentence's own wording (owner decision after ACC-QO-09: a paraphrase keeps the
+  words but not their roles); a paraphrase is shown, never VERIFIED;
 - an application to this property: never VERIFIED from a general rule (no property-specific evidence exists).
 
 Fixtures are synthetic official passages (TEST FIXTURE); no real Cascais article says this."""
@@ -58,13 +59,30 @@ def rejected(report):
     return report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues)
 
 
-# --- level 2: a supported general explanation of a single-limit rule --------------------------------------------------
+# --- level 2: a general explanation of a single-limit rule is its own wording -----------------------------------------
+
+def quote_only(report):
+    return rejected(report) and any("literal quote" in i.message for i in report.issues)
+
 
 @pytest.mark.parametrize("section", SECTIONS)
-@pytest.mark.parametrize("text, eid", [(HEIGHT, "E33"), (PERCENT.replace("Nas", "Em"), "E36")])
-async def test_a_faithful_single_limit_explanation_verifies(text, eid, section):
+@pytest.mark.parametrize("text, eid", [(HEIGHT, "E33"), (PERCENT, "E36")])
+async def test_a_single_limit_rule_in_its_own_wording_verifies(text, eid, section):
     report = await explained(text, eid, section)
     assert report.outcome == "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("section", SECTIONS)
+@pytest.mark.parametrize("text, eid", [
+    (PERCENT.replace("Nas", "Em"), "E36"),  # one preposition changed
+    ("Em solo urbano, salvo em edifícios classificados, a altura das edificações não pode exceder 9 m.", "E33"),
+    ("Em solo urbano, a altura das edificações não pode exceder 9 m, com exceção dos edifícios classificados.", "E33"),
+    ("Em solo urbano a altura das edificações não pode exceder 9 m salvo em edifícios classificados.", "E33"),  # commas
+])
+async def test_a_faithful_paraphrase_of_a_single_limit_rule_is_quote_only(text, eid, section):
+    """Owner decision (ACC-QO-09): its meaning may be right, but which noun is the object and which the scope can't
+    be read back from a paraphrase, so it must be quoted."""
+    assert quote_only(await explained(text, eid, section))
 
 
 @pytest.mark.parametrize("text", [
@@ -210,13 +228,6 @@ async def test_round2_a_quote_plus_the_parcel_determination_gives_no_definitive_
 
 
 @pytest.mark.parametrize("section", SECTIONS)
-async def test_round2_an_exception_placed_before_the_main_clause_verifies(section):
-    text = "Em solo urbano, salvo em edifícios classificados, a altura das edificações não pode exceder 9 m."
-    report = await explained(text, "E33", section)
-    assert report.outcome == "VERIFIED", report.issues
-
-
-@pytest.mark.parametrize("section", SECTIONS)
 async def test_round1_a_pt_definite_plural_class_scope_verifies(section):
     report = await explained("Nas habitações coletivas, é admitida a ampliação até 10 % da área existente.", "E36",
                              section)
@@ -232,23 +243,46 @@ async def test_round3_a_concept_of_the_exception_moved_into_the_scope_is_rejecte
 
 
 @pytest.mark.parametrize("section", SECTIONS)
-async def test_round3_an_exception_worded_com_excecao_de_verifies(section):
-    text = "Em solo urbano, a altura das edificações não pode exceder 9 m, com exceção dos edifícios classificados."
-    report = await explained(text, "E33", section)
-    assert report.outcome == "VERIFIED", report.issues
-
-
-@pytest.mark.parametrize("section", SECTIONS)
 async def test_round4_the_limits_object_dropped_and_found_in_the_exception_is_rejected(section):
     """Codex quote-only round 4: "das edificações" dropped; "edifícios" in the exception must not stand in for it."""
     text = "Em solo urbano, a altura não pode exceder 9 m, salvo em edifícios classificados."
     assert rejected(await explained(text, "E33", section))
 
 
-# --- OPEN (BLOCKED after 5 Codex rounds): a paraphrase keeps the words but swaps their roles -----------------------
+# --- roles: a paraphrase keeps the words but not their roles (ACC-QO-09, ACC-ROLE-01; closed by quote-only) ---------
 
-@pytest.mark.xfail(strict=True, reason="OPEN P1 (Codex quote-only round 5): concept-set support loses grammatical "
-                                       "roles; 'a altura do solo' in 'edifícios urbanos' verifies against E33")
-async def test_open_a_single_limit_rule_with_swapped_roles_is_rejected():
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_a_single_limit_rule_with_swapped_roles_is_rejected(section):
+    """Codex quote-only round 5 (exact wording): object and scope swapped, every word kept."""
     text = "Em edifícios urbanos, a altura do solo não pode exceder 9 m, salvo em edifícios classificados."
+    assert rejected(await explained(text, "E33", section))
+
+
+@pytest.mark.parametrize("text", [
+    "Em solo classificado, a altura das edificações não pode exceder 9 m, salvo em edifícios urbanos.",
+    "Em solo urbano, a altura dos edifícios classificados não pode exceder 9 m, salvo nas edificações.",
+    "A altura das edificações em solo urbano não pode exceder 9 m, salvo em edifícios classificados.",
+])
+async def test_other_reorderings_of_the_same_words_are_rejected(text):
     assert rejected(await explained(text, "E33"))
+
+
+@pytest.mark.parametrize("text", [
+    "In urban land, the height of buildings may not exceed 9 m, except classified buildings.",  # translated
+    "Em solo urbano, a altura da fachada não pode exceder 9 m.",  # one limit of a cumulative rule (E34)
+    "a altura das edificações não pode exceder 9 m, salvo em edifícios classificados.",  # the scope dropped
+    "Em solo urbano, a altura das edificações não pode exceder 9 m.",  # the exception dropped
+    "Em solo urbano, a altura das edificações não pode exceder 9",  # the unit cut
+    "edificações não pode exceder 9 m, salvo em edifícios classificados.",  # a fragment from mid-phrase
+])
+async def test_a_partial_or_translated_transcription_is_still_rejected(text):
+    """Literal wording is necessary, not sufficient: the directional check still needs every restrictive part."""
+    assert rejected(await explained(text, "E34" if "fachada" in text else "E33"))
+
+
+async def test_a_literal_transcription_is_about_its_source_not_the_property():
+    """A rule in its own wording, applied to the works in the same statement, is still an application."""
+    text = "Em solo urbano, a altura das edificações da obra não pode exceder 9 m, salvo em edifícios classificados."
+    assert rejected(await explained(text, "E33"))
+    report = await explained(f"If the works are in urban land, {HEIGHT[0].lower()}{HEIGHT[1:]}", "E33")
+    assert rejected(report)

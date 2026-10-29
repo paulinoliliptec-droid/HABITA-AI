@@ -71,18 +71,34 @@ def test_no_record_type_carries_the_property_legal_status_capability():
 # --- directional support -------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("text, cites", [
-    ("In urban building operations, including enlargement and change of use, subject to licensing or prior "
-     "communication, parking provision must be ensured.", ["E13"]),
-    ("If the works are an urban building operation subject to licensing or prior communication, parking provision "
-     "must be ensured.", ["E13"]),
     ("Nas operações urbanísticas de edificação sujeitas a licenciamento ou comunicação prévia, deve ser assegurada a "
-     "dotação de estacionamento.", ["E13"]),
+     "dotação de estacionamento.", ["E13"]),  # E13's own wording, its inclusion list left out
+    ("Nas operações urbanísticas de edificação, incluindo obras de ampliação e alteração de uso, sujeitas a "
+     "licenciamento ou comunicação prévia, deve ser assegurada a dotação de estacionamento.", ["E13"]),  # whole
 ])
 @pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
-async def test_a_rule_restated_with_all_its_conditions_verifies(text, cites, section):
+async def test_a_rule_in_its_own_wording_verifies(text, cites, section):
     report = await verify(text, cites, section)
     assert report.outcome == "VERIFIED", report.issues
-    assert any(a.kind in {"general_rule", "conditional_rule"} and a.supported_by == cites for a in report.claim_atoms)
+    assert any(a.kind == "general_rule" and a.supported_by == cites for a in report.claim_atoms)
+
+
+@pytest.mark.parametrize("text", [
+    "In urban building operations, including enlargement and change of use, subject to licensing or prior "
+    "communication, parking provision must be ensured.",  # translated
+    "If the works are an urban building operation subject to licensing or prior communication, parking provision "
+    "must be ensured.",  # applied as a condition
+    "Nas operações urbanísticas de estacionamento sujeitas a licenciamento ou comunicação prévia, deve ser assegurada "
+    "a dotação de edificação.",  # ACC-ROLE-01: objects swapped
+    "Nas operações urbanísticas de edificação sujeitas a licenciamento ou comunicação prévia, a dotação de "
+    "estacionamento deve ser assegurada.",  # reordered
+])
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_a_requirement_in_other_words_is_quote_only(text, section):
+    """Owner decision (ACC-QO-09 / ACC-ROLE-01): a normative statement verifies only in the passage's own wording."""
+    report = await verify(text, ["E13"], section)
+    assert report.outcome == "REJECTED"
+    assert any(i.code == "unsupported_legal_claim" for i in report.issues)
 
 
 @pytest.mark.parametrize("text, cites", [
