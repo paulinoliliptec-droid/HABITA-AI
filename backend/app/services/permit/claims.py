@@ -745,7 +745,9 @@ def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False, 
     if verbatim:
         # A quote is held to the whole sentence: a part can leave out a condition in any wording.
         supported, _ = _directional(tokens, cited, verbatim=True, text=atom, literal=True, whole=whole)
-        enforced = _normative(_concepts_of(tokens), tokens, folded, legal) or _restates(_concepts_of(tokens), cited)
+        # Every quote is enforced: a quote that is not one whole, supporting official sentence is never certified,
+        # whatever it says (ACC-NRM-11).
+        enforced = True
         return Atom(atom, "general_rule" if supported else "unsupported", "source", supported,
                     None if supported else _UNSUPPORTED, enforced=enforced)
     bearer = "matter" if _bare_permission(folded) else _bearer(tokens, atom)
@@ -821,10 +823,10 @@ def _meta_descriptive(tokens: list[str], folded: str) -> bool:
     if m := _APPLICABILITY.search(folded):
         if not all(t in _FUNCTION or t in _GENERIC_RULES for t in _tokens(folded[m.end():])):
             return False
-    # EN "as" needs an object between ("classifies land as"): right after the verb it is the PT article ("segue as
-    # regras").
-    return not any((t == "como" and any(_META.match(w) for w in tokens[max(0, i - 4):i]))
-                   or (t == "as" and any(_META.match(w) for w in tokens[max(0, i - 4):i - 1]))
+    # Anywhere after the verb, however long the object (ACC-NRM-10). EN "as" needs an object between ("classifies land
+    # as"): right after the verb it is the PT article ("segue as regras").
+    return not any((t == "como" and any(_META.match(w) for w in tokens[:i]))
+                   or (t == "as" and any(_META.match(w) for w in tokens[:i - 1]))
                    for i, t in enumerate(tokens))
 
 

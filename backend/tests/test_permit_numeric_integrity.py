@@ -457,21 +457,53 @@ async def test_a_negated_or_specific_applicability_is_content_not_structure(text
     assert rejected(await explained(text, "E13"))
 
 
-# --- OPEN (Codex normative round 5, the last allowed): registered, not patched without a new authorised round -------
+# --- Codex normative round 5 (ACC-NRM-10/11), fixed in the authorised follow-up task ------------------------------
 
 E201 = official("E201", "TEST FIXTURE Artigo 201.º Multifuncionalidade 1 - A multifuncionalidade do solo depende de "
                         "parecer favorável da Câmara.")
 RECS.append(E201)
 
 
-@pytest.mark.xfail(strict=True, reason="OPEN P1 (Codex normative round 5): 'define … como' beyond the 4-token window "
-                                       "keeps the statement a structural description, so its rejection is a shadow")
 @pytest.mark.parametrize("section", SECTIONS)
-async def test_open_a_distant_predicative_complement_is_content(section):
+async def test_nrm10_a_distant_predicative_complement_is_content(section):
     assert rejected(await explained("O PDM define a dotação de estacionamento como facultativa.", "E13", section))
 
 
-@pytest.mark.xfail(strict=True, reason="OPEN P2 (Codex normative round 5): a non-normative partial quote's rejection is "
-                                       "a shadow (verbatim atoms are enforced only when normative or restating)")
-async def test_open_a_partial_quote_is_never_certified():
+async def test_nrm11_a_partial_quote_is_never_certified():
     assert rejected(await quoted("A multifuncionalidade", "E201"))
+
+
+@pytest.mark.parametrize("quote", [
+    "A multifuncionalidade do solo depende de parecer",  # the essential element cut
+    "A multifuncionalidade do solo",
+    "parecer favorável da Câmara",  # a tail fragment
+])
+async def test_nrm11_no_fragment_of_the_sentence_is_certified(quote):
+    assert rejected(await quoted(quote, "E201"))
+
+
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_nrm11_the_whole_sentence_quoted_verifies(section):
+    report = await quoted(E201.excerpt.split(" 1 - ", 1)[1], "E201", section)
+    assert report.outcome == "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("text", [
+    # Criterion 1: a duty (E13: "deve ser assegurada") never becomes a faculty, however the complement is worded.
+    "O PDM define a dotação de estacionamento nas operações urbanísticas de edificação como facultativa.",
+    "O PDM classifica a dotação de estacionamento das operações urbanísticas como opcional.",
+    "The PDM defines the parking provision of urban building operations subject to licensing as optional.",
+    "A dotação de estacionamento é facultativa.",
+    "A dotação de estacionamento pode ser assegurada.",
+])
+async def test_nrm10_a_duty_is_never_turned_into_a_faculty(text):
+    assert rejected(await explained(text, "E13"))
+
+
+async def test_nrm11_a_whole_quote_still_proves_nothing_about_the_property():
+    """Criterion 3: the quote verifies as what the source says; a definitive answer on it does not."""
+    whole = E201.excerpt.split(" 1 - ", 1)[1]
+    d = draft(claim("t", "E1"), conclusion=Conclusion(answer="likely_possible", summary="x", evidence_ids=["E201"],
+                                                      planning_basis="general_rule", quote=whole), conditions=[])
+    report = await outcome(d)
+    assert report.outcome == "REJECTED" and "definitive_without_property_evidence" in codes(report.issues)
