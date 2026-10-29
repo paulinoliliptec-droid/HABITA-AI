@@ -3276,6 +3276,82 @@
    "covered_by": "tests/test_permit_numeric_integrity.py::test_round2_an_exception_placed_before_the_main_clause_verifies"
   },
   {
+   "id": "ACC-QO-06",
+   "group": "QO",
+   "statement": "Em solo urbano classificado, a altura das edificações não pode exceder 9 m, salvo em edifícios classificados.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex quote-only review round 3, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 9a98d13)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E33/E36 (unit-test fixtures)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general requirement, verbatim (PT)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "a concept of the exception moved into the scope (E33 narrowed)",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_round3_a_concept_of_the_exception_moved_into_the_scope_is_rejected"
+  },
+  {
+   "id": "ACC-QO-07",
+   "group": "QO",
+   "statement": "Em solo urbano, a altura das edificações não pode exceder 9 m, com exceção dos edifícios classificados.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex quote-only review round 3, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 9a98d13)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E33/E36 (unit-test fixtures)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general requirement, verbatim (PT)",
+    "modality": "assertion"
+   },
+   "expected": "VERIFIED",
+   "rationale": "'com exceção dos' as an exception (false positive fixed)",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_round3_an_exception_worded_com_excecao_de_verifies"
+  },
+  {
    "id": "ACC-CXP1-07",
    "group": "CXP1",
    "statement": "The property holds a licence, which must be confirmed with the Câmara.",
@@ -14845,6 +14921,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "quote-only task round 2: definitive answers never VERIFIED with current capabilities; exception spans end at the clause boundary. ACC-QO-04..05 added."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "quote-only task round 3: the rule's own part must be supported by the passage's own part (outside exceptions); 'com exceção de' is an exception. ACC-QO-06..07 added."
   }
  ]
 }

@@ -221,3 +221,18 @@ async def test_round1_a_pt_definite_plural_class_scope_verifies(section):
     report = await explained("Nas habitações coletivas, é admitida a ampliação até 10 % da área existente.", "E36",
                              section)
     assert report.outcome == "VERIFIED", report.issues
+
+
+# --- Codex quote-only round 3 (2026-10-29): exact cases ---------------------------------------------------------------
+
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_round3_a_concept_of_the_exception_moved_into_the_scope_is_rejected(section):
+    text = "Em solo urbano classificado, a altura das edificações não pode exceder 9 m, salvo em edifícios classificados."
+    assert rejected(await explained(text, "E33", section))
+
+
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_round3_an_exception_worded_com_excecao_de_verifies(section):
+    text = "Em solo urbano, a altura das edificações não pode exceder 9 m, com exceção dos edifícios classificados."
+    report = await explained(text, "E33", section)
+    assert report.outcome == "VERIFIED", report.issues

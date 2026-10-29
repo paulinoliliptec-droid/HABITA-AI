@@ -126,7 +126,8 @@ _CONCEPT_TABLE: list[tuple[str, tuple[str, ...]]] = [
     ("ONLY", ("only", "apenas", "somente", "so")),
     ("DISJ", ("or", "ou")),
     ("CONJ", ("and", "e")),
-    ("EXC", ("except", "excepto", "exceto", "salvo", "unless", "excluding")),
+    ("EXC", ("com excecao de", "com excecao do", "com excecao da", "com excecao dos", "com excecao das",
+             "with the exception of", "except for", "except", "excepto", "exceto", "salvo", "unless", "excluding")),
     ("INCL", ("including", "incluindo", "nomeadamente", "designadamente", "namely")),
     ("COND", ("if", "se", "caso", "where", "when", "quando")),
     ("OPERATION", ("operac", "operat")),
@@ -254,6 +255,7 @@ class _Sentence:
     required_slots: frozenset[tuple]  # its bound slots outside inclusion lists
     limits: tuple[tuple, ...] = ()  # its numeric limits in order (see ``_limits``)
     exceptions: frozenset = frozenset()  # what each exception covers (see ``_exceptions``)
+    main: frozenset = frozenset()  # the concepts outside the exceptions (see ``_main_concepts``)
 
 
 _UNITS = {"M2", "PCT"}
@@ -288,6 +290,30 @@ def _slots(concepts: list[tuple[str, set[str]]]) -> set[tuple]:
 #: An exception and what it covers, up to the next clause boundary: "salvo em edifícios classificados", "except
 #: classified buildings". Read from the text, because the concept list keeps no punctuation.
 _EXCEPTION = re.compile(r"\b(?:salvo|exceto|excepto|except|unless|excluding|com exce[cç][aã]o d\w+)\b([^,;:.()]*)")
+
+
+def _main_concepts(text: str, tokens: list[str] | None = None) -> list[tuple[str, set[str]]]:
+    """The concepts outside the exception spans (the rule's own scope, subject and consequence). ``tokens``: the
+    atom's tokens, possibly filtered (the matter inside an "if" antecedent); the exception spans' tokens are removed
+    from them one for one."""
+    lower = text.lower()
+    folded = _fold(lower)
+    if tokens is None:
+        # Cut the spans out of the original text (folding keeps offsets for precomposed accents), so PT "é" stays a
+        # copula for _tokens instead of turning into "e" (and).
+        source = lower if len(lower) == len(folded) else folded
+        kept, last = [], 0
+        for m in _EXCEPTION.finditer(folded):
+            kept.append(source[last:m.start()])
+            last = m.end()
+        kept.append(source[last:])
+        return _concepts_of(_tokens(" ".join(kept)))
+    remaining = list(tokens)
+    for m in _EXCEPTION.finditer(folded):
+        for t in _tokens(m.group(0)):  # the marker and what it covers
+            if t in remaining:
+                remaining.remove(t)
+    return _concepts_of(remaining)
 
 
 def _exceptions(text: str) -> frozenset[frozenset]:
@@ -356,12 +382,13 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
             if allowed:
                 out.append(_Sentence(e.evidence_id, frozenset(allowed), frozenset(required),
                                      frozenset(_slots(concepts)), frozenset(_slots(core_concepts)),
-                                     _limits(concepts), _exceptions(sentence)))
+                                     _limits(concepts), _exceptions(sentence),
+                                     frozenset(c for _, alts in _main_concepts(sentence) for c in alts)))
     return out
 
 
 def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence, verbatim: bool = False,
-              exceptions: frozenset = frozenset()) -> bool:
+              exceptions: frozenset = frozenset(), main: list | None = None) -> bool:
     """Whether one passage sentence supports the atom in the direction stated. ``verbatim``: the atom is a literal
     quote rendered by HABITA (``general_rule``). ``exceptions``: the atom's own (``_exceptions``)."""
     if len(s.limits) >= 2 and not verbatim:
@@ -374,6 +401,10 @@ def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence, verbatim:
     present = {c for _, alts in atom_concepts for c in alts}
     if not all(r in present or (_ALTERNATIVES.get(r, set()) & present) for r in s.required):
         return False  # also a partial quote that drops a limit, a condition or an exception
+    # The rule's own part is supported by the passage's own part: a concept of an exception can't move into the scope
+    # ("Em solo urbano classificado … salvo em edifícios classificados").
+    if main is not None and not all(alts & s.main or alts == {"COND"} for _, alts in main):
+        return False
     # Each exception covers the same thing, both ways (none moved onto the scope, none invented or dropped).
     if not (all(any(_same_span(x, y) for y in s.exceptions) for x in exceptions)
             and all(any(_same_span(y, x) for x in exceptions) for y in s.exceptions)):
@@ -557,13 +588,15 @@ def _directional(tokens: list[str], cited: list[Evidence], verbatim: bool = Fals
     ``quote_required`` says a cited multi-limit sentence would support it as a literal quote."""
     concepts = _concepts_of(tokens)
     exceptions = _exceptions(text)
+    main = _main_concepts(text, tokens)
     quote_required = False
     for e in cited:
         if is_official_text(e):
             for s in _passage_sentences(e):
-                if _supports(concepts, s, verbatim, exceptions):
+                if _supports(concepts, s, verbatim, exceptions, main):
                     return (e.evidence_id,), False
-                quote_required = quote_required or (len(s.limits) >= 2 and _supports(concepts, s, True, exceptions))
+                quote_required = quote_required or (len(s.limits) >= 2
+                                                    and _supports(concepts, s, True, exceptions, main))
     return (), quote_required
 
 
