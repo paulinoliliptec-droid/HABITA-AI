@@ -695,6 +695,11 @@ def statement_problem(
     if any(is_planning_evidence(e) for e in cited):
         return "cites planning evidence without a structured planning basis"
     full = ". ".join(filter(None, (step, text)))  # the step name is its own sentence (as claims.assess reads it)
+    authorities = [e for e in cited if e.source_type == "authority_record"]
+    if authorities and not _competence_oriented(_tokens(full), authorities):
+        # "Licensing … is responsible for the Câmara": a competence relation the record doesn't state (reversed), even
+        # though "responsible" is a generic word (FP-3 review).
+        return "states a competence relation its authority record doesn't (the authority is not its agent or subject)"
     if has_planning_content(full) and case_restatement(full, cited):
         return case_fact_problem(full, cited, case_facts)
     return grounding_problem(full, cited, case_facts)
