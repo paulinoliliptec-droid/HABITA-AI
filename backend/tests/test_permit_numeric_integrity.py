@@ -451,6 +451,7 @@ async def test_normative_round4_a_structural_description_keeps_its_contract(text
     "The PDM does not apply to urban land.",
     "Em solo urbano, a edificação segue o regime do solo rústico.",
     "Urban land follows the rustic land regime.",
+    "O PDM não regula o estacionamento.",  # a negation alone
 ])
 async def test_a_negated_or_specific_applicability_is_content_not_structure(text):
     assert rejected(await explained(text, "E13"))
