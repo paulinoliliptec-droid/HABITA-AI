@@ -123,7 +123,7 @@ infrastructure/deploy-staging.sh --preflight
 | Date | Step | Done by | Result (verified read-only) |
 |---|---|---|---|
 | 2026-10-29 | Atlas custom role `habitaStagingMigrate` (owner-authorised; profile `habita`, project 6adfdf61d52b2b35f1de0cf3) | Claude, Atlas CLI | Role did not exist before. Now: action `COLL_MOD` on `habita_ai_staging` (whole database) + inherited `readWrite@habita_ai_staging`; assigned to no user. Users unchanged (`habita_app`: `readWrite@habita_ai`, scope `habita-ai-m0`); network access unchanged; no database or data touched. |
-| pending | Atlas user `habita-staging-app` (`readWrite@habita_ai_staging`, scope `habita-ai-m0`, generated password) | owner, Atlas UI | to verify with `atlas dbusers describe` |
+| 2026-10-29 | Atlas user `habita-staging-app` | owner, Atlas UI (generated password) | Only role `readWrite@habita_ai_staging`; scope cluster `habita-ai-m0`; no expiry; password authentication only (no X.509/IAM/LDAP/OIDC); not assigned `habitaStagingMigrate`. `habita_app` unchanged (`readWrite@habita_ai`, `habita-ai-m0`); role and network access unchanged. |
 | pending | Secret `mongodb-uri-staging`, IAM API, service accounts, secret grants | owner authorisation | — |
 
 ### Migrations (only when needed)
