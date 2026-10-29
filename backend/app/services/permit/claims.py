@@ -227,6 +227,7 @@ class _Sentence:
     slots: frozenset[tuple]   # every bound slot of the sentence (see ``_slots``)
     required_slots: frozenset[tuple]  # its bound slots outside inclusion lists
     limits: tuple[tuple, ...] = ()  # its numeric limits in order (see ``_limits``)
+    sequence: tuple[frozenset, ...] = ()  # its concepts in order (see ``_aligned``)
 
 
 _UNITS = {"M2", "PCT"}
@@ -276,6 +277,25 @@ def _numbered_slots(concepts: list[tuple[str, set[str]]]) -> list[tuple[int, tup
     return out
 
 
+def _aligned(concepts: list[tuple[str, set[str]]], sequence: tuple[frozenset, ...]) -> bool:
+    """Whether the atom's concepts appear in the passage sentence's order. Each concept is matched to the next unused
+    occurrence after the last match; the one occurrence just before it is also allowed, so adjacent pairs may swap,
+    as EN and PT order them differently ("construction area" / "área de construção", "single-family houses" /
+    "moradias unifamiliares"). A concept placed where the passage doesn't have it breaks the alignment."""
+    used: set[int] = set()
+    last = -1
+    for _, alts in concepts:
+        if last - 1 >= 0 and last - 1 not in used and alts & sequence[last - 1]:
+            used.add(last - 1)
+            continue
+        j = next((j for j in range(last + 1, len(sequence)) if j not in used and alts & sequence[j]), None)
+        if j is None:
+            return False
+        used.add(j)
+        last = j
+    return True
+
+
 def _slot_matches(slot: tuple, others: set[tuple]) -> bool:
     if slot[0] == "OP":
         return any(o[0] == "OP" and o[1] == slot[1] and _same_pair(slot[2], o[2]) for o in others)
@@ -313,7 +333,7 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
             if allowed:
                 out.append(_Sentence(e.evidence_id, frozenset(allowed), frozenset(required),
                                      frozenset(_slots(concepts)), frozenset(_slots(core_concepts)),
-                                     _limits(concepts)))
+                                     _limits(concepts), tuple(frozenset(alts) for _, alts in concepts)))
     return out
 
 
@@ -326,14 +346,16 @@ def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence) -> bool:
         return False
     # Bound slots, both ways: no number, limit, unit or alternative moved to another place or changed, none dropped.
     concepts = [(t, alts) for t, alts in atom_concepts if alts != {"COND"}]
+    if len(s.limits) >= 2:
+        # A rule with several numeric limits (MU-9 V2): which limit binds which quantity can't be read from a window
+        # around each number, so the whole atom must follow the passage sentence in order (``_aligned``): each limit
+        # keeps its comparator, unit and the quantity before it, and nothing is attached to it that the passage
+        # doesn't have there. Any other paraphrase has to be quoted (general_rule).
+        return _limits(concepts) == s.limits and _aligned(concepts, s.sequence)
+    # Bound slots, both ways: no number, limit, unit or alternative moved to another place or changed, none dropped.
     slots = _slots(concepts)
-    if not (all(_slot_matches(x, set(s.slots)) for x in slots)
-            and all(_slot_matches(r, slots) for r in s.required_slots)):
-        return False
-    # A rule with several numeric limits: which limit binds which quantity can't be read reliably from a paraphrase
-    # (MU-9 V2), so the paraphrase must keep the passage's limits in the passage's order, each with its comparator and
-    # unit; anything else has to be quoted (general_rule).
-    return len(s.limits) < 2 or _limits(concepts) == s.limits
+    return (all(_slot_matches(x, set(s.slots)) for x in slots)
+            and all(_slot_matches(r, slots) for r in s.required_slots))
 
 
 # --- classification ----------------------------------------------------------------------------------------------

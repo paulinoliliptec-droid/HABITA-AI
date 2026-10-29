@@ -307,3 +307,20 @@ async def test_codex_v2_round1_a_limit_moved_onto_the_enlarged_area_is_rejected(
             "the existing area, except classified buildings.")
     report = await verify(text, ["E30"], section)
     assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_codex_v2_round2_a_limit_on_the_enlarged_area_is_rejected(section):
+    """Codex V2 review, round 2: "enlarged" placed before the limited quantity, outside any fixed window."""
+    text = ("Single-family houses whose enlarged construction area is up to 200 m2 may be enlarged by up to 20 % of the "
+            "existing area, except classified buildings.")
+    report = await verify(text, ["E30"], section)
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
+@pytest.mark.xfail(strict=True, reason="known limitation (Codex V2 round 2, P2): a multi-limit paraphrase that adds a "
+                                       "quantity word ('by an area of') is not aligned with the passage; quote instead")
+async def test_a_multi_limit_paraphrase_with_an_added_quantity_word_verifies():
+    text = ("Single-family houses with a construction area of up to 200 m2 may be enlarged by an area of up to 20 % of "
+            "the existing area, except classified buildings.")
+    assert (await verify(text, ["E30"])).outcome == "VERIFIED"
