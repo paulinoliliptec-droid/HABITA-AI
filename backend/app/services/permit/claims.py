@@ -698,7 +698,7 @@ def _restates(concepts: list[tuple[str, set[str]]], cited: list[Evidence]) -> bo
             # restatement; it doesn't make it say something else.
             framing = {c for _, alts in _concepts_of(_tokens(f"{e.source_title} {_ATTRIBUTION}")) for c in alts}
             content = [alts for _, alts in concepts if alts != {"COND"} and not alts <= framing]
-            if len(content) < 3:
+            if len(content) < 2:
                 continue
             for s in _passage_sentences(e):
                 if all(alts & s.allowed for alts in content):
@@ -784,9 +784,34 @@ def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False, 
     normative = _normative(_concepts_of(tokens), tokens, folded, legal) or _restates(_concepts_of(tokens), cited)
     supported, quote_required = _directional(tokens, cited, verbatim, text=atom, literal=normative, whole=whole)
     kind = ("conditional_rule" if conditional else "general_rule") if supported else "unsupported"
-    enforced = normative
+    # An unsupported statement stays a shadow verdict only when it is about the plan's structure (allowlist below);
+    # anything else it asserts is held to its cited text, whatever its words.
+    enforced = normative or not (supported or _meta_descriptive(tokens, folded))
     problem = None if supported else _QUOTE_REQUIRED if quote_required else _UNSUPPORTED
     return Atom(atom, kind, "general", supported, problem, enforced=enforced)
+
+
+#: Predicates that describe what an instrument does or how rules relate, without stating a rule's content: "the PDM
+#: classifies and qualifies land", "each zone has specific rules", "housing use may depend on the plan".
+_META = re.compile(
+    r"\b(?:classif\w*|qualif\w*|defin\w*|establish\w*|estabelec\w*|sets?|regul\w*|govern\w*|determin\w*|"
+    r"condicion\w*|condition\w*|depend\w*|vari\w*|differ\w*|segue\w*|follow\w*|consta\w*|contain\w*|cont[eé]m|"
+    r"identif\w*|delimit\w*|organi[sz]\w*|divid\w*|specific|especific\w*|apply|applies|aplic\w*|check\w*|"
+    r"verific\w*)\b")
+#: …unless it introduces content of its own: "o PDM define que …", "the plan establishes that …".
+_CONTENT_CLAUSE = re.compile(r"\b(?:que|that)\b")
+
+
+def _meta_descriptive(tokens: list[str], folded: str) -> bool:
+    """A predicate about the plan's structure that states no rule content ("the PDM classifies and qualifies land").
+    A predicative complement ("classifies X as Y", "define X como Y") attributes content, whatever Y is."""
+    if not _META.search(folded) or _CONTENT_CLAUSE.search(folded):
+        return False
+    # EN "as" needs an object between ("classifies land as"): right after the verb it is the PT article ("segue as
+    # regras").
+    return not any((t == "como" and any(_META.match(w) for w in tokens[max(0, i - 4):i]))
+                   or (t == "as" and any(_META.match(w) for w in tokens[max(0, i - 4):i - 1]))
+                   for i, t in enumerate(tokens))
 
 
 def _no_provider(kind: str) -> str | None:

@@ -844,10 +844,10 @@ async def test_g_a_valid_official_parcel_determination_supports_the_category(tex
 # into a statement about "the land-use category of the parcel". (Reconstructed in EN and PT from the run's report.)
 
 K_GENERAL = [
-    "The PDM classifies municipal land as urban or rustic and qualifies it into categories of space.",
+    "The PDM classifies municipal land and qualifies it into categories of space.",
     "Each land-use category sets the admissible uses and the urban parameters for building.",
     PDM_SENTENCE,
-    "O PDM classifica o solo como urbano ou rústico e qualifica-o em categorias de espaço.",
+    "O PDM classifica o solo e qualifica-o em categorias de espaço.",
     "Cada categoria de uso do solo define os usos admissíveis e os parâmetros urbanísticos.",
     PDM_SENTENCE.rstrip("."),
 ]

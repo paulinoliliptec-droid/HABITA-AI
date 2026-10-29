@@ -409,3 +409,36 @@ async def test_normative_round3_a_clause_ending_in_a_semicolon_is_not_the_senten
 async def test_normative_round3_the_whole_sentence_with_its_semicolon_verifies(section):
     for report in (await explained(WHOLE_E91, "E91", section), await quoted(WHOLE_E91, "E91", section)):
         assert report.outcome == "VERIFIED", report.issues
+
+
+# --- Codex normative round 4 (2026-10-29): exact cases ------------------------------------------------------------
+
+E97 = official("E97", "TEST FIXTURE Artigo 997.º Usos 1 - O estacionamento é um uso.")
+RECS.append(E97)
+
+
+@pytest.mark.parametrize("text, eid", [
+    ("O estacionamento é lícito.", "E13"),  # exact: unsupported, no known legal word
+    ("O estacionamento é facultativo.", "E13"),
+    ("O PDM classifica o estacionamento como lícito.", "E13"),  # a structural verb with a predicative complement
+    ("The PDM defines parking as optional.", "E13"),
+    ("O PDM define que o estacionamento é facultativo.", "E13"),  # a content clause
+])
+async def test_normative_round4_an_unsupported_statement_is_a_shadow_only_when_it_describes_structure(text, eid):
+    assert rejected(await explained(text, eid))
+
+
+async def test_normative_round4_a_two_concept_definition_reversed_is_a_restatement():
+    assert rejected(await explained("O uso é estacionamento.", "E97"))  # exact
+    report = await explained("O estacionamento é um uso.", "E97")
+    assert report.outcome == "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("text", [
+    "O PDM regula o estacionamento.",
+    "A dotação de estacionamento varia consoante a zona.",
+    "Em solo urbano, cada zona ou distrito segue as regras do plano municipal.",
+])
+async def test_normative_round4_a_structural_description_keeps_its_contract(text):
+    report = await explained(text, "E13")
+    assert report.outcome == "VERIFIED", report.issues
