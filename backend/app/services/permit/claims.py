@@ -420,12 +420,26 @@ def _full_sentences(text: str) -> list[str]:
     # a quote of the first alone would leave out what conditions it.
     merged: list[str] = []
     for sentence in (s for s in out if s.strip()):
-        words = _tokens(sentence)[:2]
-        if merged and words and (words[0] in _ANAPHORA or " ".join(words) in _ANAPHORA):
+        if merged and _takes_up(merged[-1], sentence):
             merged[-1] += sentence
         else:
             merged.append(sentence)
     return merged
+
+
+def _stems(text: str) -> set[str]:
+    return {t[:5] for t in _tokens(text) if len(t) >= 4 and t not in _FUNCTION}
+
+
+def _takes_up(previous: str, sentence: str) -> bool:
+    """Whether a sentence refers back to the previous one: it opens with a determiner (anaphoric or definite) and its
+    head takes up one of the previous sentence's words ("… é permitida. A permissão depende …"); "Esta secção define
+    …" opens a new subject."""
+    words = _tokens(sentence)
+    if not words or not (words[0] in _ANAPHORA or words[0] in _DEFINITE | {"the"} or " ".join(words[:2]) in _ANAPHORA):
+        return False
+    head = next((w for w in words[1:4] if w not in _FUNCTION and w not in _ANAPHORA), None)
+    return head is not None and head[:5] in _stems(previous)
 
 
 def _clauses(text: str) -> list[tuple[str, str]]:
@@ -816,9 +830,9 @@ _META = re.compile(
     r"condition\w*|depend\w*|vari\w*|differ\w*|consta\w*|contain\w*|cont[eé]m|identif\w*|delimit\w*|organi[sz]\w*|"
     r"divid\w*|specific|especific\w*|check\w*|verific\w*|segue|seguem|follows?|apply|applies|aplica|aplicam|"
     r"governs?|governed)\b")
-#: Function words only Portuguese uses ("a" and "as" are shared with English).
-_PT_ONLY = {"o", "os", "do", "da", "dos", "das", "de", "em", "no", "na", "nos", "nas", "um", "uma", "e", "é", "ao", "aos",
-            "pelo", "pela", "que", "nao", "se", "para", "com"}
+#: Words after which "as" is the PT feminine plural article, not the EN predicative "as".
+_PT_BEFORE_ARTICLE = {"e", "ou", "de", "todas", "com", "para", "sobre", "entre", "por", "segundo", "sob", "que", "nem",
+                      "ambas", "segue", "seguem", "define", "definem", "regula", "regulam", "estabelece", "estabelecem"}
 _NEGATION = {"not", "nao", "never", "nunca", "nenhum", "nenhuma", "none", "nem", "nor", "sem", "without", "doesn",
              "don", "isn", "aren"}
 _APPLICABILITY = re.compile(r"\b(?:segue|seguem|follows?|apply|applies|applied|aplica|aplicam|aplicar|aplicado|"
@@ -837,9 +851,14 @@ _TOPIC_STEMS = ("zon", "distrit", "district", "categor", "parametr", "parameter"
                 "habitacion", "residenc", "residential", "which", "segund", "second", "qual", "classif", "rustic",
                 "rural", "espac", "space", "solo", "land", "uso", "use", "rule", "regra", "regime", "lote", "parcel",
                 "terren", "imovel", "propert", "local", "area", "map", "plant", "ordenament", "territor", "admit",
+                "admiss",
                 # dependency and reference words: "consoante a zona", "qualifies it", "as respetivas regras"
                 "consoant", "conform", "depending", "according", "acordo", "it", "its", "they", "their", "respetiv",
                 "respectiv", "cada", "each", "own", "proprio", "propria")
+
+
+_DEONTIC_CONCEPTS = (_RESTRICTIVE - {"ALL", "SOME", "COND"}) | {"LICENSED_STATE", "LICENSING", "GREEN_LIGHT",
+                                                                 "LEGAL_CONDITIONS"}
 
 
 def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
@@ -849,11 +868,19 @@ def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
     official = [e for e in cited if is_official_text(e)]
     allowed = {c for e in official for s in _passage_sentences(e) for c in s.allowed}
     framing = {c for e in official for _, alts in _concepts_of(_tokens(f"{e.source_title} {_ATTRIBUTION}")) for c in alts}
+    words = list(tokens)
+    hedged = bool(_DEPENDENCY_CLAUSE.search(" ".join(words)))
     for t, alts in _concepts_of(tokens):
         if _META.fullmatch(t) or t in _GENERIC_RULES or alts <= framing or alts & allowed:
             continue
-        # The closed concept table and planning's own topic words name what a structure is about, not a claim.
-        if not any(c.startswith("w:") for c in alts) or t.startswith(_TOPIC_STEMS):
+        # "may depend on …", "pode ser admissível consoante …": a hedged possibility, not a permission; PT "no" is
+        # "in the".
+        if t == "no" or alts == {"PERM"} and t in _MODAL_AUX and (hedged or (
+                (i := words.index(t)) + 1 < len(words) and _DEPENDENCY_VERB.match(words[i + 1]))):
+            continue
+        # The closed concept table and planning's own topic words name what a structure is about, not a claim; a
+        # deontic or restrictive concept ("allowed", "only", "never") is a claim unless the cited sentence has it.
+        if t.startswith(_TOPIC_STEMS) or not any(c.startswith("w:") for c in alts) and not alts & _DEONTIC_CONCEPTS:
             continue
         if alts & {"CONJ", "DISJ", "ALL", "INCL"}:
             continue
@@ -875,10 +902,11 @@ def _meta_descriptive(tokens: list[str], folded: str, cited: list[Evidence] = ()
         if not all(t in _FUNCTION or t in _GENERIC_RULES for t in _tokens(folded[m.end():])):
             return False
     # Anywhere after the verb, however long the object (ACC-NRM-10). EN "as" needs an object between ("classifies land
-    # as"), and a Portuguese statement's "as" is the article ("define a dotação e as regras").
-    portuguese = bool(_PT_ONLY & set(tokens))
+    # as"); after "e", "de", "todas" … it is the PT article ("define a dotação e as regras"), whatever the language
+    # of the rest (a PT source name in an EN sentence).
     return not any((t == "como" and any(_META.match(w) for w in tokens[:i]))
-                   or (t == "as" and not portuguese and any(_META.match(w) for w in tokens[:i - 1]))
+                   or (t == "as" and tokens[i - 1] not in _PT_BEFORE_ARTICLE
+                       and any(_META.match(w) for w in tokens[:i - 1]))
                    for i, t in enumerate(tokens))
 
 

@@ -551,3 +551,39 @@ async def test_nrm_task_r2_a_sentence_taken_up_by_the_next_is_quoted_with_it():
     assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E202"))  # exact
     report = await quoted(E202.excerpt.split(" 1 - ", 1)[1], "E202")
     assert report.outcome == "VERIFIED", report.issues
+
+
+# --- NRM-10/11 task, Codex round 3 (2026-10-29): exact cases --------------------------------------------------------
+
+E299 = official("E299", "TEST FIXTURE Artigo 299.º Multifuncionalidade 1 - A multifuncionalidade do solo é permitida. A "
+                        "permissão depende de parecer favorável da Câmara.")
+E298 = official("E298", "TEST FIXTURE Artigo 298.º Dotação 1 - A dotação de estacionamento deve ser assegurada. Esta secção "
+                        "define os parâmetros de altura das edificações.")
+RECS.extend([E299, E298])
+
+
+@pytest.mark.parametrize("text", [
+    "The PDM de Cascais defines parking provision as allowed for building operations.",  # exact
+    "The PDM defines parking provision as permitted.",
+    "The Plano Diretor Municipal sets parking provision only for some operations.",  # a restrictive concept added
+])
+async def test_nrm_task_r3_a_deontic_concept_added_to_a_description_is_a_claim(text):
+    assert rejected(await explained(text, "E13"))
+
+
+async def test_nrm_task_r3_a_sentence_whose_subject_takes_up_the_previous_one_belongs_to_it():
+    assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E299"))  # exact: "A permissão …"
+    report = await quoted(E299.excerpt.split(" 1 - ", 1)[1], "E299")
+    assert report.outcome == "VERIFIED", report.issues
+
+
+async def test_nrm_task_r3_a_sentence_with_a_new_subject_stays_independent():
+    report = await quoted("A dotação de estacionamento deve ser assegurada.", "E298")  # exact: "Esta secção …"
+    assert report.outcome == "VERIFIED", report.issues
+
+
+async def test_nrm_task_r3_each_layer_on_its_own():
+    # A deontic concept with no predicative complement ("permitida" attributive, not in E13).
+    assert rejected(await explained("Nas operações urbanísticas, o PDM regula a dotação de estacionamento permitida.", "E13"))
+    # A predicative "as" with no deontic word, after a PT source name ("de").
+    assert rejected(await explained("The PDM de Cascais defines parking provision as a use.", "E13"))
