@@ -57,6 +57,9 @@ def _matches(doc: dict, flt: dict) -> bool:
                     raise NotImplementedError(op)
                 if not ok:
                     return False
+        elif isinstance(value, list) and not isinstance(cond, list):
+            if cond not in value:  # MongoDB: equality on an array field matches an element
+                return False
         elif value != cond:
             return False
     return True
@@ -114,6 +117,8 @@ class FakeCollection:
         new = {**target, **update.get("$set", {})}
         for field in update.get("$unset", {}):
             new.pop(field, None)
+        for field, value in update.get("$pull", {}).items():
+            new[field] = [v for v in new.get(field, []) if v != value]
         for field, step in update.get("$inc", {}).items():
             new[field] = new.get(field, 0) + step
         for field, spec in update.get("$addToSet", {}).items():
@@ -877,4 +882,17 @@ async def test_merge_interrupted_after_marking_keep_converges_and_clears_the_mar
     assert col.docs[keep]["absorbing"] == [dup] and await repo.identity(keep) is None
     await repo.merge(keep=keep, duplicate=dup)
     _assert_merged(col, keep, dup)
-    assert "absorbing" not in col.docs[keep] and await repo.identity(keep) is not None
+    assert not col.docs[keep].get("absorbing") and await repo.identity(keep) is not None
+
+
+async def test_startup_resumes_a_merge_interrupted_right_after_marking_keep():
+    """Codex binding review round 3 (P2): the kept property is not left unbindable after a restart."""
+    repo, col = make_repo(FailingCollection())
+    keep, dup = await _two_properties(repo)
+    col.arm(2)
+    with pytest.raises(StorageUnavailableError):
+        await repo.merge(keep=keep, duplicate=dup)
+    assert await repo.identity(keep) is None
+    assert await repo.resume_pending_merges() == 1
+    _assert_merged(col, keep, dup)
+    assert await repo.identity(keep) is not None and await repo.resume_pending_merges() == 0

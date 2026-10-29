@@ -186,3 +186,18 @@ async def test_the_commit_filter_refuses_an_absorbing_property_even_at_the_same_
     client.collection("properties").docs[PID]["absorbing"] = ["prp_dup"]
     m, r = durability.verified()
     assert await permit.commit_verified(m, r, durability.PIN, src, durability.IDENT, durability.props(client)) is False
+
+
+# --- Codex Phase 2 binding review, round 3 (2026-10-29): exact case -----------------------------------------------
+
+async def test_finishing_one_merge_keeps_another_merges_mark():
+    repo, collection = make_repo()
+    keep = (await repo.save(snapshot(place_id="ChIJ-k"), {"ChIJ-k"})).property_id
+    a = (await repo.save(snapshot(place_id="ChIJ-a", address="Rua A 1, Cascais", lat=38.70), {"ChIJ-a"})).property_id
+    b = (await repo.save(snapshot(place_id="ChIJ-b", address="Rua B 1, Cascais", lat=38.71), {"ChIJ-b"})).property_id
+    await collection.update_one({"_id": keep}, {"$addToSet": {"absorbing": {"$each": [b]}},
+                                                "$inc": {"identity_version": 1}})  # merge B started (step 0)
+    await repo.merge(keep=keep, duplicate=a)  # merge A runs to the end
+    assert collection.docs[keep]["absorbing"] == [b] and await repo.identity(keep) is None  # B still in flight
+    assert await repo.resume_pending_merges() == 1  # B completes at startup
+    assert not collection.docs[keep]["absorbing"] and await repo.identity(keep) is not None

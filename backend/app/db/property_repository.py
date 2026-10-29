@@ -146,7 +146,8 @@ class PropertyIdentity:
 def identity_filter(identity: PropertyIdentity) -> dict:
     """The property is still the one the gate read: same version, active, no merge from or into it in flight."""
     return {"_id": identity.property_id, "identity_version": identity.version, "snapshot_state": "current",
-            "merged_into": {"$exists": False}, "merging_into": {"$exists": False}, "absorbing": {"$exists": False}}
+            "merged_into": {"$exists": False}, "merging_into": {"$exists": False},
+            "absorbing": {"$in": [None, []]}}  # missing, or emptied by the merge that set it
 
 
 _BUMP = {"$inc": {"identity_version": 1}}
@@ -373,7 +374,7 @@ class MongoPropertyRepository:
                                                    "merging_into": 1, "absorbing": 1})
         except PyMongoError as exc:
             raise _unavailable(exc) from None
-        if doc is None or _merge_target(doc) or doc.get("snapshot_state") != "current" or doc.get("absorbing"):
+        if doc is None or _merge_target(doc) or doc.get("snapshot_state") != "current" or doc.get("absorbing"):  # []
             return None  # an absorbing property has a merge into it in flight
         version = doc.get("identity_version")
         return PropertyIdentity(property_id, version) if isinstance(version, int) else None
@@ -476,29 +477,32 @@ class MongoPropertyRepository:
                     **_BUMP,
                 },
             )
-            # Step 3b: `keep` no longer absorbs this duplicate (identity moves again).
+            # Step 3b: `keep` no longer absorbs this duplicate (identity moves again). An atomic $pull, never a
+            # read-and-rewrite, so another merge's mark added meanwhile is kept.
             for pid in {keep, kept["_id"]}:
-                doc = await self._collection.find_one({"_id": pid}, {"absorbing": 1})
-                rest = [d for d in (doc or {}).get("absorbing", []) if d != duplicate]
-                if doc is not None and len(rest) != len(doc.get("absorbing", [])):
-                    await self._collection.update_one(
-                        {"_id": pid}, {**({"$set": {"absorbing": rest}} if rest else {"$unset": {"absorbing": ""}}),
-                                       **_BUMP})
+                await self._collection.update_one({"_id": pid, "absorbing": duplicate},
+                                                  {"$pull": {"absorbing": duplicate}, **_BUMP})
         except PyMongoError as exc:
             raise _unavailable(exc) from None
         logger.info("Merged property %s into %s (%d aliases moved)", duplicate, keep, len(aliases))
 
     async def resume_pending_merges(self) -> int:
-        """Complete merges interrupted between steps. Safe to run at any time."""
+        """Complete merges interrupted between steps, including one stopped right after marking the kept property
+        (C2: its identity stays unbindable until the merge completes). Safe to run at any time."""
         try:
             pending = await self._collection.find(
                 {"snapshot_state": "merging"}, {"_id": 1, "merging_into": 1}
             ).to_list(None)
+            marked = await self._collection.find(
+                {"absorbing": {"$exists": True}}, {"_id": 1, "absorbing": 1}
+            ).to_list(None)
         except PyMongoError as exc:
             raise _unavailable(exc) from None
-        for doc in pending:
-            await self.merge(keep=doc["merging_into"], duplicate=doc["_id"])
-        return len(pending)
+        merges = {(doc["merging_into"], doc["_id"]) for doc in pending}
+        started = {(doc["_id"], dup) for doc in marked for dup in doc.get("absorbing") or []}
+        for keep, duplicate in sorted(merges | {pair for pair in started if pair[1] not in {d for _, d in merges}}):
+            await self.merge(keep=keep, duplicate=duplicate)
+        return len(merges | started)
 
     async def _save_once(
         self, snapshot: PropertySnapshot, aliases: list[str], address_key: str | None, property_id: str | None
