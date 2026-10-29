@@ -508,7 +508,8 @@ async def test_in_memory_linkage_mismatch_aborts_without_writes(case):
     from app.services.sources.repository import InMemorySourceRepository
     from app.db.property_repository import InMemoryPropertyRepository
     repo, sources, properties = InMemoryPermitRepository(), InMemorySourceRepository(), InMemoryPropertyRepository()
-    properties.touch(IDENT.property_id)
+    from tests.test_property_repository import snapshot
+    await properties.save(snapshot(), {"ChIJ-a"}, property_id=IDENT.property_id)  # version 0
     stored = make_matter().model_copy(update={"matter_id": "pm_1", "state": MatterState.VERIFYING, "revision": 0})
     if case == "stored-other-property":
         stored = stored.model_copy(update={"property_id": "prp_ffffffffffffffff"})

@@ -144,9 +144,9 @@ class PropertyIdentity:
 
 
 def identity_filter(identity: PropertyIdentity) -> dict:
-    """The property is still the one the gate read: same version, active, no merge in flight."""
+    """The property is still the one the gate read: same version, active, no merge from or into it in flight."""
     return {"_id": identity.property_id, "identity_version": identity.version, "snapshot_state": "current",
-            "merged_into": {"$exists": False}, "merging_into": {"$exists": False}}
+            "merged_into": {"$exists": False}, "merging_into": {"$exists": False}, "absorbing": {"$exists": False}}
 
 
 _BUMP = {"$inc": {"identity_version": 1}}
@@ -251,10 +251,10 @@ class InMemoryPropertyRepository:
 
     async def identity(self, property_id: str) -> PropertyIdentity | None:
         version = self._versions.get(property_id)
-        return PropertyIdentity(property_id, version) if version is not None else None
+        return PropertyIdentity(property_id, version) if version is not None and property_id in self._items else None
 
     def identity_holds(self, identity: PropertyIdentity) -> bool:
-        return self._versions.get(identity.property_id) == identity.version
+        return identity.property_id in self._items and self._versions.get(identity.property_id) == identity.version
 
     def touch(self, property_id: str) -> None:
         """A write to the property (tests: a save between the gate and the commit)."""
@@ -370,11 +370,11 @@ class MongoPropertyRepository:
         try:
             doc = await self._collection.find_one({"_id": property_id},
                                                   {"identity_version": 1, "snapshot_state": 1, "merged_into": 1,
-                                                   "merging_into": 1})
+                                                   "merging_into": 1, "absorbing": 1})
         except PyMongoError as exc:
             raise _unavailable(exc) from None
-        if doc is None or _merge_target(doc) or doc.get("snapshot_state") != "current":
-            return None
+        if doc is None or _merge_target(doc) or doc.get("snapshot_state") != "current" or doc.get("absorbing"):
+            return None  # an absorbing property has a merge into it in flight
         version = doc.get("identity_version")
         return PropertyIdentity(property_id, version) if isinstance(version, int) else None
 
@@ -417,6 +417,14 @@ class MongoPropertyRepository:
                 canonical_target = await self._canonical_doc(await self._collection.find_one({"_id": target}))
                 if canonical_target is None or canonical_target["_id"] != keep:
                     raise ValueError(f"{duplicate} is already merged into {target}.")
+
+            # Step 0 (C2): mark `keep` as absorbing the duplicate *first*, moving its identity, so a VERIFIED commit
+            # bound to `keep` can't pass while the merge is pending; the mark goes in step 3. Idempotent.
+            result = await self._collection.update_one(
+                {"_id": keep, "merged_into": {"$exists": False}, "merging_into": {"$exists": False}},
+                {"$addToSet": {"absorbing": {"$each": [duplicate]}}, **_BUMP})
+            if result.matched_count == 0:
+                raise ValueError(f"{keep} was merged concurrently; re-run to inspect.")
 
             if not target:
                 # Step 1, atomic: release the aliases into merged_aliases and mark the merge pending.
@@ -468,6 +476,14 @@ class MongoPropertyRepository:
                     **_BUMP,
                 },
             )
+            # Step 3b: `keep` no longer absorbs this duplicate (identity moves again).
+            for pid in {keep, kept["_id"]}:
+                doc = await self._collection.find_one({"_id": pid}, {"absorbing": 1})
+                rest = [d for d in (doc or {}).get("absorbing", []) if d != duplicate]
+                if doc is not None and len(rest) != len(doc.get("absorbing", [])):
+                    await self._collection.update_one(
+                        {"_id": pid}, {**({"$set": {"absorbing": rest}} if rest else {"$unset": {"absorbing": ""}}),
+                                       **_BUMP})
         except PyMongoError as exc:
             raise _unavailable(exc) from None
         logger.info("Merged property %s into %s (%d aliases moved)", duplicate, keep, len(aliases))

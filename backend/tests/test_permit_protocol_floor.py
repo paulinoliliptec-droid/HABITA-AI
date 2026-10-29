@@ -10,6 +10,7 @@ from app.services.sources.repository import InMemorySourceRepository
 from tests.permit_fakes import ScriptedModel, make_client
 from tests.test_permit_commit_durability import IDENT, PIN, coherent, persisted, props, stores, verified
 from tests.test_permit_official_sources import auth, ingest_regulamento, run_matter
+from tests.test_property_repository import snapshot
 
 
 def test_the_floor_only_goes_up_and_never_forgets_an_unsafe_protocol():
@@ -30,7 +31,7 @@ def test_the_floor_only_goes_up_and_never_forgets_an_unsafe_protocol():
 
 async def test_the_in_memory_store_refuses_a_report_below_the_floor():
     repo, sources, properties = InMemoryPermitRepository(), InMemorySourceRepository(), InMemoryPropertyRepository()
-    properties.touch(IDENT.property_id)  # version 0
+    await properties.save(snapshot(), {"ChIJ-a"}, property_id=IDENT.property_id)  # version 0
     m, r = verified()
     old = r.model_copy(update={"protocol": "statement-v1"})
     await repo.create_matter(m.model_copy(update={"state": "VERIFYING"}), "h")

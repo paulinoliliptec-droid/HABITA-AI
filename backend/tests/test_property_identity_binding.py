@@ -151,3 +151,30 @@ async def test_an_older_in_memory_save_that_attaches_an_alias_moves_the_identity
     captured = await repo.identity(pid)
     await repo.save(snapshot(), {"ChIJ-a", "ChIJ-late"})  # older snapshot, new alias
     assert not repo.identity_holds(captured)
+
+
+# --- Codex Phase 2 binding review, round 2 (2026-10-29): exact cases ----------------------------------------------
+
+async def test_a_pending_merge_into_the_property_refuses_the_commit():
+    """The kept side is marked before the duplicate: a commit bound to the identity read before the merge fails."""
+    repo, collection = make_repo()
+    keep = (await repo.save(snapshot(place_id="ChIJ-k"), {"ChIJ-k"})).property_id
+    dup = (await repo.save(snapshot(place_id="ChIJ-d", address="Rua X 1, Cascais", lat=38.70), {"ChIJ-d"})).property_id
+    before = await repo.identity(keep)
+    await repo._collection.update_one({"_id": keep}, {"$addToSet": {"absorbing": {"$each": [dup]}},
+                                                      "$inc": {"identity_version": 1}})  # merge step 0 only
+    assert await repo.identity(keep) is None  # no identity while absorbing
+    client, permit, src = durability.stores()
+    doc = client.collection("properties").docs[PID]
+    doc.update(absorbing=[dup], identity_version=before.version + 1)
+    m, r = durability.verified()
+    assert await permit.commit_verified(m, r, durability.PIN, src, durability.IDENT, durability.props(client)) is False
+
+
+async def test_an_in_memory_identity_needs_the_property_to_exist():
+    from app.db.property_repository import InMemoryPropertyRepository
+    repo = InMemoryPropertyRepository()
+    pid = (await repo.save(snapshot(), {"ChIJ-a"})).property_id
+    captured = await repo.identity(pid)
+    del repo._items[pid]  # deleted
+    assert not repo.identity_holds(captured) and await repo.identity(pid) is None
