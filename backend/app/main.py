@@ -47,10 +47,12 @@ class ConfigurationError(RuntimeError):
     pass
 
 
-# What dbAdmin/dbOwner add to readWrite (MongoDB 7), except collMod, which MU-9 needs to install its validator.
-# bypassDocumentValidation would skip that validator; the rest administers users, roles or the database.
+# What dbAdmin/dbOwner add to readWrite (MongoDB 7). collMod can replace the MU-9 validator and
+# bypassDocumentValidation skips it: in staging only the migration user (apply-validator) may change it; the rest
+# administers users, roles or the database.
 _STAGING_FORBIDDEN_ACTIONS = frozenset({
-    "analyze", "bypassDocumentValidation", "changeCustomData", "changePassword", "compact", "configureQueryAnalyzer",
+    "analyze", "bypassDocumentValidation", "changeCustomData", "changePassword", "collMod", "compact",
+    "configureQueryAnalyzer",
     "createRole", "createUser", "dropDatabase", "dropRole", "dropUser", "enableProfiler", "grantRole",
     "planCacheIndexFilter", "planCacheWrite", "reIndex", "revokeRole", "setAuthenticationRestriction", "storageDetails",
     "validate", "viewRole", "viewUser",

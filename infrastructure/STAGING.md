@@ -32,12 +32,29 @@ services, `habita-backend-staging` and `habita-frontend-staging`, on database `h
 | No anonymous access | `--no-allow-unauthenticated --invoker-iam-check`; the preflight refuses if the project or any ancestor grants a role to `allUsers`/`allAuthenticatedUsers`; before a redeploy and after every deploy it checks that neither service grants `allUsers`/`allAuthenticatedUsers` or has the invoker IAM check disabled, and that an anonymous request gets 401/403. Only principals with `roles/run.invoker` (the project owner has it) can reach them, through `gcloud run services proxy`. |
 | Preview untouched | The script only deploys the two `*-staging` names, refuses to reuse a service without the `env=staging` label, and compares the preview services' revisions and traffic before and after. Images get new `staging-<sha>` tags; no existing tag is replaced. |
 | Bounded | `--min 0 --max 1` (service level, across revisions) and `--min-instances 0 --max-instances 1` (revision level), `--cpu 1 --memory 512Mi`; concurrency 10 (backend, timeout 300 s for the model calls) and 40 (frontend). One instance keeps the in-process rate limiter (`backend/app/core/rate_limit.py`) close to exact; Cloud Run may briefly exceed the maximum during spikes or revision changes, so it is a bound, not a guarantee. |
-| Isolated database | `MONGODB_URI` comes from the **separate** secret `mongodb-uri-staging` (an Atlas user limited to `habita_ai_staging`, see setup), read only by the backend's service account `habita-staging-api`. The preflight refuses if that account cannot read one of its three secrets or can read any other (such as the preview's `mongodb-uri`), if the frontend's account `habita-staging-web` can read any secret, or if either holds any role on the project or its ancestors (folders, organisation). A secret name proves nothing about its content, so at startup the backend asks MongoDB for its own privileges (`connectionStatus`) and refuses to start unless they cover `habita_ai_staging` and nothing else (no other database, cluster or any-resource grant). Nothing is copied from `habita_ai`; the database starts empty and `SOURCE_INGEST_ON_STARTUP=true` ingests the public official sources (cascais.pt). |
+| Isolated database | `MONGODB_URI` comes from the **separate** secret `mongodb-uri-staging` (the application user `habita-staging-app`, `readWrite` on `habita_ai_staging` only, see Database users), read only by the backend's service account `habita-staging-api`. The preflight refuses if that account cannot read one of its three secrets or can read any other (such as the preview's `mongodb-uri`), if the frontend's account `habita-staging-web` can read any secret, or if either holds any role on the project or its ancestors (folders, organisation). A secret name proves nothing about its content, so at startup the backend asks MongoDB for its own privileges (`connectionStatus`) and refuses to start unless they cover `habita_ai_staging` and nothing else (no other database, cluster or any-resource grant) and include no administrative action, `collMod` and `bypassDocumentValidation` included. Nothing is copied from `habita_ai`; the database starts empty and `SOURCE_INGEST_ON_STARTUP=true` ingests the public official sources (cascais.pt). |
 | No silent fallback | With `APP_ENV=staging` the backend refuses to start unless `MONGODB_DB_NAME=habita_ai_staging` and `MONGODB_URI` are set (`Settings._staging_is_isolated`); without them it would otherwise default to `habita_ai`. The script also re-reads the deployed variable. |
 | Built from the pushed commit | Clean tree, `git fetch`, HEAD equal to the remote branch head; images are built from `git archive <sha>` and labelled `org.opencontainers.image.revision`. The browser Maps key is passed to `docker build` by name (read from the environment), not on the command line. |
 
-MU-9: with no stored floor the application applies `DEFAULT_FLOOR` (fail closed). The server-side validator is
-installed by `python -m app.maintenance raise-protocol-floor …` against `habita_ai_staging` (optional, needs the URI).
+MU-9: with no stored floor the application applies `DEFAULT_FLOOR` (fail closed). The application installs the
+server-side validator itself on the empty database (it creates `permit_verifications` with the rule, which `readWrite`
+allows); changing it later needs the migration user (below).
+
+### Database users: application and migration
+`collMod` is needed only to **change** the MU-9 validator of `permit_verifications`, never to serve requests: the
+application checks at startup that the rule for the stored floor is in force, creates the collection with it when the
+database is new (`createCollection`, part of `readWrite`), and calls `collMod` only when the installed rule differs.
+In staging, the two permission sets are separate:
+
+| User | Atlas role | Used by | Stored |
+|---|---|---|---|
+| `habita-staging-app` | built-in `readWrite@habita_ai_staging` | the Cloud Run backend | secret `mongodb-uri-staging` |
+| `habita-staging-migrate` | custom `habitaStagingMigrate` = `readWrite@habita_ai_staging` + `collMod` on `habita_ai_staging` | the owner, from a workstation: `apply-validator` after a release that changes the rule, `raise-protocol-floor` | nowhere: an Atlas temporary user (expires), URI typed at a hidden prompt |
+
+The backend refuses to start in staging if its user holds `collMod` (or any administrative action), and refuses to start
+without rollback protection if the rule in force is not the current one; the log then names `apply-validator`. Neither
+user exists on the preview database, and the preview's user is never reused. Same cluster as the preview (separate
+database and users); a separate cluster would also separate load and backups, at extra cost.
 
 ### Browser addresses and the proxy
 The frontend is built with `NEXT_PUBLIC_API_BASE_URL=http://localhost:8081` and the backend allows only the CORS
@@ -53,9 +70,10 @@ Checked locally (2026-10-29, containers, no Cloud Run): frontend image built for
 `/property/<id>` and `/privacy`; its bundle carries `http://localhost:8081`; the backend with the staging variables and a
 local MongoDB starts, writes only `habita_ai_staging`, answers CORS for `http://localhost:3000` (also on error
 responses) and refuses `http://127.0.0.1:3000`; without `MONGODB_DB_NAME`, or with `habita_ai`, it does not start and the
-error does not echo the URI. Against a local MongoDB with authentication: a user with the role below starts; a user
-whose grants also cover `habita_ai`, or a `dbOwner` of `habita_ai_staging`, is refused; a plain `readWrite` user is refused by MU-9, which needs `collMod` to
-install its validator.
+error does not echo the URI. Against a local MongoDB with authentication: the `readWrite` application user starts on an
+empty database (the collection is created with the validator) and restarts without `collMod`; after the rule was changed
+it refuses to start, `apply-validator` as the migration user restores it, and it starts again; an application user
+holding `collMod`, a `dbOwner` of `habita_ai_staging`, or a user whose grants also cover `habita_ai` is refused.
 
 ### Google Maps keys (reviewed 2026-10-29, unchanged)
 - `habita-browser-maps` (inlined in the frontend bundle by design): Maps JavaScript and Places only; referrers are the
@@ -68,13 +86,25 @@ install its validator.
 ### One-time setup by the owner (each step needs separate authorisation)
 ```bash
 P=habita-ai-512916; API=habita-staging-api@$P.iam.gserviceaccount.com
-# 1. Atlas: custom role "habitaStagingApp" = built-in readWrite@habita_ai_staging + action collMod on
-#    habita_ai_staging (MU-9 installs a validator); database user "habita-staging" with that role only.
-#    Network access as for the preview user.
-# 2. Its URI as a new secret, typed at a hidden prompt (never on the command line or in the history):
-read -rsp 'staging MongoDB URI: ' URI; echo
-printf '%s' "$URI" | gcloud secrets create mongodb-uri-staging --project $P --replication-policy=automatic --data-file=-
+# 1. Atlas (UI: Database Access, or the Atlas CLI signed in to the project's account; <ATLAS_PROJECT_ID> and
+#    <CLUSTER> are the preview's). Network Access: Cloud Run reaches Atlas as the preview does; add your own IP only
+#    while running a migration.
+#    a) application user, in the UI (Add New Database User): username habita-staging-app, "Autogenerate Secure
+#       Password" (so it never appears on a command line), Database User Privileges → Specific Privileges → Add
+#       Specific Privilege → role readWrite, database habita_ai_staging (the Built-in Role menu has only
+#       any-database roles: do not use it),
+#       Restrict Access to Specific Clusters → <CLUSTER>.
+#    b) migration role only (no user yet; the user is created when a migration is needed, see Migrations):
+atlas customDbRoles create habitaStagingMigrate --privilege COLL_MOD@habita_ai_staging \
+  --inheritedRole readWrite@habita_ai_staging --projectId <ATLAS_PROJECT_ID>
+# 2. The application user's URI (mongodb+srv://habita-staging-app:<password>@<cluster host>/?retryWrites=true&w=majority)
+#    as a new secret, typed at a hidden prompt: never on a command line, in the shell history, a file or Git.
+#    Percent-encode any reserved character in the password (@ : / ? # [ ] %) before typing it.
+read -rsp 'staging application MongoDB URI: ' URI; echo
+printf '%s' "$URI" | gcloud secrets create mongodb-uri-staging --project $P --replication-policy=automatic \
+  --labels=env=staging --data-file=-
 unset URI
+gcloud secrets versions list mongodb-uri-staging --project $P   # metadata only; never `versions access`
 # 3. Runtime service accounts (the IAM API is disabled on the project today and must be enabled first):
 gcloud services enable iam.googleapis.com --project $P
 gcloud iam service-accounts create habita-staging-api --project $P --display-name="HABITA staging backend"
@@ -84,6 +114,17 @@ for s in mongodb-uri-staging GOOGLE_MAPS_API_KEY meta-api-key; do
 done
 # 4. Read-only check before authorising the deploy:
 infrastructure/deploy-staging.sh --preflight
+```
+
+### Migrations (only when needed)
+Needed when the backend logs `MU-9: could not install the permit_verifications validator` after a release, or to raise
+the protocol floor. Not needed for the first deploy.
+```bash
+# Atlas UI: temporary user habita-staging-migrate, role habitaStagingMigrate, cluster <CLUSTER>, delete after 6 hours.
+cd backend
+read -rsp 'staging MIGRATION MongoDB URI: ' URI; echo
+MONGODB_URI=$URI APP_ENV=staging MONGODB_DB_NAME=habita_ai_staging .venv/bin/python -m app.maintenance apply-validator
+unset URI    # the variable lives only in this shell and the command's environment, never on its argv
 ```
 
 ### Deploy, open and test
@@ -120,7 +161,8 @@ for img in backend frontend; do
 done
 # Back to an earlier staging revision instead: gcloud run services update-traffic <service> --to-revisions <rev>=100
 # Full clean-up (optional): gcloud secrets delete mongodb-uri-staging; gcloud iam service-accounts delete
-# habita-staging-api@… and habita-staging-web@…; in Atlas, drop habita_ai_staging, the user and the role.
+# habita-staging-api@… and habita-staging-web@…; in Atlas, drop habita_ai_staging, delete
+# habita-staging-app (and any habita-staging-migrate) and the role habitaStagingMigrate.
 ```
 
 ### Costs

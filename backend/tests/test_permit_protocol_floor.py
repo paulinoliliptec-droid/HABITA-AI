@@ -103,12 +103,22 @@ class _Recorder:
     def __init__(self, log, name, docs=()):
         self.log, self.name, self.docs = log, name, list(docs)
         self.database = self
+        # permit_verifications as listCollections reports it: exists, no validator yet (None: absent).
+        self.collection = {"name": "permit_verifications", "options": {}}
 
     async def create_index(self, *a, **kw):
         self.log.append((self.name, "create_index"))
 
-    async def list_collection_names(self):
-        return ["permit_verifications"]
+    async def list_collections(self, filter=None):
+        found = [self.collection] if self.collection else []
+
+        class _Cursor:
+            async def to_list(self):
+                return found
+        return _Cursor()
+
+    async def create_collection(self, name, **kw):
+        self.log.append(("db", "create_collection", name, kw["validator"], kw["validationLevel"]))
 
     async def command(self, name, collection, **kw):
         self.log.append(("db", name, collection, kw["validator"], kw["validationLevel"]))
@@ -151,6 +161,53 @@ async def test_every_deployment_installs_the_validator_at_startup():
     await repo.ensure_indexes()
     installs = [entry for entry in log if entry[0] == "db" and entry[1] == "collMod"]
     assert installs and installs[0][3] == validator(DEFAULT_FLOOR) and installs[0][4] == "moderate"
+
+
+def _installed(rule):
+    return {"name": "permit_verifications",
+            "options": {"validator": rule, "validationLevel": "moderate", "validationAction": "error"}}
+
+
+async def test_a_new_database_gets_the_validator_with_the_collection_before_any_index():
+    """Least privilege: creating the collection with its rule needs createCollection only, not collMod; an index
+    created first would create the collection without the rule."""
+    repo, log = _recording_repo()
+    repo._verifications.collection = None
+    await repo.ensure_indexes()
+    installs = [entry for entry in log if entry[0] == "db"]
+    assert [entry[1] for entry in installs] == ["create_collection"]
+    assert installs[0][3] == validator(DEFAULT_FLOOR) and installs[0][4] == "moderate"
+    assert log.index(installs[0]) < log.index(("verifications", "create_index"))
+
+
+async def test_an_unchanged_validator_is_not_reinstalled():
+    repo, log = _recording_repo()
+    repo._verifications.collection = _installed(validator(DEFAULT_FLOOR))
+    await repo.ensure_indexes()
+    assert not [entry for entry in log if entry[0] == "db"]
+
+
+async def test_a_changed_or_weaker_validator_is_replaced():
+    repo, log = _recording_repo()
+    repo._verifications.collection = _installed({"outcome": {"$ne": "VERIFIED"}})  # e.g. tampered or older rule
+    await repo.ensure_indexes()
+    installs = [entry for entry in log if entry[0] == "db"]
+    assert [entry[1] for entry in installs] == ["collMod"] and installs[0][3] == validator(DEFAULT_FLOOR)
+
+
+async def test_a_collection_created_concurrently_with_the_rule_is_accepted():
+    from pymongo.errors import CollectionInvalid
+
+    repo, log = _recording_repo()
+    recorder = repo._verifications
+    recorder.collection = None
+
+    async def raced(name, **kw):  # the other instance won: the collection now exists with the rule
+        recorder.collection = _installed(kw["validator"])
+        raise CollectionInvalid("collection permit_verifications already exists")
+    recorder.create_collection = raced
+    await repo.ensure_indexes()
+    assert not [entry for entry in log if entry[0] == "db"]
 
 
 async def test_raising_the_floor_installs_the_validator_before_storing_the_floor():

@@ -69,7 +69,7 @@ class _Client:
         self.admin = _Admin(auth)
 
 
-def _user(*resources: dict, actions: tuple[str, ...] = ("find", "insert", "update", "collMod")) -> dict:
+def _user(*resources: dict, actions: tuple[str, ...] = ("find", "insert", "update", "createCollection")) -> dict:
     return {
         "authenticatedUsers": [{"user": "habita-staging", "db": "admin"}],
         "authenticatedUserPrivileges": [{"resource": r, "actions": list(actions)} for r in resources],
@@ -101,7 +101,7 @@ async def test_staging_user_reaching_beyond_its_database_is_refused(auth):
         await _require_confined_user(_Client(auth), STAGING_DB_NAME)
 
 
-@pytest.mark.parametrize("action", ["createUser", "grantRole", "dropDatabase", "bypassDocumentValidation"])
+@pytest.mark.parametrize("action", ["createUser", "grantRole", "dropDatabase", "bypassDocumentValidation", "collMod"])
 async def test_staging_user_with_administrative_actions_is_refused(action):
     from app.main import ConfigurationError, _require_confined_user
 

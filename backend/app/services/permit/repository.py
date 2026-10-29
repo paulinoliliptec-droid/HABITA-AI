@@ -252,17 +252,21 @@ class MongoPermitRepository:
         await self._matters.create_index([("property_id", ASCENDING), ("created_at", DESCENDING)])
         await self._evidence.create_index([("matter_id", ASCENDING), ("seq", ASCENDING)])
         await self._evidence.create_index([("matter_id", ASCENDING), ("dedupe_key", ASCENDING)], unique=True)
-        await self._verifications.create_index([("matter_id", ASCENDING), ("created_at", DESCENDING)])
         # MU-9 (M8): the server-side VERIFIED rule is installed by every deployment of this code, so a later rollback
         # to a pre-MU-9 revision can't commit VERIFIED even if nobody ran raise-protocol-floor. Fail closed: without
-        # it, rollback protection would silently be absent, so the service does not start (the database user needs
-        # the collMod privilege on this database).
+        # it, rollback protection would silently be absent, so the service does not start. Installed before the
+        # index, which would otherwise create the collection without it: a new collection then needs only
+        # createCollection, and an installed, unchanged rule needs nothing, so the application user needs collMod
+        # only when the rule changes (a migration user can apply it instead: apply-validator).
         try:
             await self.apply_validator(await self.get_floor())
         except StorageUnavailableError:
             logger.error("MU-9: could not install the permit_verifications validator; refusing to start without "
-                         "server-side rollback protection. Grant collMod on the database or run raise-protocol-floor.")
+                         "server-side rollback protection. Run `python -m app.maintenance apply-validator` with a "
+                         "user holding collMod on this database (outside staging, granting collMod to the "
+                         "application user also works; staging refuses an application user with it).")
             raise
+        await self._verifications.create_index([("matter_id", ASCENDING), ("created_at", DESCENDING)])
 
     async def create_matter(self, matter: PermitMatter, access_hash: str) -> None:
         await self._call(self._matters.insert_one(
@@ -354,13 +358,26 @@ class MongoPermitRepository:
     async def apply_validator(self, floor: Floor) -> None:
         """Install the server-side VERIFIED rule (``protocol.validator``); existing documents are not re-checked."""
         db = self._verifications.database
-        rule = validator(floor)
-        if "permit_verifications" not in await self._call(db.list_collection_names()):
-            await self._call(db.create_collection("permit_verifications", validator=rule,
-                                                  validationLevel="moderate", validationAction="error"))
-            return
-        await self._call(db.command("collMod", "permit_verifications", validator=rule,
-                                    validationLevel="moderate", validationAction="error"))
+        wanted = {"validator": validator(floor), "validationLevel": "moderate", "validationAction": "error"}
+
+        async def installed() -> dict | None:
+            cursor = await self._call(db.list_collections(filter={"name": "permit_verifications"}))
+            found = await self._call(cursor.to_list())
+            return {key: found[0].get("options", {}).get(key) for key in wanted} if found else None
+
+        current = await installed()
+        if current is None:
+            try:
+                await self._call(db.create_collection("permit_verifications", **wanted))
+                return
+            except StorageUnavailableError:
+                # Another instance may have created it first: accept only the exact rule, otherwise fail.
+                current = await installed()
+                if current is None:
+                    raise
+        if current == wanted:
+            return  # already in force: no collMod needed
+        await self._call(db.command("collMod", "permit_verifications", **wanted))
 
     async def raise_floor(self, current: Floor, new: Floor) -> bool:
         """Install the stricter validator first, then store the floor: if storing fails, the server is already at
