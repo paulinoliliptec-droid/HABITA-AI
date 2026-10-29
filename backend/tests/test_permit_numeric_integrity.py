@@ -973,3 +973,21 @@ async def test_closure_r4_text_before_the_article_number_is_header_content():
     RECS.append(e)
     assert "A permissão depende de vistoria municipal." in shown("Em solo urbano, as obras são permitidas.",
                                                                   "SYN-PRE-ART-COND")
+
+
+# --- containment (ACC-NRM-51, Codex closure round 5, open as a semantic fix): numbering that isn't 1, 2, 3 … --------
+
+@pytest.mark.parametrize("eid, text, quote", [
+    ("SYN-RANGE-02", "A altura permitida é de 2 - 3 metros para construções em solo urbano.",
+     "3 metros para construções em solo urbano."),  # exact
+    ("SYN-RANGE-03", "Artigo 9.º Altura 1 - A altura é de 2 - 3 metros. 2 - Excetuam-se os anexos.",
+     "Excetuam-se os anexos."),
+])
+async def test_containment_numbering_out_of_sequence_is_not_trusted(eid, text, quote):
+    """Fail-closed: a part never verifies. (Cost: when the markers are ambiguous even a whole quote may fail, since
+    "2 - …" then reads as a number of the rule; the excerpt can't be structured reliably.)"""
+    RECS.append(official(eid, text))
+    assert rejected(await quoted(quote, eid))
+    if eid == "SYN-RANGE-02":  # no paragraph marker at a sentence start: the whole excerpt still verifies
+        report = await quoted(text, eid)
+        assert report.outcome == "VERIFIED", report.issues

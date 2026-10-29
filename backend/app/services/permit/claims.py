@@ -403,6 +403,12 @@ def _excerpt_parts(text: str) -> tuple[str | None, list[str]]:
     necessitam de vistoria municipal") is dropped only when it adds nothing to the body (``_title_only``); otherwise it
     is part of paragraph 1, so a quote or transcription carries it (owner principle, ACC-NRM-44)."""
     raw = _PARAGRAPH.split(text)
+    # Containment (ACC-NRM-51, open): "N - " is read as paragraph numbering only when the markers run 1, 2, 3 … in
+    # order; otherwise ("de 2 - 3 metros") the structure isn't trusted and the excerpt is one unit, quoted whole.
+    numbers = [int(m.group(1)) for p in raw if (m := re.match(r"\s*(\d+)\s*-", p))]
+    lead = 0 if re.match(r"\s*\d+\s*-", raw[0]) else 1  # an unnumbered header before "1 - "
+    if numbers != list(range(1, len(numbers) + 1)) or len(numbers) != len(raw) - lead:
+        return None, [text]
     if len(raw) > 1 and not re.match(r"\s*\d+\s*-", raw[0]):
         header, raw = raw[0].strip(), raw[1:]
     else:
@@ -506,7 +512,9 @@ def _literal(atom: str | tuple[str, ...], s: _Sentence) -> bool:
     final stop aside). Never a part of it: what a part leaves out can be a condition in any wording ("desde que …"),
     so a partial quote is not decided by reading what it drops."""
     candidates = (atom,) if isinstance(atom, str) else atom
-    return any((a := _norm(_NUMBERING.sub(" ", c))) and a in s.wordings for c in candidates)
+    # As written, or without paragraph markers ("… permitida. 2 - Essa …"): the excerpt's own wording has lost its
+    # markers only where its numbering was trusted (``_excerpt_parts``), so "de 2 - 3 metros" can't become "de 3".
+    return any(a and a in s.wordings for c in candidates for a in {_norm(c), _norm(_NUMBERING.sub(" ", c))})
 
 
 def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence, verbatim: bool = False,
