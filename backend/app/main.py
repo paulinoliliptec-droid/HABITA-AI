@@ -47,7 +47,7 @@ class ConfigurationError(RuntimeError):
     pass
 
 
-# What dbAdmin/dbOwner add to readWrite (MongoDB 7). collMod can replace the MU-9 validator and
+# What dbAdmin/dbOwner add to readWrite (identical on MongoDB 7.0 and 8.0.34, the Atlas cluster's version). collMod can replace the MU-9 validator and
 # bypassDocumentValidation skips it: in staging only the migration user (apply-validator) may change it; the rest
 # administers users, roles or the database.
 _STAGING_FORBIDDEN_ACTIONS = frozenset({

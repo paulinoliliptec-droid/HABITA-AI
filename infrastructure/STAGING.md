@@ -86,17 +86,20 @@ holding `collMod`, a `dbOwner` of `habita_ai_staging`, or a user whose grants al
 ### One-time setup by the owner (each step needs separate authorisation)
 ```bash
 P=habita-ai-512916; API=habita-staging-api@$P.iam.gserviceaccount.com
-# 1. Atlas (UI: Database Access, or the Atlas CLI signed in to the project's account; <ATLAS_PROJECT_ID> and
-#    <CLUSTER> are the preview's). Network Access: Cloud Run reaches Atlas as the preview does; add your own IP only
-#    while running a migration.
+# 1. Atlas project "HABITA AI" (6adfdf61d52b2b35f1de0cf3), cluster habita-ai-m0 (M0, MongoDB 8.0), Atlas CLI profile
+#    "habita" (confirmed read-only 2026-10-29: the preview's user habita_app has readWrite@habita_ai only, no custom
+#    roles yet). Network Access is 0.0.0.0/0 today ("temporary hackathon preview access"): Cloud Run reaches the
+#    cluster with no change; the credentials are the only barrier.
 #    a) application user, in the UI (Add New Database User): username habita-staging-app, "Autogenerate Secure
 #       Password" (so it never appears on a command line), Database User Privileges → Specific Privileges → Add
 #       Specific Privilege → role readWrite, database habita_ai_staging (the Built-in Role menu has only
 #       any-database roles: do not use it),
-#       Restrict Access to Specific Clusters → <CLUSTER>.
+#       Restrict Access to Specific Clusters → habita-ai-m0.
 #    b) migration role only (no user yet; the user is created when a migration is needed, see Migrations):
 atlas customDbRoles create habitaStagingMigrate --privilege COLL_MOD@habita_ai_staging \
-  --inheritedRole readWrite@habita_ai_staging --projectId <ATLAS_PROJECT_ID>
+  --inheritedRole readWrite@habita_ai_staging --projectId 6adfdf61d52b2b35f1de0cf3 -P habita
+atlas customDbRoles describe habitaStagingMigrate --projectId 6adfdf61d52b2b35f1de0cf3 -P habita -o json   # verify
+atlas dbusers describe habita-staging-app --projectId 6adfdf61d52b2b35f1de0cf3 -P habita -o json   # after a): roles, scopes
 # 2. The application user's URI (mongodb+srv://habita-staging-app:<password>@<cluster host>/?retryWrites=true&w=majority)
 #    as a new secret, typed at a hidden prompt: never on a command line, in the shell history, a file or Git.
 #    Percent-encode any reserved character in the password (@ : / ? # [ ] %) before typing it.
@@ -120,7 +123,7 @@ infrastructure/deploy-staging.sh --preflight
 Needed when the backend logs `MU-9: could not install the permit_verifications validator` after a release, or to raise
 the protocol floor. Not needed for the first deploy.
 ```bash
-# Atlas UI: temporary user habita-staging-migrate, role habitaStagingMigrate, cluster <CLUSTER>, delete after 6 hours.
+# Atlas UI: temporary user habita-staging-migrate, role habitaStagingMigrate, cluster habita-ai-m0, delete after 6 hours.
 cd backend
 read -rsp 'staging MIGRATION MongoDB URI: ' URI; echo
 MONGODB_URI=$URI APP_ENV=staging MONGODB_DB_NAME=habita_ai_staging .venv/bin/python -m app.maintenance apply-validator
