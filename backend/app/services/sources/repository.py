@@ -95,9 +95,13 @@ class InMemorySourceRepository:
     async def get_snapshot(self, snapshot_id: str) -> SourceSnapshot | None:
         return self.snapshots.get(snapshot_id)
 
-    async def save_snapshot(self, snapshot: SourceSnapshot, chunks: list[RegulatoryChunk]) -> None:
+    async def save_snapshot(self, snapshot: SourceSnapshot, chunks: list[RegulatoryChunk]) -> SourceSnapshot:
+        """The stored snapshot: this one, or the one already stored for the same (source_id, sha256) (CX-4)."""
+        if (winner := await self.find_snapshot(snapshot.source_id, snapshot.sha256)) is not None:
+            return winner
         self.snapshots[snapshot.snapshot_id] = snapshot
         self.chunks[snapshot.snapshot_id] = list(chunks)
+        return snapshot
 
     async def list_chunks(self, snapshot_id: str) -> list[RegulatoryChunk]:
         return list(self.chunks.get(snapshot_id, []))
@@ -177,15 +181,32 @@ class MongoSourceRepository:
         doc = await self._call(self._snapshots.find_one({"_id": snapshot_id}))
         return SourceSnapshot.model_validate(doc) if doc else None
 
-    async def save_snapshot(self, snapshot: SourceSnapshot, chunks: list[RegulatoryChunk]) -> None:
-        # Chunks first: a snapshot document only exists once its passages are stored.
-        if chunks:
-            await self._call(self._chunks.insert_many(
-                [{"_id": c.chunk_id, "seq": n, **to_bson(c.model_dump(mode="python"))} for n, c in enumerate(chunks)]
-            ))
-        await self._call(self._snapshots.insert_one(
-            {"_id": snapshot.snapshot_id, **to_bson(snapshot.model_dump(mode="python"))}
-        ))
+    async def save_snapshot(self, snapshot: SourceSnapshot, chunks: list[RegulatoryChunk]) -> SourceSnapshot:
+        """Publish a snapshot idempotently under its unique (source_id, sha256) key and return the stored one.
+
+        Chunks first: a snapshot document only exists once its passages are stored. If another worker published the
+        same content first (duplicate key), or the chunk write fails part-way, this snapshot's chunks are removed so
+        none is left orphaned, and the winner is returned (HR-003 CX-4)."""
+        try:
+            if chunks:
+                await self._chunks.insert_many(
+                    [{"_id": c.chunk_id, "seq": n, **to_bson(c.model_dump(mode="python"))}
+                     for n, c in enumerate(chunks)])
+            await self._snapshots.insert_one(
+                {"_id": snapshot.snapshot_id, **to_bson(snapshot.model_dump(mode="python"))})
+            return snapshot
+        except DuplicateKeyError:
+            await self._call(self._chunks.delete_many({"snapshot_id": snapshot.snapshot_id}))
+            winner = await self.find_snapshot(snapshot.source_id, snapshot.sha256)
+            if winner is None:
+                raise StorageUnavailableError(_UNAVAILABLE) from None
+            return winner
+        except PyMongoError:
+            try:
+                await self._chunks.delete_many({"snapshot_id": snapshot.snapshot_id})
+            except PyMongoError:
+                pass  # best effort; the snapshot document was never written, so nothing references them
+            raise StorageUnavailableError(_UNAVAILABLE) from None
 
     async def list_chunks(self, snapshot_id: str) -> list[RegulatoryChunk]:
         docs = await self._call(self._chunks.find({"snapshot_id": snapshot_id}).sort("seq", ASCENDING).to_list(None))

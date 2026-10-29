@@ -79,7 +79,13 @@ class SourceIngestor:
             version_detected=document.version_detected, pages=document.pages,
             text_extracted=document.text_extracted, chunk_count=len(chunks),
         )
-        await self._repo.save_snapshot(snapshot, chunks)
+        stored = await self._repo.save_snapshot(snapshot, chunks)
+        if stored.snapshot_id != snapshot_id:
+            # Another worker published the same content first (CX-4): use its snapshot (never one without text).
+            if not stored.text_extracted:
+                return IngestReport(source_id, "no_text", "no extractable text (scanned PDF?)", stored.snapshot_id)
+            await self._repo.set_latest_snapshot(source_id, stored.snapshot_id)
+            return IngestReport(source_id, "unchanged", snapshot_id=stored.snapshot_id, chunks=stored.chunk_count)
         if not document.text_extracted:
             # Recorded for audit, but never made current: there is no text to cite (no OCR in HR-003).
             return IngestReport(source_id, "no_text", "no extractable text (scanned PDF?)", snapshot_id)
