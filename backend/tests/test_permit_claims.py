@@ -1,0 +1,176 @@
+"""MU-9 Phase 1: atomic legal claims (``app/services/permit/claims.py``)."""
+
+import pytest
+
+from app.services.permit.admissibility import evidence_capabilities, render_draft
+from app.services.permit.claims import CAN_PROVE, KINDS, assess
+from app.services.permit.verifier import PROTOCOL, Verifier
+from tests.mu9_acceptance import E1, E2, E3, E13, E18, E20, E30, RECORDS
+from tests.test_permit_admissibility import SECTIONS, TRUSTED, in_section, record, resolved_state
+from tests.test_permit_verifier import CHAIN, VERIFIED, Reviewer, checklist, codes, matter
+
+EXPLANATION = "general_planning_explanation"
+
+
+async def verify(text, cites, section="claim", basis=EXPLANATION):
+    d = render_draft(in_section(section, text, cites, basis=basis), RECORDS, matter())
+
+    async def state(_matter):
+        return resolved_state() if "E20" in cites else None
+    return await Verifier(Reviewer(VERIFIED), TRUSTED, state).verify(matter(), checklist(), d, RECORDS, CHAIN)
+
+
+# --- the owner's rule: no property legal status from general law, the PDM, the RJUE or a competence record --------
+
+LEGAL_STATUS = [
+    "The property has a valid licence.",
+    "O imóvel tem licença de utilização.",
+    "The works received prior communication approval.",
+    "A comunicação prévia do projeto foi aceite.",
+    "The site is authorised for two dwellings.",
+    "Licensing completed by the Câmara.",
+    "The building's licence remains in force.",
+    "O imóvel está legal.",
+]
+
+
+@pytest.mark.parametrize("cites", [["E13"], ["E1"], ["E3"], ["E2"], ["E3", "E13"], ["E1", "E3"], ["E20"],
+                                   ["E20", "E13"]], ids="+".join)
+@pytest.mark.parametrize("basis", [EXPLANATION, "none"])
+@pytest.mark.parametrize("section", SECTIONS)
+@pytest.mark.parametrize("text", LEGAL_STATUS)
+async def test_no_general_or_competence_source_proves_a_property_legal_status(text, section, basis, cites):
+    report = await verify(text, cites, section, basis)
+    assert report.outcome == "REJECTED", report.issues
+
+
+@pytest.mark.parametrize("text", LEGAL_STATUS)
+async def test_the_atomic_check_itself_rejects_legal_status_with_the_pdm(text):
+    """Not a side effect of another rule: the rejection is the atomic legal-claim check's."""
+    report = await verify(text, ["E13"])
+    assert "unsupported_legal_claim" in codes(report.issues) and not report.checks["legal_claims_supported"]
+    atom = next(a for a in report.claim_atoms if a.verdict == "rejected")
+    assert atom.kind in {"legal_status", "unsupported"} and atom.bearer == "matter" and atom.enforced
+
+
+def test_no_record_type_carries_the_property_legal_status_capability():
+    forged = [
+        record("F1", "regulatory_source", "Licence issued for this property.", source="cascais-pdm",
+               basis="official_text", authority_class="municipal_instrument", status="official_text"),
+        record("F2", "authority_record", "Licence issued.", status="system_record"),
+        record("F3", "planning_context", "Licensed.", status="user_declared"),
+        record("F4", "user_statement", "Licensed.", status="system_record"),
+    ]
+    for e in [E1, E2, E3, E13, E18, E20, E30, *forged]:
+        assert "property_legal_status" not in evidence_capabilities(e), e.evidence_id
+    assert {k for ks in CAN_PROVE.values() for k in ks} <= set(KINDS)
+    assert [c for c, ks in CAN_PROVE.items() if "legal_status" in ks] == ["property_legal_status"]
+    assert CAN_PROVE["rule_summary"] == frozenset()  # curated summaries are context only (C1)
+
+
+# --- directional support -------------------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("text, cites", [
+    ("In urban building operations, including enlargement and change of use, subject to licensing or prior "
+     "communication, parking provision must be ensured.", ["E13"]),
+    ("If the works are an urban building operation subject to licensing or prior communication, parking provision "
+     "must be ensured.", ["E13"]),
+    ("Nas operações urbanísticas de edificação sujeitas a licenciamento ou comunicação prévia, deve ser assegurada a "
+     "dotação de estacionamento.", ["E13"]),
+    ("Single-family houses with a construction area of up to 200 m2 may be enlarged by up to 20 % of the existing "
+     "area, except classified buildings.", ["E30"]),
+])
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_a_rule_restated_with_all_its_conditions_verifies(text, cites, section):
+    report = await verify(text, cites, section)
+    assert report.outcome == "VERIFIED", report.issues
+    assert any(a.kind in {"general_rule", "conditional_rule"} and a.supported_by == cites for a in report.claim_atoms)
+
+
+@pytest.mark.parametrize("text, cites", [
+    ("Urban building operations must ensure parking provision.", ["E13"]),  # the regimes dropped
+    ("In urban building operations subject to licensing, parking provision must be ensured.", ["E13"]),  # one branch
+    ("In urban building operations subject to licensing or prior communication, parking provision may be ensured.",
+     ["E13"]),  # modality changed
+    ("In urban building operations subject to licensing or prior communication, parking provision was ensured.",
+     ["E13"]),  # tense changed
+    ("If the works are an urban building operation subject to licensing or prior communication, the works must "
+     "ensure parking provision.", ["E13"]),  # the matter in the consequence
+    ("Single-family houses with a construction area of up to 300 m2 may be enlarged by up to 20 % of the existing "
+     "area, except classified buildings.", ["E30"]),  # number changed
+    ("Single-family houses with a construction area of up to 200 m2 may be enlarged by up to 20 % of the existing "
+     "area.", ["E30"]),  # exception dropped
+    ("Single-family houses with a construction area of up to 200 m2 may be enlarged by up to 20 % of the existing "
+     "area, except classified buildings and listed façades.", ["E30"]),  # exception invented
+])
+async def test_a_rule_with_a_changed_or_missing_slot_does_not_verify(text, cites):
+    report = await verify(text, cites)
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
+# --- legitimate forms that assert nothing about the matter ---------------------------------------------------------
+
+@pytest.mark.parametrize("text, cites, basis", [
+    ("Whether the property is licensed must be confirmed with the Câmara.", ["E13"], EXPLANATION),
+    ("O uso licenciado do imóvel deve ser confirmado junto da Câmara.", ["E13"], EXPLANATION),
+    ("Confirm with the Câmara whether the works need licensing or prior communication.", ["E13"], EXPLANATION),
+    ("The Câmara Municipal de Cascais is competent for licensing of urban operations, including building permits.",
+     ["E3"], "none"),
+    ("Contact the Câmara Municipal de Cascais about licensing of urban operations including building permits.",
+     ["E3"], "none"),
+    ("Requirements not confirmed may delay the works.", ["E3"], "none"),
+])
+async def test_deferrals_recommendations_and_competence_pass_the_atomic_check(text, cites, basis):
+    report = await verify(text, cites, basis=basis)
+    assert "unsupported_legal_claim" not in codes(report.issues), report.issues
+
+
+@pytest.mark.parametrize("text", [
+    "Confirm with the Câmara that the licence was issued.",
+    "The licence is valid and must be confirmed with the Câmara.",
+    "Licenciamento confirmado pela Câmara; deve ser verificado junto da Câmara.",
+])
+async def test_a_deferral_cannot_carry_a_status_claim(text):
+    for basis, cites in ((EXPLANATION, ["E13"]), ("none", ["E3"])):
+        report = await verify(text, cites, basis=basis)
+        assert report.outcome == "REJECTED", (basis, report.issues)
+
+
+def test_atoms_follow_sentences_and_keep_each_verdict():
+    atoms = assess(EXPLANATION_TEXT, EXPLANATION, None, [E13])
+    assert [a.kind for a in atoms] == ["general_rule", "legal_status"]
+    assert atoms[1].bearer == "matter" and atoms[1].problem
+
+
+EXPLANATION_TEXT = ("Nas operações urbanísticas de edificação sujeitas a licenciamento ou comunicação prévia, deve ser "
+                    "assegurada a dotação de estacionamento. The property already holds that licence.")
+
+
+# --- audit and protocol ----------------------------------------------------------------------------------------------
+
+async def test_the_report_records_every_atom_and_the_protocol_and_the_final_gate_recomputes_them():
+    report = await verify("Whether the property is licensed must be confirmed with the Câmara.", ["E13"])
+    assert report.outcome == "VERIFIED" and report.protocol == PROTOCOL == "atomic-v1"
+    assert [(a.kind, a.verdict) for a in report.claim_atoms if a.statement == "K1"] == [("deferral",
+                                                                                        "no_support_needed")]
+    d = render_draft(in_section("claim", "Whether the property is licensed must be confirmed with the Câmara.",
+                                ["E13"], basis=EXPLANATION), RECORDS, matter())
+    tampered = report.model_copy(update={"claim_atoms": [], "protocol": "statement-v1"})
+    gated = await Verifier(Reviewer(VERIFIED), TRUSTED).final_gate(tampered, matter(), checklist(), d, RECORDS, CHAIN)
+    assert gated.protocol == PROTOCOL and gated.claim_atoms == report.claim_atoms
+
+
+def test_a_report_from_before_mu9_reads_as_statement_v1():
+    from app.schemas.permit import VerificationReport
+    old = {"verification_id": "v", "matter_id": "m", "draft_revision": 0, "outcome": "VERIFIED", "issues": [],
+           "checks": {}, "created_at": "2026-10-01T00:00:00Z"}
+    assert VerificationReport.model_validate(old).protocol == "statement-v1"
+
+
+async def test_a_curated_summary_copied_verbatim_is_not_support_even_beside_official_text():
+    """C1: a curated excerpt is context only. Copying it word for word, next to an unrelated official passage that
+    satisfies the explanation's citation rule, does not make the legal requirement proven."""
+    from tests.test_permit_admissibility import RJUE_TEXT
+    report = await verify(RJUE_TEXT, ["E1", "E13"])
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+    assert all(a.supported_by != ["E1"] for a in report.claim_atoms)

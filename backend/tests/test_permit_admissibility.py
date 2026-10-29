@@ -272,9 +272,8 @@ async def test_the_reviewer_flag_is_enforced_by_code():
     ("The Câmara Municipal de Cascais is the competent authority.", ["E9"]),
     ("Each new unit must be autonomous with its own exit.", ["E7"]),
     ("You state each floor has its own street door.", ["E8"]),
-    ("Building works and alterations need municipal prior control under the RJUE.", ["E1"]),
-    ("A licence or prior communication may be required, depending on the operation.", ["E1"]),
     ("Confirm the conditions with the Câmara Municipal de Cascais before you apply.", ["E9"]),
+    ("Confirm with the Câmara whether the works need a licence or prior communication.", ["E1"]),
 ])
 @pytest.mark.parametrize("section", SECTIONS)
 async def test_grounded_non_planning_statements_verify(text, cites, section):
@@ -283,6 +282,18 @@ async def test_grounded_non_planning_statements_verify(text, cites, section):
     report = await verify(render_draft(in_section(section, text, cites, step="Apply"), MANUAL_RECORDS, matter()))
     expected = "REJECTED" if cites == ["E8"] and section != "claim" else "VERIFIED"
     assert report.outcome == expected, (section, report.issues)
+
+
+@pytest.mark.parametrize("text", [
+    "Building works and alterations need municipal prior control under the RJUE.",
+    "A licence or prior communication may be required, depending on the operation.",
+])
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_a_legal_requirement_resting_on_a_curated_summary_is_not_verified(text, section):
+    """MU-9 (C1): a curated summary is context only, and a paraphrase of a legal requirement needs an official passage
+    that supports it in the direction stated. Until 98af6af these verified with the curated RJUE (E1) alone."""
+    report = await verify(render_draft(in_section(section, text, ["E1"], step="Apply"), MANUAL_RECORDS, matter()))
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
 
 
 def test_the_property_address_is_a_case_fact_not_a_zone():

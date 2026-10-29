@@ -93,6 +93,12 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -104,11 +110,8 @@
      "general_planning_explanation"
     ]
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation",
-    "none"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-E13-02",
@@ -188,6 +191,12 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -198,10 +207,8 @@
      "general_planning_explanation"
     ]
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-E13-03",
@@ -281,6 +288,12 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -292,11 +305,8 @@
      "general_planning_explanation"
     ]
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation",
-    "none"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-E13-04",
@@ -376,6 +386,12 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -386,10 +402,8 @@
      "general_planning_explanation"
     ]
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-E13-05",
@@ -469,6 +483,12 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -479,10 +499,8 @@
      "general_planning_explanation"
     ]
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-E13-06",
@@ -562,6 +580,12 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -572,10 +596,8 @@
      "general_planning_explanation"
     ]
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-STATUS-01",
@@ -632,6 +654,12 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -641,11 +669,8 @@
     ],
     "tree_mu9_lexical": []
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation",
-    "none"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-STATUS-02",
@@ -702,6 +727,12 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -711,11 +742,8 @@
     ],
     "tree_mu9_lexical": []
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation",
-    "none"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-STATUS-03",
@@ -759,6 +787,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -770,9 +804,7 @@
     ]
    },
    "status": "closed",
-   "final_gate_open": [
-    "general_planning_explanation"
-   ]
+   "final_gate_open": []
   },
   {
    "id": "ACC-STATUS-04",
@@ -829,6 +861,12 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -837,10 +875,8 @@
     ],
     "tree_mu9_lexical": []
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-CX1-06R",
@@ -911,6 +947,12 @@
       "auth+pdm/none/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -923,11 +965,8 @@
      "none"
     ]
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation",
-    "none"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-PRED-01",
@@ -998,6 +1037,12 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1008,10 +1053,8 @@
      "general_planning_explanation"
     ]
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-PRED-02",
@@ -1082,6 +1125,12 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1094,11 +1143,8 @@
      "none"
     ]
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation",
-    "none"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-PRED-03",
@@ -1156,6 +1202,12 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1164,10 +1216,8 @@
     ],
     "tree_mu9_lexical": []
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-PRED-04",
@@ -1238,6 +1288,12 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1248,10 +1304,8 @@
      "general_planning_explanation"
     ]
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-PRED-05",
@@ -1309,6 +1363,12 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1317,10 +1377,8 @@
     ],
     "tree_mu9_lexical": []
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-PRED-06",
@@ -1391,6 +1449,12 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1401,10 +1465,8 @@
      "general_planning_explanation"
     ]
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-PRED-07",
@@ -1475,6 +1537,12 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1485,10 +1553,8 @@
      "general_planning_explanation"
     ]
    },
-   "status": "open",
-   "final_gate_open": [
-    "general_planning_explanation"
-   ]
+   "status": "closed",
+   "final_gate_open": []
   },
   {
    "id": "ACC-CX1-01",
@@ -1529,6 +1595,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 10,
      "verified_runs": [],
@@ -1585,6 +1657,12 @@
      "runs": 10,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1633,6 +1711,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 10,
      "verified_runs": [],
@@ -1689,6 +1773,12 @@
      "runs": 10,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1737,6 +1827,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 10,
      "verified_runs": [],
@@ -1793,6 +1889,12 @@
      "runs": 10,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1806,10 +1908,7 @@
     ]
    },
    "status": "closed",
-   "final_gate_open": [
-    "general_planning_explanation",
-    "none"
-   ]
+   "final_gate_open": []
   },
   {
    "id": "ACC-CX1-06-E13",
@@ -1882,9 +1981,15 @@
       "auth+pdm/none/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 30,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-CXMAP-01",
@@ -1925,6 +2030,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 10,
      "verified_runs": [],
@@ -1977,6 +2088,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 10,
      "verified_runs": [],
@@ -2099,6 +2216,12 @@
      "runs": 10,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -2151,6 +2274,12 @@
      "runs": 10,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -2199,6 +2328,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 10,
      "verified_runs": [],
@@ -2569,9 +2704,15 @@
       "auth+law/none/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 20,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-FRAG-01",
@@ -2638,9 +2779,15 @@
       "loc/none/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-COND-N01",
@@ -2696,9 +2843,15 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-COND-N02",
@@ -2754,9 +2907,15 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-COND-N03",
@@ -2812,9 +2971,15 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-COND-N04",
@@ -2870,9 +3035,15 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-NUM-01",
@@ -2928,9 +3099,15 @@
       "num/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-NUM-02",
@@ -2986,9 +3163,15 @@
       "num/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-EXC-01",
@@ -3044,9 +3227,15 @@
       "num/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-EXC-02",
@@ -3102,9 +3291,15 @@
       "num/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-NUM-03",
@@ -3144,6 +3339,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 5,
      "verified_runs": [],
@@ -3207,9 +3408,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-TIME-02",
@@ -3266,9 +3473,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-PRON-01",
@@ -3319,9 +3532,15 @@
       "auth+pdm/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-MULTI-01",
@@ -3361,6 +3580,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 5,
      "verified_runs": [],
@@ -3424,9 +3649,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-NEG-02",
@@ -3483,9 +3714,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-PASS-01",
@@ -3542,9 +3779,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-PASS-02",
@@ -3601,9 +3844,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-LEG-RULE-01",
@@ -3637,7 +3886,7 @@
    "rationale": "Restates E13 with its full scope and antecedent.",
    "harness": "verifier",
    "final_gate": false,
-   "fixed_in_phase": null,
+   "fixed_in_phase": 4,
    "observed": {
     "tree_mu9_lexical": {
      "verified": 4,
@@ -3660,9 +3909,16 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": false
     }
    },
-   "status": "closed"
+   "status": "open",
+   "regression": "Phase 1 (2026-10-29): regression. The atom drops 'urbanísticas' (urban) from E13's scope; strict coverage reads that as a widened scope and rejects it. A false negative of the Phase 1 rule, reopened for Phase 4 (qualifier equivalence), not redefined as correct."
   },
   {
    "id": "ACC-LEG-RULE-02",
@@ -3719,6 +3975,17 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": true
+    },
+    "phase1": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": true
     }
    },
    "status": "closed"
@@ -3755,7 +4022,7 @@
    "rationale": "Antecedent and both branches preserved (C5).",
    "harness": "verifier",
    "final_gate": false,
-   "fixed_in_phase": null,
+   "fixed_in_phase": 4,
    "observed": {
     "tree_mu9_lexical": {
      "verified": 4,
@@ -3769,6 +4036,131 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": false
+    }
+   },
+   "status": "open",
+   "regression": "Phase 1 (2026-10-29): regression. The atom drops 'urbanísticas' (urban) from E13's scope; strict coverage reads that as a widened scope and rejects it. A false negative of the Phase 1 rule, reopened for Phase 4 (qualifier equivalence), not redefined as correct."
+  },
+  {
+   "id": "ACC-LEG-RULE-03",
+   "group": "LEGIT",
+   "statement": "In urban building operations, including enlargement and change of use, subject to licensing or prior communication, parking provision must be ensured.",
+   "lang": "en",
+   "provenance": {
+    "reviewer": "builder (Claude)",
+    "source": "builder category rows, Phase 0"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "pdm"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general requirement (T3)",
+    "modality": "general/deferral"
+   },
+   "expected": "VERIFIED",
+   "rationale": "Restates E13 with its full scope and antecedent. Keeps E13's full scope ('urban'). Added in Phase 1 next to the row it amends.",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": null,
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": true
+    },
+    "phase1": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": true
+    }
+   },
+   "status": "closed"
+  },
+  {
+   "id": "ACC-LEG-COND-02",
+   "group": "LEGIT",
+   "statement": "If the works are an urban building operation subject to licensing or prior communication, parking provision must be ensured.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "builder (Claude)",
+    "source": "builder category rows, Phase 0"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "pdm"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "project (conditional)",
+    "object": "see claim_type",
+    "claim_type": "conditional application (T2)",
+    "modality": "general/deferral"
+   },
+   "expected": "VERIFIED",
+   "rationale": "Antecedent and both branches preserved (C5). Keeps E13's full scope ('urban'). Added in Phase 1 next to the row it amends.",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": null,
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": true
+    },
+    "phase1": {
      "verified": 4,
      "runs": 4,
      "verified_runs": [
@@ -3837,6 +4229,17 @@
       "num/general_planning_explanation/next action"
      ],
      "passes": true
+    },
+    "phase1": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "num/general_planning_explanation/claim",
+      "num/general_planning_explanation/procedure",
+      "num/general_planning_explanation/risk",
+      "num/general_planning_explanation/next action"
+     ],
+     "passes": true
     }
    },
    "status": "closed"
@@ -3887,6 +4290,17 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "auth/none/claim",
+      "auth/none/procedure",
+      "auth/none/risk",
+      "auth/none/next action"
+     ],
+     "passes": true
+    },
+    "phase1": {
      "verified": 4,
      "runs": 4,
      "verified_runs": [
@@ -3950,6 +4364,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": false
     }
    },
    "status": "open"
@@ -4009,6 +4429,17 @@
       "loc/none/next action"
      ],
      "passes": true
+    },
+    "phase1": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "loc/none/claim",
+      "loc/none/procedure",
+      "loc/none/risk",
+      "loc/none/next action"
+     ],
+     "passes": true
     }
    },
    "status": "closed"
@@ -4055,6 +4486,12 @@
      "passes": false
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 8,
+     "verified_runs": [],
+     "passes": false
+    },
+    "phase1": {
      "verified": 0,
      "runs": 8,
      "verified_runs": [],
@@ -4109,6 +4546,17 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": true
+    },
+    "phase1": {
      "verified": 4,
      "runs": 4,
      "verified_runs": [
@@ -4177,6 +4625,17 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": true
+    },
+    "phase1": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": true
     }
    },
    "status": "closed"
@@ -4227,6 +4686,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": false
+    },
+    "phase1": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -4282,6 +4747,17 @@
      "passes": false
     },
     "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
      "verified": 4,
      "runs": 4,
      "verified_runs": [
@@ -4352,9 +4828,15 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 8,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-RECL-03",
@@ -4412,9 +4894,15 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-RECL-04",
@@ -4472,9 +4960,15 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-RECL-05",
@@ -4518,6 +5012,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -4582,9 +5082,15 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-001",
@@ -4642,9 +5148,15 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-002",
@@ -4700,9 +5212,15 @@
       "auth+law/none/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-003",
@@ -4760,9 +5278,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-004",
@@ -4820,9 +5344,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-005",
@@ -4880,9 +5410,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-006",
@@ -4940,9 +5476,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-007",
@@ -5000,9 +5542,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-008",
@@ -5060,9 +5608,15 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-009",
@@ -5103,6 +5657,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -5154,6 +5714,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -5201,6 +5767,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -5244,6 +5816,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -5308,9 +5886,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-014",
@@ -5351,6 +5935,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -5402,6 +5992,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -5445,6 +6041,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -5496,6 +6098,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -5543,6 +6151,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -5586,6 +6200,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -5650,9 +6270,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-021",
@@ -5710,9 +6336,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-022",
@@ -5770,9 +6402,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-023",
@@ -5813,6 +6451,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -5860,6 +6504,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -5924,9 +6574,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-026",
@@ -5984,9 +6640,15 @@
       "auth+pdm/none/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-027",
@@ -6044,9 +6706,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-028",
@@ -6104,9 +6772,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-029",
@@ -6147,6 +6821,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -6194,6 +6874,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -6258,9 +6944,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-032",
@@ -6318,9 +7010,15 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-033",
@@ -6361,6 +7059,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -6423,9 +7127,15 @@
       "auth+law/none/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-035",
@@ -6483,9 +7193,15 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-036",
@@ -6526,6 +7242,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -6590,9 +7312,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-038",
@@ -6650,9 +7378,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-039",
@@ -6710,9 +7444,15 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-040",
@@ -6753,6 +7493,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -6804,6 +7550,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -6847,6 +7599,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -6911,9 +7669,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-044",
@@ -6954,6 +7718,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7018,9 +7788,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-046",
@@ -7078,9 +7854,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-047",
@@ -7121,6 +7903,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7172,6 +7960,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -7215,6 +8009,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7279,9 +8079,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-051",
@@ -7339,9 +8145,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-052",
@@ -7382,6 +8194,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7446,9 +8264,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-054",
@@ -7506,9 +8330,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-055",
@@ -7566,9 +8396,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-056",
@@ -7609,6 +8445,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7673,9 +8515,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-058",
@@ -7716,6 +8564,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7780,9 +8634,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-060",
@@ -7823,6 +8683,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7870,6 +8736,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7934,9 +8806,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-063",
@@ -7977,6 +8855,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -8024,6 +8908,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -8088,9 +8978,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-066",
@@ -8148,9 +9044,15 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-067",
@@ -8208,9 +9110,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-068",
@@ -8268,9 +9176,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-069",
@@ -8328,9 +9242,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-070",
@@ -8388,9 +9308,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-071",
@@ -8448,9 +9374,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-072",
@@ -8508,9 +9440,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-073",
@@ -8568,9 +9506,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-074",
@@ -8628,9 +9572,15 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-075",
@@ -8688,9 +9638,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-076",
@@ -8748,9 +9704,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-077",
@@ -8808,9 +9770,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-078",
@@ -8868,9 +9836,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-079",
@@ -8928,9 +9902,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-080",
@@ -8988,9 +9968,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-081",
@@ -9048,9 +10034,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-082",
@@ -9108,9 +10100,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-083",
@@ -9168,9 +10166,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-084",
@@ -9228,9 +10232,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-085",
@@ -9288,9 +10298,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-086",
@@ -9348,9 +10364,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-087",
@@ -9408,9 +10430,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-088",
@@ -9468,9 +10496,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-089",
@@ -9528,9 +10562,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-090",
@@ -9588,9 +10628,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-091",
@@ -9648,9 +10694,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-092",
@@ -9708,9 +10760,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-093",
@@ -9768,9 +10826,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-094",
@@ -9828,9 +10892,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-095",
@@ -9888,9 +10958,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-096",
@@ -9948,9 +11024,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-097",
@@ -10008,9 +11090,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-098",
@@ -10068,9 +11156,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-099",
@@ -10128,9 +11222,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-100",
@@ -10188,9 +11288,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-101",
@@ -10248,9 +11354,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-102",
@@ -10308,9 +11420,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-103",
@@ -10368,9 +11486,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-104",
@@ -10428,9 +11552,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-105",
@@ -10488,9 +11618,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-106",
@@ -10548,9 +11684,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-107",
@@ -10608,9 +11750,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-108",
@@ -10668,9 +11816,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-109",
@@ -10728,9 +11882,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-110",
@@ -10788,9 +11948,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-111",
@@ -10848,9 +12014,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-112",
@@ -10906,9 +12078,15 @@
       "auth+law/none/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-113",
@@ -10966,9 +12144,15 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-114",
@@ -11024,9 +12208,15 @@
       "auth+law/none/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-115",
@@ -11082,9 +12272,15 @@
       "auth+law/none/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-116",
@@ -11142,9 +12338,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-117",
@@ -11202,9 +12404,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-118",
@@ -11262,9 +12470,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-119",
@@ -11322,9 +12536,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-120",
@@ -11382,9 +12602,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-121",
@@ -11442,9 +12668,15 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-122",
@@ -11500,9 +12732,15 @@
       "auth+law/none/next action"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-123",
@@ -11560,9 +12798,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-124",
@@ -11620,9 +12864,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-125",
@@ -11680,9 +12930,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-126",
@@ -11740,9 +12996,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-127",
@@ -11800,9 +13062,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-128",
@@ -11843,6 +13111,12 @@
      "passes": true
     },
     "98af6af": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase1": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -11907,9 +13181,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-130",
@@ -11967,9 +13247,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-131",
@@ -12027,9 +13313,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-132",
@@ -12087,9 +13379,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-133",
@@ -12147,9 +13445,15 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-134",
@@ -12207,9 +13511,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-135",
@@ -12267,9 +13577,15 @@
       "user+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-HIST-136",
@@ -12327,11 +13643,24 @@
       "auth+pdm/general_planning_explanation/claim"
      ],
      "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
- "status_semantics": "status 'open' = fails on the frozen baseline 98af6af (strict xfail); 'closed' = must pass. Only open→closed promotion is allowed (python -m tests.mu9_acceptance --promote); a closed case that fails is a regression."
+ "status_semantics": "status 'open' = fails on the frozen baseline 98af6af (strict xfail); 'closed' = must pass. Only open→closed promotion is allowed (python -m tests.mu9_acceptance --promote); a closed case that fails is a regression.",
+ "changes": [
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "promoted the cases fixed by claims.py (open→closed, verifier and final gate); reopened ACC-LEG-RULE-01 and ACC-LEG-COND-01 as Phase 1 false negatives; added ACC-LEG-RULE-03 and ACC-LEG-COND-02 (same rows keeping 'urban')."
+  }
+ ]
 }

@@ -52,7 +52,8 @@ E30 = record("E30", "regulatory_source",
              "é admitida a ampliação até 20 % da área existente, exceto em edifícios classificados.",
              source="cascais-pdm", basis="official_text", authority_class="municipal_instrument",
              title="PDM-Cascais — Regulamento (TEST FIXTURE)", status="official_text")
-RECORDS = [E2, E3, E13, E18, E20, E30, ADDRESS, planning("E4"), rjue("E1")]
+E1 = rjue("E1")
+RECORDS = [E2, E3, E13, E18, E20, E30, ADDRESS, planning("E4"), E1]
 
 EVIDENCE_SETS = {
     "pdm": ["E13"], "auth": ["E3"], "auth+pdm": ["E3", "E13"], "none": [], "user": ["E18"],

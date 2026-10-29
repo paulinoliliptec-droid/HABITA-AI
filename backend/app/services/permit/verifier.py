@@ -36,6 +36,7 @@ from datetime import UTC, datetime
 
 from app.schemas.permit import (
     Checklist,
+    ClaimAtom,
     Draft,
     Evidence,
     FollowUp,
@@ -61,14 +62,17 @@ from app.services.permit.admissibility import (
     source_problem,
     statement_problem,
 )
+from app.services.permit.claims import assess, legal_claim_problem, verdict
 from app.services.sources.registry import OfficialSourceRegistry, TrustPin
 
 __all__ = ["Verifier", "rule_checks", "model_statements", "cited_ids", "source_problem", "SOURCED"]
 
 DEFINITIVE = {"likely_possible", "likely_not_possible"}
+#: The protocol this verifier implements: the planning contract plus atomic legal claims (MU-9 Phase 1).
+PROTOCOL = "atomic-v1"
 REJECTING = {
     "unsupported_claim", "unknown_evidence", "foreign_evidence", "wrong_jurisdiction", "authority_mismatch",
-    "definitive_with_conditions", "untrusted_source", "unverified_zoning",
+    "definitive_with_conditions", "untrusted_source", "unverified_zoning", "unsupported_legal_claim",
 }
 #: A required item without currently admissible support is a gap (ESCALATE), not a pass.
 GAPS = {"evidence_gap", "inadmissible_support"}
@@ -168,6 +172,12 @@ def rule_checks(
                                         draft.conditions, case_facts, current_planning, section):
             issues.append(VerificationIssue(code="unverified_zoning", claim_id=st.label if st.label.startswith("K") else None,
                                             origin="rule", message=f"The draft's {st.label} {problem}."))
+        # Atomic legal claims (MU-9): what each sentence asserts, about whom, and whether the cited records can
+        # prove it in the direction stated. Only adds rejections; rendered statements are HABITA's own text.
+        if problem := legal_claim_problem(st.text, st.planning_basis, st.step, cited):
+            issues.append(VerificationIssue(code="unsupported_legal_claim",
+                                            claim_id=st.label if st.label.startswith("K") else None, origin="rule",
+                                            message=f"The draft's {st.label} {problem}."))
     for eid in sorted(cited_ids(draft)):
         e = by_id.get(eid)
         if e is None:
@@ -200,6 +210,7 @@ def rule_checks(
         "authority_consistent": "authority_mismatch" not in codes,
         "sources_trusted": "untrusted_source" not in codes,
         "zoning_supported": "unverified_zoning" not in codes,
+        "legal_claims_supported": "unsupported_legal_claim" not in codes,
         # The invariant, recomputed here and at the final gate: only official, resolved planning-context records
         # for this property back a parcel determination; user declarations never do.
         "determinations_authoritative": all(
@@ -212,6 +223,22 @@ def rule_checks(
         "no_evidence_gaps": not codes & GAPS,
     }
     return issues, checks
+
+
+def claim_audit(matter: PermitMatter, draft: Draft, evidence: list[Evidence], jurisdiction_chain: list[str],
+                trusted_sources: set[str]) -> list[ClaimAtom]:
+    """Every atomic legal claim of the draft with its verdict, on the same admissible citations the rules use."""
+    by_id = {e.evidence_id: e for e in evidence}
+    out = []
+    for st in model_statements(draft):
+        cited = [by_id[i] for i in st.evidence_ids if i in by_id
+                 and inadmissibility(by_id[i], matter, jurisdiction_chain, trusted_sources) is None]
+        for atom in assess(st.text, st.planning_basis, st.step, cited):
+            result, reason = verdict(atom, cited)
+            out.append(ClaimAtom(statement=st.label, text=atom.text, kind=atom.kind, bearer=atom.bearer,
+                                 supported_by=list(atom.supported_by), verdict=result, enforced=atom.enforced,
+                                 reason=reason))
+    return out
 
 
 class Verifier:
@@ -276,6 +303,8 @@ class Verifier:
             model_review=review,
             model_id=model_id,
             created_at=datetime.now(UTC),
+            protocol=PROTOCOL,
+            claim_atoms=claim_audit(matter, draft, evidence, jurisdiction_chain, trusted),
         )
         if report.outcome == "VERIFIED":
             # Trust may have changed while the rules ran or the reviewer was thinking (CX-2).
@@ -297,9 +326,11 @@ class Verifier:
         issues, checks = rule_checks(matter, checklist, draft, evidence, jurisdiction_chain, trusted, planning_now)
         outcome = rules_outcome(issues, draft)
         excluded = _excluded(evidence, matter, jurisdiction_chain, trusted)
+        atoms = claim_audit(matter, draft, evidence, jurisdiction_chain, trusted)
         if outcome is None:
             return report.model_copy(update={"checks": {**report.checks, "final_gate_passed": True},
-                                             "excluded_evidence": excluded, "trust_pin": pin.audit()})
+                                             "excluded_evidence": excluded, "trust_pin": pin.audit(),
+                                             "protocol": PROTOCOL, "claim_atoms": atoms})
         gate_issues = [i.model_copy(update={"message": "Final check: " + i.message}) for i in issues]
         return report.model_copy(update={
             "outcome": outcome,
@@ -307,6 +338,8 @@ class Verifier:
             "checks": {**report.checks, **checks, "final_gate_passed": False},
             "excluded_evidence": excluded,
             "trust_pin": pin.audit(),
+            "protocol": PROTOCOL,
+            "claim_atoms": atoms,
         })
 
     async def _review(self, matter: PermitMatter, checklist: Checklist, draft: Draft, evidence: list[Evidence]) -> dict:

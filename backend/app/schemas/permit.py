@@ -231,6 +231,20 @@ class FollowUp(BaseModel):
     text: str
 
 
+class ClaimAtom(BaseModel):
+    """One atomic legal claim of a model statement and its deterministic verdict (MU-9)."""
+
+    statement: str
+    text: str
+    kind: str
+    bearer: str
+    supported_by: list[str] = Field(default_factory=list)
+    verdict: Literal["supported", "no_support_needed", "rejected"]
+    #: False: a shadow verdict, recorded for measurement and not (yet) enforced.
+    enforced: bool = True
+    reason: str | None = None
+
+
 class VerificationReport(BaseModel):
     verification_id: str
     matter_id: str
@@ -250,6 +264,11 @@ class VerificationReport(BaseModel):
     #: The registry state the final gate decided on, {source_id: "status@trust_version"}; a VERIFIED report is
     #: committed only while every one of these is unchanged (HR-003 CX-2).
     trust_pin: dict[str, str] = Field(default_factory=dict)
+    #: The verification protocol that produced the report; reports from before MU-9 carry none and read as
+    #: ``statement-v1``.
+    protocol: str = "statement-v1"
+    #: Every atomic legal claim of the draft and its verdict, recomputed by the final gate.
+    claim_atoms: list[ClaimAtom] = Field(default_factory=list)
 
 
 class ProgressEvent(BaseModel):
