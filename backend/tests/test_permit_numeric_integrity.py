@@ -236,3 +236,10 @@ async def test_round3_an_exception_worded_com_excecao_de_verifies(section):
     text = "Em solo urbano, a altura das edificações não pode exceder 9 m, com exceção dos edifícios classificados."
     report = await explained(text, "E33", section)
     assert report.outcome == "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_round4_the_limits_object_dropped_and_found_in_the_exception_is_rejected(section):
+    """Codex quote-only round 4: "das edificações" dropped; "edifícios" in the exception must not stand in for it."""
+    text = "Em solo urbano, a altura não pode exceder 9 m, salvo em edifícios classificados."
+    assert rejected(await explained(text, "E33", section))

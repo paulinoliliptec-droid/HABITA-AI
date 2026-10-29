@@ -256,6 +256,7 @@ class _Sentence:
     limits: tuple[tuple, ...] = ()  # its numeric limits in order (see ``_limits``)
     exceptions: frozenset = frozenset()  # what each exception covers (see ``_exceptions``)
     main: frozenset = frozenset()  # the concepts outside the exceptions (see ``_main_concepts``)
+    main_required: frozenset = frozenset()  # the restrictive ones among them (all but inclusion lists)
 
 
 _UNITS = {"M2", "PCT"}
@@ -290,6 +291,11 @@ def _slots(concepts: list[tuple[str, set[str]]]) -> set[tuple]:
 #: An exception and what it covers, up to the next clause boundary: "salvo em edifícios classificados", "except
 #: classified buildings". Read from the text, because the concept list keeps no punctuation.
 _EXCEPTION = re.compile(r"\b(?:salvo|exceto|excepto|except|unless|excluding|com exce[cç][aã]o d\w+)\b([^,;:.()]*)")
+
+
+def _representatives(concepts: list[tuple[str, set[str]]]) -> frozenset[str]:
+    """One concept per position, the smallest of its alternatives, as ``required`` uses them."""
+    return frozenset(next(iter(a)) if len(a) == 1 else min(a) for _, a in concepts) - {"INCL"}
 
 
 def _main_concepts(text: str, tokens: list[str] | None = None) -> list[tuple[str, set[str]]]:
@@ -383,7 +389,8 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
                 out.append(_Sentence(e.evidence_id, frozenset(allowed), frozenset(required),
                                      frozenset(_slots(concepts)), frozenset(_slots(core_concepts)),
                                      _limits(concepts), _exceptions(sentence),
-                                     frozenset(c for _, alts in _main_concepts(sentence) for c in alts)))
+                                     frozenset(c for _, alts in _main_concepts(sentence) for c in alts),
+                                     _representatives(_main_concepts(_INCLUSION.sub(" ", sentence)))))
     return out
 
 
@@ -403,8 +410,14 @@ def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence, verbatim:
         return False  # also a partial quote that drops a limit, a condition or an exception
     # The rule's own part is supported by the passage's own part: a concept of an exception can't move into the scope
     # ("Em solo urbano classificado … salvo em edifícios classificados").
-    if main is not None and not all(alts & s.main or alts == {"COND"} for _, alts in main):
-        return False
+    if main is not None:
+        if not all(alts & s.main or alts == {"COND"} for _, alts in main):
+            return False
+        # …and everything the passage's own part requires is in the atom's own part: the limit's object can't be
+        # dropped and "found" in an exception ("a altura [das edificações] … salvo em edifícios classificados").
+        main_present = {c for _, alts in main for c in alts}
+        if not all(r in main_present or (_ALTERNATIVES.get(r, set()) & main_present) for r in s.main_required):
+            return False
     # Each exception covers the same thing, both ways (none moved onto the scope, none invented or dropped).
     if not (all(any(_same_span(x, y) for y in s.exceptions) for x in exceptions)
             and all(any(_same_span(y, x) for x in exceptions) for y in s.exceptions)):
