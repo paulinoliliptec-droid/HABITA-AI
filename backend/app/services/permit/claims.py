@@ -383,20 +383,22 @@ def _same_pair(a: frozenset, b: frozenset) -> bool:
 def _passage_sentences(e: Evidence) -> list[_Sentence]:
     text = e.excerpt.lower()  # folded by _tokens, which keeps PT "é" apart from "e"
     out = []
-    for paragraph in _PARAGRAPH.split(_HEADER.sub("", text, count=1)):
-        for whole, sentence in _clauses(re.sub(r"^\s*\d+\s*-\s*", "", paragraph)):
-            concepts = _concepts_of(_tokens(sentence))
-            core_concepts = _concepts_of(_tokens(_without_inclusions(sentence, _INCLUSION)))
-            allowed = {c for _, alts in concepts for c in alts}
-            core = {frozenset(alts) for _, alts in core_concepts}
-            required = {next(iter(a)) if len(a) == 1 else min(a) for a in core} - {"INCL"}
-            if allowed:
-                out.append(_Sentence(e.evidence_id, frozenset(allowed), frozenset(required),
-                                     frozenset(_slots(concepts)), frozenset(_slots(core_concepts)),
-                                     _limits(concepts), _exceptions(sentence),
-                                     frozenset(c for _, alts in _main_concepts(sentence) for c in alts),
-                                     _representatives(_main_concepts(_without_inclusions(sentence, _INCLUSION))),
-                                     (_norm(whole),)))
+    # Coreference runs across numbered paragraphs: "1 - … é permitida. 2 - Essa permissão depende …" is one unit.
+    paragraphs = [re.sub(r"^\s*\d+\s*-\s*", "", p) for p in _PARAGRAPH.split(_HEADER.sub("", text, count=1))]
+    units = _merge_coreferent([s for p in paragraphs for s in _full_sentences(p, coreference=False)])
+    for whole, sentence in ((u, c) for u in units for c in _sentences(u)):
+        concepts = _concepts_of(_tokens(sentence))
+        core_concepts = _concepts_of(_tokens(_without_inclusions(sentence, _INCLUSION)))
+        allowed = {c for _, alts in concepts for c in alts}
+        core = {frozenset(alts) for _, alts in core_concepts}
+        required = {next(iter(a)) if len(a) == 1 else min(a) for a in core} - {"INCL"}
+        if allowed:
+            out.append(_Sentence(e.evidence_id, frozenset(allowed), frozenset(required),
+                                 frozenset(_slots(concepts)), frozenset(_slots(core_concepts)),
+                                 _limits(concepts), _exceptions(sentence),
+                                 frozenset(c for _, alts in _main_concepts(sentence) for c in alts),
+                                 _representatives(_main_concepts(_without_inclusions(sentence, _INCLUSION))),
+                                 (_norm(whole),)))
     return out
 
 
@@ -404,6 +406,13 @@ _ANAPHORA = {"esta", "este", "estas", "estes", "essa", "esse", "essas", "esses",
              "referida", "referido", "referidas", "referidos", "neste", "nesta", "nesse", "nessa", "nestes", "nessas",
              "this", "these", "that", "those", "such", "said", "it", "they", "o mesmo", "a mesma", "os mesmos",
              "as mesmas", "em tal", "in this", "in that", "in such"}
+
+
+_SUBJECT_PRONOUNS = {"ele", "ela", "eles", "elas", "it", "they", "isto", "isso", "aquilo"}
+#: Demonstratives that stand alone as the subject when a verb follows ("Esta depende de …", "This requires …");
+#: before a noun they are determiners ("Esta secção define …").
+_DEMONSTRATIVES = {"este", "esta", "estes", "estas", "esse", "essa", "esses", "essas", "this", "these", "that", "those",
+                   "such"}
 
 
 def _full_sentences(text: str, coreference: bool = True) -> list[str]:
@@ -417,14 +426,17 @@ def _full_sentences(text: str, coreference: bool = True) -> list[str]:
             current = ""
     if current:
         out.append(current)
-    if not coreference:
-        return [s for s in out if s.strip()]
-    # A sentence that takes up the previous one ("Essa permissão depende de …", "Such use requires …") is part of it:
-    # a quote of the first alone would leave out what conditions it.
+    out = [s for s in out if s.strip()]
+    return _merge_coreferent(out) if coreference else out
+
+
+def _merge_coreferent(sentences: list[str]) -> list[str]:
+    """A sentence that takes up the previous one ("Essa permissão depende de …", "Ela depende de …") is part of it: a
+    quote of the first alone would leave out what conditions it."""
     merged: list[str] = []
-    for sentence in (s for s in out if s.strip()):
+    for sentence in sentences:
         if merged and _takes_up(merged[-1], sentence):
-            merged[-1] += sentence
+            merged[-1] = f"{merged[-1].rstrip()} {sentence.lstrip()}"
         else:
             merged.append(sentence)
     return merged
@@ -444,6 +456,10 @@ def _takes_up(previous: str, sentence: str) -> bool:
     def head_after(i: int) -> bool:
         head = next((w for w in words[i + 1:i + 4] if w not in _FUNCTION and w not in _ANAPHORA), None)
         return head is not None and head[:5] in previous_stems
+    # A subject pronoun opening the sentence takes up the previous one ("Ela depende de parecer …").
+    if words and (words[0] in _SUBJECT_PRONOUNS or words[0] in _DEMONSTRATIVES and len(words) > 1 and (
+            words[1] in _FINITE or _DEPENDENCY_VERB.match(words[1]) or words[1].endswith(("requires", "depends")))):
+        return True
     # A definite subject that takes up the previous sentence ("A permissão depende …"), or an anaphoric determiner
     # anywhere ("Para exercer esta permissão, …").
     if words and words[0] in _DEFINITE | {"the"} and head_after(0):
@@ -465,7 +481,9 @@ def _statement_clauses(text: str) -> list[tuple[tuple[str, ...], str]]:
     for k, whole in enumerate(sentences):
         runs = tuple(" ".join(sentences[a:b]) for a in range(max(0, k - 3), k + 1)
                      for b in range(k + 1, min(len(sentences), a + 4) + 1))
-        out += [(runs, clause.strip()) for clause in _sentences(whole) if _tokens(clause)]
+        # A paragraph number opening a sentence ("2 - Essa …") is a reference, not a number of the rule.
+        out += [(runs, c) for clause in _sentences(whole)
+                if _tokens(c := re.sub(r"^\s*\d+\s*-\s+", "", clause.strip()))]
     return out
 
 
@@ -486,12 +504,16 @@ def _without_inclusions(sentence: str, pattern: re.Pattern) -> str:
     return pattern.sub(drop, sentence)
 
 
+#: A paragraph number at the start of the quote or of one of its sentences ("… é permitida. 2 - Essa …").
+_NUMBERING = re.compile(r"(?:^|(?<=[.!?;]))\s*\d+\s*-\s+")
+
+
 def _literal(atom: str | tuple[str, ...], s: _Sentence) -> bool:
     """Whether the atom is the whole sentence in its own wording (accents, case, spacing, a paragraph number and the
     final stop aside). Never a part of it: what a part leaves out can be a condition in any wording ("desde que …"),
     so a partial quote is not decided by reading what it drops."""
     candidates = (atom,) if isinstance(atom, str) else atom
-    return any((a := _norm(re.sub(r"^\s*\d+\s*-\s*", "", c))) and a in s.wordings for c in candidates)
+    return any((a := _norm(_NUMBERING.sub(" ", c))) and a in s.wordings for c in candidates)
 
 
 def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence, verbatim: bool = False,
@@ -889,30 +911,37 @@ def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
     cited source, or a concept of a cited official sentence: it describes the cited text and adds no claim of its own
     ("… ao critério do promotor", "… as an option" add one, whatever their wording)."""
     official = [e for e in cited if is_official_text(e)]
-    allowed = {c for e in official for s in _passage_sentences(e) for c in s.allowed}
+    sentences = [s.allowed for e in official for s in _passage_sentences(e)]
+    allowed = {c for a in sentences for c in a}
     framing = {c for e in official for _, alts in _concepts_of(_tokens(f"{e.source_title} {_ATTRIBUTION}")) for c in alts}
     words = list(tokens)
     hedged = bool(_DEPENDENCY_CLAUSE.search(" ".join(words)))
+    borrowed, content = False, []  # a deontic concept taken from the cited text; the concepts it qualifies
     for t, alts in _concepts_of(tokens):
-        if _META.fullmatch(t) or t in _GENERIC_RULES or alts <= framing or alts & allowed:
-            continue
-        # "may depend on …", "pode ser admissível consoante …": a hedged possibility, not a permission; PT "no" is
-        # "in the".
-        if t == "no" or alts == {"PERM"} and t in _MODAL_AUX and (hedged or (
+        if _META.fullmatch(t) or t in _GENERIC_RULES or alts <= framing or t == "no" or t.startswith(_TOPIC_STEMS) \
+                or alts & {"CONJ", "DISJ", "ALL", "INCL"}:
+            continue  # structure, generic rules, attribution, PT "no" ("in the"), planning topics, connectives
+        # "may depend on …", "pode ser admissível consoante …": a hedged possibility, not a permission.
+        if alts == {"PERM"} and t in _MODAL_AUX and (hedged or (
                 (i := words.index(t)) + 1 < len(words) and _DEPENDENCY_VERB.match(words[i + 1]))):
-            continue
-        # The closed concept table and planning's own topic words name what a structure is about, not a claim; a
-        # deontic or restrictive concept ("allowed", "only", "never") is a claim unless the cited sentence has it.
-        if t.startswith(_TOPIC_STEMS) or not any(c.startswith("w:") for c in alts) and not alts & _DEONTIC_CONCEPTS:
             continue
         # "os usos admissíveis", "which uses each zone admits": admissibility names a category of uses; qualifying
         # anything else ("a dotação … admissível") is a claim.
         if t.startswith(("admit", "admiss")) and (hedged or any(w.startswith(("uso", "use")) for w in words)):
             continue
-        if alts & {"CONJ", "DISJ", "ALL", "INCL"}:
+        content.append(alts)
+        deontic = bool(alts & _DEONTIC_CONCEPTS)
+        if alts & allowed:
+            borrowed = borrowed or deontic
+            continue
+        # The closed concept table names what a structure is about, not a claim; a deontic or restrictive concept
+        # ("allowed", "only", "never") is a claim unless the cited text has it.
+        if not any(c.startswith("w:") for c in alts) and not deontic:
             continue
         return False
-    return True
+    # A deontic concept is the cited text's only together with what it qualifies: one sentence must hold the whole
+    # description ("As obras são permitidas." lends nothing to the parking duty of another sentence; ACC-NRM-22).
+    return not borrowed or any(all(alts & a for alts in content) for a in sentences)
 
 
 def _meta_descriptive(tokens: list[str], folded: str, cited: list[Evidence] = ()) -> bool:

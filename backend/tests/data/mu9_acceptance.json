@@ -17120,13 +17120,13 @@
     "modality": "assertion"
    },
    "expected": "REJECTED",
-   "rationale": "OPEN (round limit): VERIFIED on dddc159; the adds-nothing test pools concepts across the passage sentences. Severity P1 (criterion 1).",
+   "rationale": "VERIFIED on dddc159 (the adds-nothing test pooled the passage's sentences). Fixed in the authorised NRM-22..24 task: a deontic concept taken from the cited text needs one sentence that holds the whole description.",
    "harness": "unit_test",
    "final_gate": false,
    "fixed_in_phase": 1,
    "status": "not_run",
    "observed": {},
-   "covered_by": "tests/test_permit_numeric_integrity.py::test_open_nrm22_a_concept_from_another_sentence_is_not_the_descriptions (strict xfail)"
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm22_a_concept_from_another_sentence_is_not_the_descriptions"
   },
   {
    "id": "ACC-NRM-23",
@@ -17155,13 +17155,13 @@
     "modality": "quote"
    },
    "expected": "REJECTED",
-   "rationale": "OPEN (round limit): VERIFIED on dddc159; a personal pronoun is not read as coreference. Severity P2 (criterion 2).",
+   "rationale": "VERIFIED on dddc159 (a personal pronoun was not read as coreference). Fixed: a sentence opening with a subject pronoun (ela, it …), or a demonstrative followed by a verb, takes up the previous one.",
    "harness": "unit_test",
    "final_gate": false,
    "fixed_in_phase": 1,
    "status": "not_run",
    "observed": {},
-   "covered_by": "tests/test_permit_numeric_integrity.py::test_open_nrm23_a_pronoun_takes_up_the_previous_sentence (strict xfail)"
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm23_a_pronoun_takes_up_the_previous_sentence"
   },
   {
    "id": "ACC-NRM-24",
@@ -17190,13 +17190,13 @@
     "modality": "quote"
    },
    "expected": "REJECTED",
-   "rationale": "OPEN (round limit): VERIFIED on dddc159; paragraphs are split before coreference. Severity P2 (criterion 2).",
+   "rationale": "VERIFIED on dddc159 (paragraphs were split before coreference). Fixed: coreference runs across the numbered paragraphs of one excerpt; the literal test ignores paragraph numbers.",
    "harness": "unit_test",
    "final_gate": false,
    "fixed_in_phase": 1,
    "status": "not_run",
    "observed": {},
-   "covered_by": "tests/test_permit_numeric_integrity.py::test_open_nrm24_a_condition_in_the_next_numbered_paragraph (strict xfail)"
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm24_a_condition_in_the_next_numbered_paragraph"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
@@ -17341,6 +17341,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "NRM-10/11 task round 5 (Codex, last): ACC-NRM-22 (P1) and ACC-NRM-23..24 (P2) open, registered with strict xfail tests; not patched."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "authorised NRM-22..24 task: ACC-NRM-22 (one sentence must hold a description with a borrowed deontic concept), ACC-NRM-23 (subject pronouns), ACC-NRM-24 (coreference across numbered paragraphs) fixed."
   }
  ]
 }

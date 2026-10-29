@@ -619,7 +619,7 @@ async def test_nrm_task_r4_a_statement_is_not_merged_with_its_next_sentence():
     assert [a.kind for a in atoms] == ["general_rule", "legal_status"]
 
 
-# --- OPEN (NRM-10/11 task, Codex round 5, the last allowed): registered with reproducible tests, not patched -------
+# --- NRM-10/11 task, Codex round 5 (ACC-NRM-22..24), fixed in the authorised NRM-22..24 task --------------------
 
 E904 = official("E904", "TEST FIXTURE Artigo 904.º Estacionamento 1 - A dotação de estacionamento deve ser assegurada. "
                         "As obras são permitidas.")
@@ -630,20 +630,36 @@ E905 = official("E905", "TEST FIXTURE Artigo 905.º Multifuncionalidade 1 - A mu
 RECS.extend([E904, E901, E905])
 
 
-@pytest.mark.xfail(strict=True, reason="OPEN P1 (ACC-NRM-22): the 'adds nothing' test pools concepts across a "
-                                       "passage's sentences, so a permission for works lends 'permitida' to parking")
-async def test_open_nrm22_a_concept_from_another_sentence_is_not_the_descriptions():
+async def test_nrm22_a_concept_from_another_sentence_is_not_the_descriptions():
     text = "Nas operações urbanísticas, o PDM regula a dotação de estacionamento permitida."
     assert rejected(await explained(text, "E904"))
 
 
-@pytest.mark.xfail(strict=True, reason="OPEN P2 (ACC-NRM-23): a personal pronoun ('Ela depende …') is not read as "
-                                       "taking up the previous sentence")
-async def test_open_nrm23_a_pronoun_takes_up_the_previous_sentence():
+async def test_nrm23_a_pronoun_takes_up_the_previous_sentence():
     assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E901"))
 
 
-@pytest.mark.xfail(strict=True, reason="OPEN P2 (ACC-NRM-24): numbered paragraphs are split before coreference, so "
-                                       "'2 - Essa permissão depende …' doesn't join paragraph 1")
-async def test_open_nrm24_a_condition_in_the_next_numbered_paragraph():
+async def test_nrm24_a_condition_in_the_next_numbered_paragraph():
     assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E905"))
+
+
+async def test_nrm23_24_the_whole_unit_quoted_verifies():
+    for e in (E901, E905):
+        report = await quoted(e.excerpt.split(" 1 - ", 1)[1], e.evidence_id)
+        assert report.outcome == "VERIFIED", (e.evidence_id, report.issues)
+
+
+async def test_nrm23_a_demonstrative_standing_alone_takes_up_the_previous_sentence():
+    e = official("E906", "TEST FIXTURE Artigo 906.º Multifuncionalidade 1 - A multifuncionalidade do solo é permitida. "
+                         "Esta depende de parecer favorável da Câmara.")
+    RECS.append(e)
+    assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E906"))
+
+
+async def test_nrm22_a_description_held_by_one_sentence_keeps_its_contract():
+    """The same words, with the permission in the parking sentence itself, are the cited text's own."""
+    e = official("E907", "TEST FIXTURE Artigo 907.º Estacionamento 1 - Nas operações urbanísticas, a dotação de "
+                         "estacionamento é permitida. As obras devem ser comunicadas.")
+    RECS.append(e)
+    report = await explained("Nas operações urbanísticas, o PDM regula a dotação de estacionamento permitida.", "E907")
+    assert report.outcome == "VERIFIED", report.issues
