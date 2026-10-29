@@ -17407,6 +17407,111 @@
    "status": "not_run",
    "observed": {},
    "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r2_an_official_dependency_is_a_condition"
+  },
+  {
+   "id": "ACC-NRM-31",
+   "group": "NRM",
+   "statement": "Nas operações urbanísticas de uso habitacional, o PDM regula a dotação de estacionamento admissível consoante a zona.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex NRM-22..24 task round 3, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 7b9162f)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E994 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "duty presented as admissibility, dependency clause without a modal (P1)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "VERIFIED on 7b9162f. Fixed: a dependency clause hedges only a modal possibility (\"pode ser admissível consoante …\").",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r3_a_dependency_clause_hedges_only_a_modal_possibility"
+  },
+  {
+   "id": "ACC-NRM-32",
+   "group": "NRM",
+   "statement": "A multifuncionalidade do solo é permitida.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex NRM-22..24 task round 3, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 7b9162f)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E998 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_rule"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "source",
+    "object": "see claim_type",
+    "claim_type": "quote leaving out an unpunctuated last paragraph read as a heading (P2)",
+    "modality": "quote"
+   },
+   "expected": "REJECTED",
+   "rationale": "VERIFIED on 7b9162f. Fixed: a heading is only the title before \"1 - \".",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r3_a_last_paragraph_without_a_stop_is_not_a_heading"
+  },
+  {
+   "id": "ACC-NRM-33",
+   "group": "NRM",
+   "statement": "A multifuncionalidade do solo é permitida.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex NRM-22..24 task round 3, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 7b9162f)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E988 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_rule"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "source",
+    "object": "see claim_type",
+    "claim_type": "standalone quote beside \"Ela consta da Planta …\" rejected (P3)",
+    "modality": "quote"
+   },
+   "expected": "VERIFIED",
+   "rationale": "REJECTED on 7b9162f. Fixed: a structural sentence that takes up the previous one conditions nothing and is not merged.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r3_a_structural_sentence_taking_up_the_rule_conditions_nothing"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
@@ -17566,6 +17671,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "NRM-22..24 task round 2 (Codex): scope-only reach-back for admissibility of uses; official dependencies are normative units. ACC-NRM-29..30 added."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "NRM-22..24 task round 3 (Codex): modal-only hedge; title-only headings; structural sentences are not merged. ACC-NRM-31..33 added."
   }
  ]
 }

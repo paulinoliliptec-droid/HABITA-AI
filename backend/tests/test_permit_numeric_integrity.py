@@ -733,3 +733,27 @@ async def test_nrm_r2_an_unmarked_exception_in_the_next_paragraph_needs_the_whol
     assert rejected(await quoted("Em solo urbano, a altura das edificações não pode exceder 9 m.", "E960"))
     report = await quoted(e.excerpt.split(" 1 - ", 1)[1], "E960")
     assert report.outcome == "VERIFIED", report.issues
+
+
+# --- NRM-22..24 task, Codex round 3 (2026-10-29): exact cases -------------------------------------------------------
+
+E998 = official("E998", "TEST FIXTURE Artigo 998.º Multifuncionalidade 1 - A multifuncionalidade do solo é permitida. 2 - "
+                        "O exercício dessa faculdade depende de parecer favorável da Câmara")  # no closing stop
+E988 = official("E988", "TEST FIXTURE Artigo 988.º Solo 1 - A multifuncionalidade do solo é permitida. Ela consta da "
+                        "Planta de Ordenamento.")
+RECS.extend([E998, E988])
+
+
+async def test_nrm_r3_a_dependency_clause_hedges_only_a_modal_possibility():
+    text = ("Nas operações urbanísticas de uso habitacional, o PDM regula a dotação de estacionamento admissível "
+            "consoante a zona.")
+    assert rejected(await explained(text, "E994"))
+
+
+async def test_nrm_r3_a_last_paragraph_without_a_stop_is_not_a_heading():
+    assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E998"))
+
+
+async def test_nrm_r3_a_structural_sentence_taking_up_the_rule_conditions_nothing():
+    report = await quoted("A multifuncionalidade do solo é permitida.", "E988")
+    assert report.outcome == "VERIFIED", report.issues
