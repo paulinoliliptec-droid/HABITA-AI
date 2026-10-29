@@ -64,6 +64,18 @@ REJECTED), **PENDING CONFIRMATION** (anything else; unverified draft content is 
 | AC6.6 | Tests: report model per status (VERIFIED / REJECTED / pending / no assessment); adversarial: an unverified or rejected draft is never labelled VERIFIED; the PDF's extracted text carries the same status, evidence ids and provenance as the JSON and the map post-its. |
 | AC6.7 | A download action in the workspace. |
 
+### HR-004 / HR-006 implementation status (2026-10-29, offline-tested; not deployed)
+| Criteria | State | Evidence |
+|---|---|---|
+| AC6.1–AC6.6 | met offline | `backend/app/services/report/`, `api/report.py`; `tests/test_report.py` (status rule incl. superseded protocol and older records, rejected, pending, no assessment; PDF text = JSON status, ids, sha256; no model call; token required); mutation checks on the status and zoning rules |
+| AC6.7 | met | "PDF report" button on the map (capability in the header) |
+| AC4.1–AC4.5 | met offline | `frontend/src/features/report/` post-its from the same report; tests on the backend's own report for an end-to-end Cascais run (fixture guarded by a backend schema test) |
+| AC4.6 | met | frontend tests, lint, typecheck, build; backend suite |
+| AC4.7 | met in the model (`demo` flag → labelled in PDF and map); no demo dataset shipped |
+| Visual QA in a browser | **pending** | headless Chromium lacks libxkbcommon here; needs the redeployed preview or a local browser |
+| Non-Latin characters in the PDF | TD-021 (P2) | Portugal scope covered by the standard fonts |
+| Map polygons / zoning layers | not drawn by design | no validated GIS connector; the absence is stated |
+
 ## Candidate modules named in the approved architecture (not yet assigned to HR numbers)
 
 Named in `docs/architecture.md` §1/§6/§10 and in the HR-001/HR-002 out-of-scope lists. They have **no approved
@@ -131,6 +143,16 @@ Meta AI integration (text/tools only); deployment (preview not on current code);
 ### 3. Not started
 Intelligent map layers, visual graph, PDF reports, voice, photos/SAM 3.1/Muse Image, Afford, HABITA Live, the
 legal-research extension of the jurisdiction adapters — all **pending definition** (no HR scope approved).
+
+### Live validation log (2026-10-29, development environment, demo addresses only)
+| Test | Result | Notes |
+|---|---|---|
+| Google Geocoding (server key) via `/api/property/resolve-location` | **PASS** | "Praça 5 de Outubro, Cascais" → area_center, `pt/lisboa/cascais`, Câmara Municipal de Cascais, 388 ms; "Avenida Marginal 8, Cascais" → rooftop, 316 ms |
+| Planning context on a real geocode | **PASS** | `requires_manual_confirmation` (no machine-readable layer, low precision): no zoning invented |
+| Property PDF from real Google data | **PASS** | 4 pages, "No verified zoning layer" stated, 26 official sources |
+| Atlas (`test_live_smoke.py`, `test_permit_live.py`, `test_permit_commit_atlas.py`) | **NOT RUN** | no `MONGODB_URI` in the development environment; the URI exists only in Secret Manager (`mongodb-uri`) and reading it needs the owner's authorisation. Local storage was in-memory |
+| Muse Spark live (`HABITA_META_LIVE=1`) | **NOT RUN** | no `META_API_KEY` locally (Secret Manager `meta-api-key`); `/api/permit/status` → `available: false` |
+| Database identity | checked | local `.env`: `APP_ENV=development`, `MONGODB_DB_NAME=habita_ai`, no URI (so no database reached); preview: `APP_ENV=preview`, `MONGODB_DB_NAME=habita_ai`. Live tests must use a separate database name (see `infrastructure/STAGING.md`) |
 
 ### 4. Blocked on credentials or authorisation
 | Item | Needs |
