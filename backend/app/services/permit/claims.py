@@ -400,6 +400,12 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
     return out
 
 
+_ANAPHORA = {"esta", "este", "estas", "estes", "essa", "esse", "essas", "esses", "aquela", "aquele", "tal", "tais",
+             "referida", "referido", "referidas", "referidos", "neste", "nesta", "nesse", "nessa", "nestes", "nessas",
+             "this", "these", "that", "those", "such", "said", "it", "they", "o mesmo", "a mesma", "os mesmos",
+             "as mesmas", "em tal", "in this", "in that", "in such"}
+
+
 def _full_sentences(text: str) -> list[str]:
     """Sentences up to . ! ? (``_sentences`` also stops at ";", which ends a clause, not a sentence)."""
     out, current = [], ""
@@ -410,7 +416,16 @@ def _full_sentences(text: str) -> list[str]:
             current = ""
     if current:
         out.append(current)
-    return [s for s in out if s.strip()]
+    # A sentence that takes up the previous one ("Essa permissão depende de …", "Such use requires …") is part of it:
+    # a quote of the first alone would leave out what conditions it.
+    merged: list[str] = []
+    for sentence in (s for s in out if s.strip()):
+        words = _tokens(sentence)[:2]
+        if merged and words and (words[0] in _ANAPHORA or " ".join(words) in _ANAPHORA):
+            merged[-1] += sentence
+        else:
+            merged.append(sentence)
+    return merged
 
 
 def _clauses(text: str) -> list[tuple[str, str]]:
@@ -789,7 +804,7 @@ def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False, 
     kind = ("conditional_rule" if conditional else "general_rule") if supported else "unsupported"
     # An unsupported statement stays a shadow verdict only when it is about the plan's structure (allowlist below);
     # anything else it asserts is held to its cited text, whatever its words.
-    enforced = normative or not (supported or _meta_descriptive(tokens, folded))
+    enforced = normative or not (supported or _meta_descriptive(tokens, folded, cited))
     problem = None if supported else _QUOTE_REQUIRED if quote_required else _UNSUPPORTED
     return Atom(atom, kind, "general", supported, problem, enforced=enforced)
 
@@ -816,13 +831,45 @@ _GENERIC_RULES = {"regras", "regra", "rules", "rule", "plano", "plan", "planos",
 _CONTENT_CLAUSE = re.compile(r"\b(?:que|that)\b")
 
 
-def _meta_descriptive(tokens: list[str], folded: str) -> bool:
+#: Planning topics a structural description may name ("each zone or district", "the land-use category", "urban
+#: parameters"). Closed: any other word is a claim of the statement's own.
+_TOPIC_STEMS = ("zon", "distrit", "district", "categor", "parametr", "parameter", "municip", "plan", "dwelling", "fogo",
+                "habitacion", "residenc", "residential", "which", "segund", "second", "qual", "classif", "rustic",
+                "rural", "espac", "space", "solo", "land", "uso", "use", "rule", "regra", "regime", "lote", "parcel",
+                "terren", "imovel", "propert", "local", "area", "map", "plant", "ordenament", "territor", "admit",
+                # dependency and reference words: "consoante a zona", "qualifies it", "as respetivas regras"
+                "consoant", "conform", "depending", "according", "acordo", "it", "its", "they", "their", "respetiv",
+                "respectiv", "cada", "each", "own", "proprio", "propria")
+
+
+def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
+    """Whether every content word of a structural description is a structural or generic word, the attribution to a
+    cited source, or a concept of a cited official sentence: it describes the cited text and adds no claim of its own
+    ("… ao critério do promotor", "… as an option" add one, whatever their wording)."""
+    official = [e for e in cited if is_official_text(e)]
+    allowed = {c for e in official for s in _passage_sentences(e) for c in s.allowed}
+    framing = {c for e in official for _, alts in _concepts_of(_tokens(f"{e.source_title} {_ATTRIBUTION}")) for c in alts}
+    for t, alts in _concepts_of(tokens):
+        if _META.fullmatch(t) or t in _GENERIC_RULES or alts <= framing or alts & allowed:
+            continue
+        # The closed concept table and planning's own topic words name what a structure is about, not a claim.
+        if not any(c.startswith("w:") for c in alts) or t.startswith(_TOPIC_STEMS):
+            continue
+        if alts & {"CONJ", "DISJ", "ALL", "INCL"}:
+            continue
+        return False
+    return True
+
+
+def _meta_descriptive(tokens: list[str], folded: str, cited: list[Evidence] = ()) -> bool:
     """A predicate about the plan's structure that states no rule content ("the PDM classifies and qualifies land").
     A predicative complement ("classifies X as Y", "define X como Y") attributes content, whatever Y is."""
     if not _META.search(folded) or _CONTENT_CLAUSE.search(folded):
         return False
     # Which regime applies to what ("segue o regime …", "does not apply to …") is rule content, not structure.
     if _NEGATION & set(tokens):  # PT "no" is "in the", not a negation
+        return False
+    if not _adds_nothing(tokens, cited):
         return False
     if m := _APPLICABILITY.search(folded):
         if not all(t in _FUNCTION or t in _GENERIC_RULES for t in _tokens(folded[m.end():])):

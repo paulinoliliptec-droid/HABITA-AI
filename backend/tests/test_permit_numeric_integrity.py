@@ -528,3 +528,26 @@ async def test_nrm_task_r1_a_deontic_qualifier_turns_no_duty_into_a_faculty(text
 async def test_nrm_task_r1_the_portuguese_article_as_is_not_a_predicative_complement(text):
     report = await explained(text, "E13")
     assert report.outcome == "VERIFIED", report.issues
+
+
+# --- NRM-10/11 task, Codex round 2 (2026-10-29): exact cases --------------------------------------------------------
+
+E202 = official("E202", "TEST FIXTURE Artigo 202.º Multifuncionalidade 1 - A multifuncionalidade do solo é permitida. "
+                        "Essa permissão depende de parecer favorável da Câmara.")
+RECS.append(E202)
+
+
+@pytest.mark.parametrize("text", [
+    "O PDM define a dotação de estacionamento ao critério do promotor.",  # exact
+    "The Plano Diretor Municipal de Cascais defines parking provision as an option.",  # exact
+    "O PDM regula a dotação de estacionamento segundo a vontade do requerente.",
+    "The PDM sets parking provision at the developer's discretion.",
+])
+async def test_nrm_task_r2_a_structural_description_that_adds_a_claim_is_enforced(text):
+    assert rejected(await explained(text, "E13"))
+
+
+async def test_nrm_task_r2_a_sentence_taken_up_by_the_next_is_quoted_with_it():
+    assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E202"))  # exact
+    report = await quoted(E202.excerpt.split(" 1 - ", 1)[1], "E202")
+    assert report.outcome == "VERIFIED", report.issues
