@@ -50,3 +50,22 @@ async def test_what_the_new_admission_paths_must_not_admit(text):
 async def test_fp5_stays_a_known_limitation():
     text = "Confirm the full list of application documents with the Câmara Municipal de Cascais before applying."
     assert "VERIFIED" not in await outcomes(text, bases=("none",))
+
+
+# --- Codex FP review, round 1 (2026-10-29): exact case ------------------------------------------------------------
+
+@pytest.mark.parametrize("text", [
+    "Whether the property is licensed must be confirmed with the Câmara Municipal de Cascais and the property is "
+    "approved for 3 floors.",  # exact
+    "It must be confirmed with the Câmara Municipal de Cascais whether the works need licensing and the property is "
+    "licensed.",
+    "Confirm with the Câmara Municipal de Cascais whether licensing applies, but the works were approved.",
+])
+async def test_a_clause_coordinated_after_a_deferral_is_asserted(text):
+    assert "VERIFIED" not in await outcomes(text)
+
+
+async def test_a_question_before_the_deferral_is_deferred_whole():
+    text = "Whether the property is licensed and its works approved must be confirmed with the Câmara Municipal de " \
+           "Cascais."
+    assert await outcomes(text, bases=("none",)) == {"VERIFIED"}

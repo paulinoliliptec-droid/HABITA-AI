@@ -35,8 +35,8 @@ from dataclasses import dataclass
 
 from app.schemas.permit import Evidence
 from app.services.permit.admissibility import (
-    _DEFERRAL, _UNASSERTED, EXPLANATION, EXPLANATION_FRAME, _norm, _sentences, evidence_capabilities,
-    is_official_text, is_user_declared,
+    _DEFERRAL, _UNASSERTED, _UNASSERTED_BOUNDED, EXPLANATION, EXPLANATION_FRAME, _norm, _sentences,
+    evidence_capabilities, is_official_text, is_user_declared,
 )
 
 #: Bases whose text HABITA renders itself.
@@ -620,7 +620,9 @@ def _deferral_rest(atom: str) -> str | None:
     m = _DEFERRAL.search(folded) or _IMPERATIVE.search(folded)
     if m is None or "pending" in m.group():  # "the licence is pending" says an application exists
         return None
-    return _UNASSERTED.sub(" ", folded[:m.start()] + " " + folded[m.end():])
+    # A question before the deferral is deferred whole; after it, it ends at a coordinator, so a clause coordinated
+    # after the deferral stays asserted (FP-4 review: "… must be confirmed … and the property is approved").
+    return f"{_UNASSERTED.sub(' ', folded[:m.start()])} {_UNASSERTED_BOUNDED.sub(' ', folded[m.end():])}"
 
 
 #: A clause boundary: a comma, colon or bracket, a coordinator or a relative pronoun.

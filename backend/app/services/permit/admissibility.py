@@ -290,6 +290,23 @@ _UNASSERTED = re.compile(
     r"\b(?:if|whether|unless)\b[^,;:.!?]*"
     r"|(?:^|(?<=[,;:.!?]))\s*(?:se|caso)\b[^,;:.!?]*"
     r"|\b(?:confirmar|verificar|apurar|saber|avaliar|confirme|verifique|concluir|decidir|determinar)\s+se\b[^,;:.!?]*")
+#: The same questions, but ending at a coordinator: after a deferral, "… must be confirmed whether X *and* the
+#: property is approved" asserts the second clause. ("or" stays inside: alternatives are part of the question.)
+_UNASSERTED_BOUNDED = re.compile(_UNASSERTED.pattern.replace(
+    "[^,;:.!?]*", r"(?:(?!\b(?:and|but|e|mas|nem|yet|porem|contudo)\b)[^,;:.!?])*"))
+
+
+def asserted(sentence: str) -> str:
+    """A folded sentence without what it doesn't assert: the deferral itself ("must be confirmed"), a question before
+    it (deferred whole: "Whether X and Y must be confirmed") and a question after it, up to a coordinator. Anything
+    else, including a clause coordinated after the deferral, is asserted (FP-4 review)."""
+    d = _DEFERRAL.search(sentence)
+    if d is None:
+        return _DEFERRAL.sub(" ", _UNASSERTED_BOUNDED.sub(" ", sentence))
+    prefix, suffix = sentence[:d.start()], sentence[d.end():]
+    return f"{_UNASSERTED.sub(' ', prefix)} {_DEFERRAL.sub(' ', _UNASSERTED_BOUNDED.sub(' ', suffix))}"
+
+
 _ABBREVIATIONS = {"art", "arts", "n", "no", "al", "cf", "eg", "ie", "etc", "p", "pp", "dr", "sr", "min", "max"}
 
 
@@ -357,7 +374,7 @@ def read_planning(text: str, cited: list[Evidence], case_facts: list[Evidence], 
     general = deferral = False
     for sentence in sentences:
         deferred = bool(_DEFERRAL.search(sentence))
-        rest = _WORD.findall(_UNASSERTED.sub(" ", _DEFERRAL.sub(" ", sentence)))
+        rest = _WORD.findall(asserted(sentence))
         refs = _references(rest, names, named)
         planning = has_planning_content(" ".join(rest))
         # The reference's own words don't count (folded PT "esta" is both "this" and "is").
@@ -499,7 +516,7 @@ def _asserted_words(text: str) -> list[str]:
     deferral itself ("must be confirmed") are not asserted (FP-4). The object of an instruction to check ("Confirm the
     full list of … with the Câmara") still is: it presupposes its content ("Confirm the 3 documents …"), so FP-5 stays
     a known, fail-closed limitation rather than a vocabulary filter."""
-    return [w for sentence in _sentences(fold(text)) for w in _tokens(_UNASSERTED.sub(" ", _DEFERRAL.sub(" ", sentence)))]
+    return [w for sentence in _sentences(fold(text)) for w in _tokens(asserted(sentence))]
 
 
 def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidence]) -> str | None:
@@ -520,7 +537,7 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
     numbers = {n for e in [*cited, *case_facts] if not is_user_declared(e)
                for n in _NUMBER.findall(" ".join((e.excerpt, e.source_title, e.source_reference)))}
     ungrounded += sorted({n for sentence in _sentences(fold(text))
-                          for n in _NUMBER.findall(_UNASSERTED.sub(" ", _DEFERRAL.sub(" ", sentence)))} - numbers)
+                          for n in _NUMBER.findall(asserted(sentence))} - numbers)
     if len(ungrounded) > UNGROUNDED_ALLOWED:
         return f"is not grounded in its cited evidence (unsupported words: {', '.join(ungrounded)})"
     return None
@@ -563,7 +580,7 @@ def _user_attribution_problem(text: str, case_facts: list[Evidence]) -> str | No
     sentences = _sentences(fold(text))
     named = any(_references(_WORD.findall(x), names, False) for x in sentences)
     for sentence in sentences:
-        rest = _WORD.findall(_UNASSERTED.sub(" ", _DEFERRAL.sub(" ", sentence)))
+        rest = _WORD.findall(asserted(sentence))
         refs = _references(rest, names, named)
         own = {i + k for i, ref in refs for k in range(len(ref.split()))}
         verbs = {j for j, w in enumerate(rest) if w in _ATTRIBUTION and j not in own
