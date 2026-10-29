@@ -82,7 +82,8 @@ code + tests in the repository; nothing here adds a requirement to HR-004 … HR
 | Meta AI integration | **Partial** | `integrations/meta/client.py`: Muse Spark chat with tools, used by the Permit workflow; no image, ASR or segmentation calls | live runs need the Meta key (opt-in `test_permit_live.py`) |
 | Permit Intelligence + MU-9 verification | **Implemented offline** (HR-002, HR-003) | workflow, independent verifier, final gate, TrustPin, C2 binding; 6525 tests, corpus 294 / 0 unsupported VERIFIED | live validation pending (below) |
 | Official sources & planning context (Cascais) | **Implemented** (HR-003) | registry, SafeFetcher, PDF snapshots, retrieval, manual-confirmation resolver, CX-3/4/5 fixed | — |
-| Deployment (Cloud Run preview) | **Partial** | `docs/demo-runbook.md`, `infrastructure/README.md`; preview runs pre-MU-9 code (MU-5) | redeploy needs authorisation |
+| Jurisdiction adapters (location) | **Implemented** (HR-001) | `backend/app/services/jurisdiction/base.py` (`JurisdictionAdapter`), Portugal and generic adapters, `resolver.py` | the *legal-research* extension (architecture §9.5) is a proposal, not started |
+| Deployment (Cloud Run preview) | **Partial** | `.ai-review/REVIEW_BOARD.md` HR-003 row: preview rev backend-00016 / frontend-00011 on `main` @ `98af6af` (before MU-9); `docs/demo-runbook.md` names the preview services; `infrastructure/README.md` records no provisioning-as-code | redeploy of the current code needs authorisation (MU-5) |
 
 ### 1. Implemented
 Address search, property resolution, jurisdiction and competent authority, property workspace with map; Permit
@@ -93,15 +94,15 @@ planning context for Cascais with manual confirmation; MU-9 structural verificat
 Meta AI integration (text/tools only); deployment (preview not on current code); HR-003 live validations.
 
 ### 3. Not started
-Intelligent map layers, visual graph, PDF reports, voice, photos/SAM 3.1/Muse Image, Afford, HABITA Live,
-JurisdictionAdapter — all **pending definition** (no HR scope approved).
+Intelligent map layers, visual graph, PDF reports, voice, photos/SAM 3.1/Muse Image, Afford, HABITA Live, the
+legal-research extension of the jurisdiction adapters — all **pending definition** (no HR scope approved).
 
 ### 4. Blocked on credentials or authorisation
 | Item | Needs |
 |---|---|
 | C2 transaction test on Atlas (`test_permit_commit_atlas.py`) | authorisation + `MONGODB_URI` (replica set) |
-| Live Permit runs / shadow measurement / pre-demo gate (MU-1) | authorisation + Meta key |
-| Live smoke (`test_live_smoke.py`: geocoding, Atlas) | authorisation + Google and Atlas keys |
+| Live Permit runs / shadow measurement / pre-demo gate (MU-1) | authorisation + Meta key (`HABITA_META_LIVE=1`); the full run also needs Atlas and Google |
+| Live smoke (`test_live_smoke.py`: geocoding, autocomplete, Atlas) | authorisation + Google server and browser keys, Atlas |
 | Preview redeploy and visual QA (MU-5) | authorisation (GCP) |
 | Push / merge of `mu9/structural-verification` | authorisation |
 | Voice, image, segmentation | model access + HR definitions |
@@ -109,11 +110,12 @@ JurisdictionAdapter — all **pending definition** (no HR scope approved).
 ### 5. Tests required before a real demonstration
 1. Offline: backend suite, acceptance corpus (0 unsupported VERIFIED), frontend tests, lint, typecheck, `next build`.
 2. `HABITA_LIVE_TESTS=1 pytest tests/test_permit_commit_atlas.py` on the demo database (C2 + CX-2 transactions).
-3. `HABITA_LIVE_TESTS=1 pytest tests/test_live_smoke.py tests/test_permit_live.py` (geocoding, Atlas, Meta).
+3. `HABITA_LIVE_TESTS=1 HABITA_META_LIVE=1 pytest tests/test_live_smoke.py tests/test_permit_live.py` (geocoding,
+   autocomplete, Atlas, Meta; the Meta tests run only with `HABITA_META_LIVE=1`).
 4. Pre-demo live gate (MU-1): one Cascais NEEDS_INPUT → VERIFIED conditional run on the deployed preview asserting
    conditional answer, manual planning confirmation, no model-authored zoning and trusted provenance.
-5. Demo runbook rehearsal (`docs/demo-runbook.md`) including the REJECTED fallback narration (MU-4) and visual QA
-   of the workspace (MU-5).
+5. Demo runbook rehearsal (`docs/demo-runbook.md`) and visual QA of the workspace (MU-5). The runbook has no
+   REJECTED-outcome fallback yet: adding that narration is MU-4.
 
 ### Most efficient sequence to a demonstrable MVP (proposal)
 1. **Stabilise what exists** (no new scope): authorise steps 2–3 above, redeploy the preview on the current code,
