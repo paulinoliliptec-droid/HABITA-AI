@@ -13,5 +13,5 @@ gcloud secrets create MONGODB_URI --replication-policy=automatic
 gcloud secrets versions add MONGODB_URI --data-file=-   # paste, then Ctrl-D
 # Repeat for META_API_KEY, GOOGLE_MAPS_API_KEY
 ```
-Deploy (later): `gcloud run deploy habita-backend --source backend --set-secrets=...`.
+Deploy: manual only, see [`STAGING.md`](STAGING.md) (images from `docker/`).
 Dockerfiles and deploy scripts will live here or in each app folder.
