@@ -387,19 +387,35 @@ def _normative_text(text: str) -> bool:
             or any(_DEPENDENCY_VERB.match(t) for t in tokens) or bool(_DEPENDENCY_CLAUSE.search(folded)))
 
 
+def _heading(text: str) -> bool:
+    """A heading ("Princípios gerais do solo urbano"), not a statement: no closing punctuation."""
+    return not re.search(r"[.!?;:]\s*$", text.strip())
+
+
+def _structural_unit(text: str) -> bool:
+    """An official unit that only describes structure: a structural predicate, no rule content."""
+    tokens, folded = _tokens(text), _fold(text.lower())
+    if _heading(text):
+        return True
+    # A structural verb, not a participle or adjective ("Excetuam-se os edifícios classificados" states content).
+    verb = any(_META.fullmatch(t) and not _STATE_FORM.match(t) for t in tokens)
+    return (verb and not _normative_text(text) and not _CONTENT_CLAUSE.search(folded)
+            and not _NEGATION & set(tokens))
+
+
 def _passage_sentences(e: Evidence) -> list[_Sentence]:
     text = e.excerpt.lower()  # folded by _tokens, which keeps PT "é" apart from "e"
     out = []
     # Coreference runs across numbered paragraphs: "1 - … é permitida. 2 - Essa permissão depende …" is one unit.
     paragraphs = [re.sub(r"^\s*\d+\s*-\s*", "", p) for p in _PARAGRAPH.split(_HEADER.sub("", text, count=1))]
     units = _merge_coreferent([s for p in paragraphs for s in _full_sentences(p, coreference=False)])
-    # With more than one normative unit, a condition may sit in any of them, however it refers back ("O exercício
-    # dessa faculdade depende de …"): a quote is then the whole excerpt.
-    if sum(_normative_text(u) for u in units) > 1:
-        body = " ".join(u.strip() for u in units)
-        units_whole = [(body, u) for u in units]
-    else:
-        units_whole = [(u, u) for u in units]
+    # A unit may be quoted alone only when every other unit of the excerpt only describes its structure ("A
+    # qualificação … consta da Planta", "Esta secção define …"). Otherwise a condition or exception may sit in any of
+    # them, however it refers back or is worded ("O exercício dessa faculdade depende de …", "Excetuam-se …"): the
+    # quote is the whole excerpt.
+    body = " ".join(u.strip() for u in units if not _heading(u))
+    units_whole = [(u if all(_structural_unit(v) for j, v in enumerate(units) if j != i) else body, u)
+                   for i, u in enumerate(units)]
     for whole, sentence in ((w, c) for w, u in units_whole for c in _sentences(u)):
         concepts = _concepts_of(_tokens(sentence))
         core_concepts = _concepts_of(_tokens(_without_inclusions(sentence, _INCLUSION)))

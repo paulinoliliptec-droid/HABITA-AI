@@ -723,3 +723,13 @@ async def test_nrm_r2_an_official_dependency_is_a_condition():
     assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E970"))  # exact
     report = await quoted(E970.excerpt.split(" 1 - ", 1)[1], "E970")
     assert report.outcome == "VERIFIED", report.issues
+
+
+async def test_nrm_r2_an_unmarked_exception_in_the_next_paragraph_needs_the_whole_excerpt():
+    """Builder probe: 'Excetuam-se …' carries no known marker; only structural units may be left out of a quote."""
+    e = official("E960", "TEST FIXTURE Artigo 960.º Altura 1 - Em solo urbano, a altura das edificações não pode "
+                         "exceder 9 m. 2 - Excetuam-se os edifícios classificados.")
+    RECS.append(e)
+    assert rejected(await quoted("Em solo urbano, a altura das edificações não pode exceder 9 m.", "E960"))
+    report = await quoted(e.excerpt.split(" 1 - ", 1)[1], "E960")
+    assert report.outcome == "VERIFIED", report.issues
