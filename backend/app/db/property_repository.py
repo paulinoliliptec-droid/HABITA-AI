@@ -403,7 +403,13 @@ class MongoPropertyRepository:
             kept = await self._collection.find_one({"_id": keep})
             dup = await self._collection.find_one({"_id": duplicate})
             if kept is None or dup is None:
+                if kept is not None:
+                    await self._unmark(duplicate, keep)  # a mark left for a duplicate that no longer exists
                 raise ValueError("Both properties must exist.")
+            if dup.get("absorbing") and not _merge_target(dup):
+                # Containment (C2, chained merges): a duplicate with a merge into it still pending would hand that
+                # merge to `keep` unmarked. Complete pending merges first (resume_pending_merges).
+                raise ValueError(f"{duplicate} has a pending merge into it; complete pending merges first.")
             # Always merge into the canonical end of any chain (A → B, then B → C: keep C).
             kept = await self._canonical_doc(kept)
             if kept is None:

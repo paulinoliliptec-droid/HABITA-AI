@@ -715,17 +715,18 @@ async def test_chained_merge_interrupted_then_reload_and_retry_converge(failing_
     assert (await repo.get(a)).property_id == c
 
 
-async def test_pending_merge_whose_target_was_merged_resumes_into_the_canonical_property():
-    """A → B interrupted (A merging into B); then B → C completes; resume must finish A into C."""
+async def test_pending_merge_into_a_property_blocks_merging_it_until_resumed():
+    """A → B interrupted (A merging into B, B marked). B → C is refused until the pending merge completes (C2: C must
+    not be bindable while A is still on its way to it); after resume, B → C lands everything on C."""
     repo, col = make_repo(FailingCollection())
     a, b, c = await _three(repo)
     col.arm(3)  # step 2 (write 1 marks `keep`, C2)
     with pytest.raises(StorageUnavailableError):
         await repo.merge(keep=b, duplicate=a)
-    await repo.merge(keep=c, duplicate=b)
-    assert (await repo.get(a)).property_id == c
-
+    with pytest.raises(ValueError, match="pending merge"):
+        await repo.merge(keep=c, duplicate=b)
     assert await repo.resume_pending_merges() == 1
+    await repo.merge(keep=c, duplicate=b)
     _assert_canonical(col, c, [a, b], ["ChIJ-A", "ChIJ-B", "ChIJ-C"])
 
 

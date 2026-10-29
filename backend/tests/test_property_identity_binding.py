@@ -222,13 +222,42 @@ async def test_a_superseded_merge_leaves_no_mark_behind():
 
 
 async def test_a_chained_merge_clears_the_former_kept_mark_and_settles():
+    """A → B left at step 1, B → C refused until A → B is resumed (containment, round 5); then everything settles and
+    a further resume moves nothing."""
     repo, collection = make_repo()
     a, b, c = await _three(repo)
     await collection.update_one({"_id": b}, {"$addToSet": {"absorbing": {"$each": [a]}}})  # A → B, step 0 …
     await collection.update_one({"_id": a}, {"$set": {"merging_into": b, "snapshot_state": "merging",
                                                       "merged_aliases": ["ChIJ-a"]}, "$unset": {"place_ids": ""}})
-    await repo.merge(keep=c, duplicate=b)  # … then B → C
+    with pytest.raises(ValueError, match="pending merge"):
+        await repo.merge(keep=c, duplicate=b)
     assert await repo.resume_pending_merges() == 1
+    await repo.merge(keep=c, duplicate=b)
     version = collection.docs[c]["identity_version"]
     assert await repo.resume_pending_merges() == 0 and collection.docs[c]["identity_version"] == version
     assert not collection.docs[b].get("absorbing")
+
+
+# --- containment after the binding review's last round (Codex round 5; not re-reviewed) ---------------------------
+
+async def test_a_property_with_a_merge_into_it_pending_is_not_merged_away():
+    """P1: merging B (absorbing A) into C would leave C bindable while A → B is pending. Refused until resumed."""
+    repo, collection = make_repo()
+    a, b, c = await _three(repo)
+    await collection.update_one({"_id": b}, {"$addToSet": {"absorbing": {"$each": [a]}},
+                                             "$inc": {"identity_version": 1}})
+    with pytest.raises(ValueError, match="pending merge"):
+        await repo.merge(keep=c, duplicate=b)
+    assert not collection.docs[c].get("absorbing") and await repo.identity(c) is not None  # C untouched
+    assert await repo.resume_pending_merges() == 1  # A → B completes
+    await repo.merge(keep=c, duplicate=b)  # then the chain can be merged
+    assert collection.docs[b]["merged_into"] == c
+
+
+async def test_a_mark_for_a_deleted_duplicate_is_removed():
+    """P2: resume no longer strands the kept property's mark when the duplicate is gone."""
+    repo, collection = make_repo()
+    keep = (await repo.save(snapshot(place_id="ChIJ-k"), {"ChIJ-k"})).property_id
+    await collection.update_one({"_id": keep}, {"$addToSet": {"absorbing": {"$each": ["prp_gone"]}}})
+    await repo.resume_pending_merges()
+    assert not collection.docs[keep].get("absorbing") and await repo.identity(keep) is not None
