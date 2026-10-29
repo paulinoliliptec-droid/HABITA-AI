@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { Section } from "@/components/ui/Section";
+import { reportChanged } from "@/features/report/api";
 import { ApiError } from "@/lib/api";
 import { continueMatter, createMatter, getEvidence, getMatter, permitStatus, supplyInputs } from "./api";
 import { forgetMatter, recallMatter, rememberMatter } from "./capability";
@@ -57,6 +58,11 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
     if (!matterId || !settledState || !token) return;
     getEvidence(matterId, token).then(setEvidence).catch(() => setEvidence([]));
   }, [matterId, settledState, token]);
+
+  // The map's post-its and the PDF read the same report; refresh them when the matter settles.
+  useEffect(() => {
+    if (matterId && settledState) reportChanged();
+  }, [matterId, settledState]);
 
   const poller = useRef<ReturnType<typeof setInterval> | null>(null);
 

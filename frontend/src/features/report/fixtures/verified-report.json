@@ -1,0 +1,629 @@
+{
+ "generated_at": "2026-10-29T12:00:00Z",
+ "property": {
+  "property_id": "prp_065179062fea029c",
+  "address": "Praça 5 de Outubro, 2750-642 Cascais, Portugal",
+  "lat": 38.6969,
+  "lng": -9.4215,
+  "precision": "rooftop",
+  "jurisdiction_id": "pt/lisboa/cascais",
+  "jurisdiction": [
+   "Country: Portugal",
+   "District: Lisboa",
+   "Municipality: Cascais",
+   "Parish: Cascais e Estoril"
+  ],
+  "authority": "Câmara Municipal de Cascais"
+ },
+ "planning": {
+  "status": "requires_manual_confirmation",
+  "verified_zoning": false,
+  "classification": null,
+  "instrument": "Plano Diretor Municipal de Cascais (PDM-Cascais) — Regulamento",
+  "instrument_version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+  "reasons": [
+   "No validated machine-readable zoning layer exists for this jurisdiction."
+  ],
+  "documents_to_consult": [
+   {
+    "title": "PDM-Cascais — Planta de Ordenamento 01-02: Qualificação do Solo",
+    "designation": "Planta de Ordenamento 01-02",
+    "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/10-pord_73542_1105po0102-qual_0.pdf",
+    "reason": "Land-use category (qualificação do solo) of the parcel."
+   },
+   {
+    "title": "PDM-Cascais — Planta de Ordenamento 01-01: Classificação do Solo",
+    "designation": "Planta de Ordenamento 01-01",
+    "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/01-01_classificacao_do_solo.pdf",
+    "reason": "Urban or rustic land classification (classificação do solo)."
+   },
+   {
+    "title": "PDM-Cascais — Planta de Ordenamento 01-06: Património",
+    "designation": "Planta de Ordenamento 01-06",
+    "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/01-06_patrimonio.pdf",
+    "reason": "Heritage protections shown on the planning map."
+   },
+   {
+    "title": "PDM-Cascais — Planta de Condicionantes 02-04: Património",
+    "designation": "Planta de Condicionantes 02-04",
+    "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/02-04_patrimonio.pdf",
+    "reason": "Heritage constraints (servidões e restrições)."
+   },
+   {
+    "title": "PDM-Cascais — Planta de Condicionantes 02-01-03A: Reserva Ecológica Nacional (A)",
+    "designation": "Planta de Condicionantes 02-01-03A",
+    "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/02-01-3a_ren.pdf",
+    "reason": "Reserva Ecológica Nacional constraints (map A)."
+   },
+   {
+    "title": "PDM-Cascais — Planta de Condicionantes 02-01-03B: Reserva Ecológica Nacional (B)",
+    "designation": "Planta de Condicionantes 02-01-03B",
+    "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/02-01-3b_ren.pdf",
+    "reason": "Reserva Ecológica Nacional constraints (map B)."
+   },
+   {
+    "title": "PDM-Cascais — Planta de Ordenamento 01-10A: Regime de Proteção — POC-ACE (A)",
+    "designation": "Planta de Ordenamento 01-10A",
+    "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/01-10a_regime_de_protecao_-_ocace_0.pdf",
+    "reason": "Coastal protection regime (POC-ACE), map A."
+   },
+   {
+    "title": "PDM-Cascais — Planta de Ordenamento 01-10B: Regime de Proteção — POC-ACE (B)",
+    "designation": "Planta de Ordenamento 01-10B",
+    "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/01-10b_regime_de_protecao_-_ocace_0.pdf",
+    "reason": "Coastal protection regime (POC-ACE), map B."
+   },
+   {
+    "title": "PDM-Cascais — Planta de Condicionantes 02-01-01: Áreas Protegidas",
+    "designation": "Planta de Condicionantes 02-01-01",
+    "url": "https://www.cascais.pt/sites/default/files/PDM/TOMO-B/TOMO-B-1-2_P-CND-020101.pdf",
+    "reason": "Protected areas (e.g. Parque Natural de Sintra-Cascais)."
+   },
+   {
+    "title": "Plano Diretor Municipal de Cascais (PDM-Cascais) — Regulamento",
+    "designation": null,
+    "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/regulamento_pdm_em_vigor_1.pdf",
+    "reason": "The Regulamento's rules for the category found on the maps."
+   },
+   {
+    "title": "PDM-Cascais — compilação dos elementos constituintes em vigor",
+    "designation": null,
+    "url": "https://www.cascais.pt/pdm-compilacao-dos-elementos-constituintes-em-vigor",
+    "reason": "The Câmara's index of the PDM documents in force."
+   }
+  ],
+  "guidance": "Planning classification requires confirmation against the official Plano Diretor Municipal de Cascais (PDM-Cascais) map(s). HABITA has not yet verified an official machine-readable service that can classify this coordinate against the plan's zoning layers. Check the documents listed below or confirm with Câmara Municipal de Cascais."
+ },
+ "sources": [
+  {
+   "source_id": "cascais-pdm",
+   "title": "Plano Diretor Municipal de Cascais (PDM-Cascais) — Regulamento",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/regulamento_pdm_em_vigor_1.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-aviso-15687-2024",
+   "title": "Aviso n.º 15687/2024/2 — correção material do PDM-Cascais",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/4-aviso_n.o_15687_2024_2.pdf",
+   "version": "Aviso n.º 15687/2024/2",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-aviso-20120-2023",
+   "title": "Aviso n.º 20120/2023 — alteração do PDM-Cascais (adaptação ao RJIGT)",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/aviso_n.o_20120-2023.pdf",
+   "version": "Aviso n.º 20120/2023",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-elementos",
+   "title": "PDM-Cascais — compilação dos elementos constituintes em vigor",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/pdm-compilacao-dos-elementos-constituintes-em-vigor",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-urbanismo-faq",
+   "title": "Urbanismo — perguntas frequentes sobre pedidos de licenciamento e comunicação prévia",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/fqas.pdf",
+   "version": null,
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-02-01-01",
+   "title": "PDM-Cascais — Planta de Condicionantes 02-01-01: Áreas Protegidas",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/PDM/TOMO-B/TOMO-B-1-2_P-CND-020101.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-02-01-02",
+   "title": "PDM-Cascais — Planta de Condicionantes 02-01-02: Valores e Recursos Naturais",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/13-pcond_73543_1105co020102-vn_0.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-02-01-03a",
+   "title": "PDM-Cascais — Planta de Condicionantes 02-01-03A: Reserva Ecológica Nacional (A)",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/02-01-3a_ren.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-02-01-03b",
+   "title": "PDM-Cascais — Planta de Condicionantes 02-01-03B: Reserva Ecológica Nacional (B)",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/02-01-3b_ren.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-02-02a",
+   "title": "PDM-Cascais — Planta de Condicionantes 02-02A: Equipamento (A)",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/02-02a_equipamento.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-02-02b",
+   "title": "PDM-Cascais — Planta de Condicionantes 02-02B: Equipamento (B)",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/02-02b_equipamento.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-02-03",
+   "title": "PDM-Cascais — Planta de Condicionantes 02-03: Infraestruturas",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/14-pcond_73543_1105co0203-infr_0.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-02-04",
+   "title": "PDM-Cascais — Planta de Condicionantes 02-04: Património",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/02-04_patrimonio.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-02-05",
+   "title": "PDM-Cascais — Planta de Condicionantes 02-05: Perigosidade de Incêndio Rural",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/02-05_perigosidade_de_incendio_rural.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-01-01",
+   "title": "PDM-Cascais — Planta de Ordenamento 01-01: Classificação do Solo",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/01-01_classificacao_do_solo.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-01-02",
+   "title": "PDM-Cascais — Planta de Ordenamento 01-02: Qualificação do Solo",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/10-pord_73542_1105po0102-qual_0.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-01-03",
+   "title": "PDM-Cascais — Planta de Ordenamento 01-03: Estrutura Ecológica",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/11-pord_73542_1105po0103-esec_0.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-01-05",
+   "title": "PDM-Cascais — Planta de Ordenamento 01-05: Planos com Repercussão Territorial",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/01-05_planos_com_repercussao_territorial.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-01-06",
+   "title": "PDM-Cascais — Planta de Ordenamento 01-06: Património",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/01-06_patrimonio.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-01-09",
+   "title": "PDM-Cascais — Planta de Ordenamento 01-09: Regimes de Proteção — PNSC",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/12-pord_73542_1105po0109-pnsc_0.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-01-10a",
+   "title": "PDM-Cascais — Planta de Ordenamento 01-10A: Regime de Proteção — POC-ACE (A)",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/01-10a_regime_de_protecao_-_ocace_0.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "cascais-pdm-planta-01-10b",
+   "title": "PDM-Cascais — Planta de Ordenamento 01-10B: Regime de Proteção — POC-ACE (B)",
+   "publisher": "Câmara Municipal de Cascais",
+   "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/01-10b_regime_de_protecao_-_ocace_0.pdf",
+   "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "pt-codigo-civil-propriedade-horizontal",
+   "title": "Código Civil — propriedade horizontal",
+   "publisher": "República Portuguesa (Diário da República)",
+   "url": null,
+   "version": "Código Civil, arts. 1414.º–1438.º-A (consolidated)",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "pt-rgeu",
+   "title": "Regulamento Geral das Edificações Urbanas (RGEU)",
+   "publisher": "República Portuguesa (Diário da República)",
+   "url": null,
+   "version": "Decreto-Lei n.º 38 382/51, as amended (incl. Decreto-Lei n.º 10/2024)",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "pt-rjue",
+   "title": "Regime Jurídico da Urbanização e da Edificação (RJUE)",
+   "publisher": "República Portuguesa (Diário da República)",
+   "url": "https://diariodarepublica.pt/dr/detalhe/decreto-lei/555-1999-655682",
+   "version": "Decreto-Lei n.º 555/99 (consolidated), reformed by Decreto-Lei n.º 10/2024",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  },
+  {
+   "source_id": "pt-simplex-urbanistico",
+   "title": "Simplex Urbanístico",
+   "publisher": "República Portuguesa (Diário da República)",
+   "url": null,
+   "version": "Decreto-Lei n.º 10/2024, de 8 de janeiro",
+   "status": "trusted",
+   "verified_on": "2026-10-28"
+  }
+ ],
+ "assessment": {
+  "matter_id": "pm_24bc3e7d75bc032c",
+  "question": "Can I convert this property into two residential units?",
+  "state": "VERIFIED",
+  "status": "VERIFIED",
+  "status_reason": "The assessment passed HABITA's evidence and verification checks.",
+  "content_verified": true,
+  "conclusion_answer": "conditional",
+  "conclusion_summary": "A division may be possible if each new dwelling is autonomous, subject to the conditions.",
+  "conclusion_evidence_ids": [
+   "E9",
+   "E10",
+   "E11"
+  ],
+  "statements": [
+   {
+    "section": "finding",
+    "label": "K1",
+    "text": "The Câmara Municipal de Cascais is the competent authority.",
+    "step": null,
+    "evidence_ids": [
+     "E3"
+    ]
+   },
+   {
+    "section": "finding",
+    "label": "K2",
+    "text": "Each new unit must be autonomous with its own exit.",
+    "step": null,
+    "evidence_ids": [
+     "E9",
+     "E10"
+    ]
+   },
+   {
+    "section": "finding",
+    "label": "K3",
+    "text": "You stated (declared by you, not verified by HABITA): “One single-family dwelling (habitação).” You stated (declared by you, not verified by HABITA): “Two flats, one per floor, about 90 m2 each; each floor has its own street door.” You stated (declared by you, not verified by HABITA): “Single owner; not divided into fractions.”",
+    "step": null,
+    "evidence_ids": [
+     "E16",
+     "E17",
+     "E18"
+    ]
+   },
+   {
+    "section": "procedure",
+    "label": "procedure 1",
+    "text": "Submit the application to the Câmara Municipal under the RJUE.",
+    "step": "Apply for municipal prior control",
+    "evidence_ids": [
+     "E5",
+     "E7",
+     "E3"
+    ]
+   },
+   {
+    "section": "risk",
+    "label": "risk 1",
+    "text": "Without its own exit, a unit can't be in horizontal property and the title is null.",
+    "step": null,
+    "evidence_ids": [
+     "E9",
+     "E10"
+    ]
+   },
+   {
+    "section": "next_action",
+    "label": "next action 1",
+    "text": "Request confirmation of the conditions from the Câmara Municipal de Cascais.",
+    "step": null,
+    "evidence_ids": [
+     "E3"
+    ]
+   },
+   {
+    "section": "next_action",
+    "label": "next action 2",
+    "text": "The land-use category applicable to this parcel has not yet been determined by HABITA. It must be confirmed on the official PDM map or with the Câmara Municipal before concluding whether the operation is admissible. Check against the official documents: Planta de Ordenamento 01-02; Planta de Ordenamento 01-01; Planta de Ordenamento 01-06; Planta de Condicionantes 02-04; Planta de Condicionantes 02-01-03A; Planta de Condicionantes 02-01-03B; Planta de Ordenamento 01-10A; Planta de Ordenamento 01-10B; Planta de Condicionantes 02-01-01; Plano Diretor Municipal de Cascais (PDM-Cascais) — Regulamento; PDM-Cascais — compilação dos elementos constituintes em vigor.",
+    "step": null,
+    "evidence_ids": [
+     "E4"
+    ]
+   }
+  ],
+  "conditions": [
+   "The land-use category applicable to this parcel has not yet been determined by HABITA. It must be confirmed on the official PDM map or with the Câmara Municipal before concluding whether the operation is admissible. Check against the official documents: Planta de Ordenamento 01-02; Planta de Ordenamento 01-01; Planta de Ordenamento 01-06; Planta de Condicionantes 02-04; Planta de Condicionantes 02-01-03A; Planta de Condicionantes 02-01-03B; Planta de Ordenamento 01-10A; Planta de Ordenamento 01-10B; Planta de Condicionantes 02-01-01; Plano Diretor Municipal de Cascais (PDM-Cascais) — Regulamento; PDM-Cascais — compilação dos elementos constituintes em vigor.",
+   "Confirm the documents required for the application with the competent authority before applying."
+  ],
+  "issues": [],
+  "verification": {
+   "verification_id": "pv_2ca624ce3207905b",
+   "outcome": "VERIFIED",
+   "draft_revision": 0,
+   "created_at": "2026-10-29T21:08:53.194284Z",
+   "protocol": "atomic-v1",
+   "trust_pin": {
+    "cascais-geocascais": "candidate@0",
+    "cascais-pdm": "trusted@0",
+    "cascais-pdm-aviso-15687-2024": "trusted@0",
+    "cascais-pdm-aviso-20120-2023": "trusted@0",
+    "cascais-pdm-elementos": "trusted@0",
+    "cascais-pdm-planta-01-01": "trusted@0",
+    "cascais-pdm-planta-01-02": "trusted@0",
+    "cascais-pdm-planta-01-03": "trusted@0",
+    "cascais-pdm-planta-01-05": "trusted@0",
+    "cascais-pdm-planta-01-06": "trusted@0",
+    "cascais-pdm-planta-01-09": "trusted@0",
+    "cascais-pdm-planta-01-10a": "trusted@0",
+    "cascais-pdm-planta-01-10b": "trusted@0",
+    "cascais-pdm-planta-02-01-01": "trusted@0",
+    "cascais-pdm-planta-02-01-02": "trusted@0",
+    "cascais-pdm-planta-02-01-03a": "trusted@0",
+    "cascais-pdm-planta-02-01-03b": "trusted@0",
+    "cascais-pdm-planta-02-02a": "trusted@0",
+    "cascais-pdm-planta-02-02b": "trusted@0",
+    "cascais-pdm-planta-02-03": "trusted@0",
+    "cascais-pdm-planta-02-04": "trusted@0",
+    "cascais-pdm-planta-02-05": "trusted@0",
+    "cascais-urbanismo-faq": "trusted@0",
+    "pt-codigo-civil-propriedade-horizontal": "trusted@0",
+    "pt-rgeu": "trusted@0",
+    "pt-rjue": "trusted@0",
+    "pt-simplex-urbanistico": "trusted@0"
+   }
+  },
+  "evidence": [
+   {
+    "evidence_id": "E3",
+    "title": "Câmara Municipal de Cascais",
+    "reference": "Regime Jurídico da Urbanização e da Edificação (RJUE), Decreto-Lei n.º 555/99 art. 5.º",
+    "url": null,
+    "source_type": "authority_record",
+    "verification_status": "system_record",
+    "retrieved_at": "2026-10-29T21:08:53.161205Z",
+    "excerpt": "Câmara Municipal de Cascais: Licensing of urban operations, including building permits (licenciamento urbanístico).",
+    "source_id": null,
+    "trust_status": null,
+    "version": null,
+    "snapshot_id": null,
+    "sha256": null,
+    "locator": null
+   },
+   {
+    "evidence_id": "E4",
+    "title": "Planning context — Plano Diretor Municipal de Cascais (PDM-Cascais) — Regulamento",
+    "reference": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento — Planta de Ordenamento 01-02; Planta de Ordenamento 01-01; Planta de Ordenamento 01-06; Planta de Condicionantes 02-04; Planta de Condicionantes 02-01-03A; Planta de Condicionantes 02-01-03B; Planta de Ordenamento 01-10A; Planta de Ordenamento 01-10B; Planta de Condicionantes 02-01-01; Plano Diretor Municipal de Cascais (PDM-Cascais) — Regulamento; PDM-Cascais — compilação dos elementos constituintes em vigor",
+    "url": "https://www.cascais.pt/sites/default/files/anexos/gerais/new/regulamento_pdm_em_vigor_1.pdf",
+    "source_type": "planning_context",
+    "verification_status": "system_record",
+    "retrieved_at": "2026-10-29T21:08:53.162426Z",
+    "excerpt": "Planning classification requires confirmation against the official Plano Diretor Municipal de Cascais (PDM-Cascais) map(s). HABITA has not yet verified an official machine-readable service that can classify this coordinate against the plan's zoning layers. Check the documents listed below or confirm with Câmara Municipal de Cascais.",
+    "source_id": "cascais-pdm",
+    "trust_status": "trusted",
+    "version": "PDM-Cascais 2015 revision (Aviso n.º 7212-B/2015), altered for the RJIGT by Aviso n.º 20120/2023, corrected by Aviso n.º 15687/2024/2; republished Regulamento",
+    "snapshot_id": null,
+    "sha256": null,
+    "locator": "Planta de Ordenamento 01-02; Planta de Ordenamento 01-01; Planta de Ordenamento 01-06; Planta de Condicionantes 02-04; Planta de Condicionantes 02-01-03A; Planta de Condicionantes 02-01-03B; Planta de Ordenamento 01-10A; Planta de Ordenamento 01-10B; Planta de Condicionantes 02-01-01; Plano Diretor Municipal de Cascais (PDM-Cascais) — Regulamento; PDM-Cascais — compilação dos elementos constituintes em vigor"
+   },
+   {
+    "evidence_id": "E5",
+    "title": "Regime Jurídico da Urbanização e da Edificação (RJUE)",
+    "reference": "Decreto-Lei n.º 555/99, de 16 de dezembro (consolidated version) — art. 4.º",
+    "url": "https://diariodarepublica.pt/dr/detalhe/decreto-lei/555-1999-655682",
+    "source_type": "regulatory_source",
+    "verification_status": "curated_reference",
+    "retrieved_at": "2026-10-29T21:08:53.164482Z",
+    "excerpt": "Urban operations, including building works and alterations, are subject to municipal prior control under the RJUE (licence or prior communication, depending on the operation).",
+    "source_id": "pt-rjue",
+    "trust_status": "trusted",
+    "version": "Decreto-Lei n.º 555/99 (consolidated), reformed by Decreto-Lei n.º 10/2024",
+    "snapshot_id": null,
+    "sha256": null,
+    "locator": "art. 4.º"
+   },
+   {
+    "evidence_id": "E7",
+    "title": "Regime Jurídico da Urbanização e da Edificação (RJUE)",
+    "reference": "Decreto-Lei n.º 555/99, de 16 de dezembro (consolidated version) — art. 4.º (as amended)",
+    "url": "https://diariodarepublica.pt/dr/detalhe/decreto-lei/555-1999-655682",
+    "source_type": "regulatory_source",
+    "verification_status": "curated_reference",
+    "retrieved_at": "2026-10-29T21:08:53.164660Z",
+    "excerpt": "The use of buildings or their units, and changes to that use, are regulated by the RJUE; the applicable procedure for a change of use must be confirmed against the version in force after the Simplex Urbanístico.",
+    "source_id": "pt-rjue",
+    "trust_status": "trusted",
+    "version": "Decreto-Lei n.º 555/99 (consolidated), reformed by Decreto-Lei n.º 10/2024",
+    "snapshot_id": null,
+    "sha256": null,
+    "locator": "art. 4.º (as amended)"
+   },
+   {
+    "evidence_id": "E9",
+    "title": "Código Civil — propriedade horizontal",
+    "reference": "Código Civil (Decreto-Lei n.º 47 344, de 25 de novembro de 1966), arts. 1414.º–1438.º-A — art. 1415.º",
+    "url": null,
+    "source_type": "regulatory_source",
+    "verification_status": "curated_reference",
+    "retrieved_at": "2026-10-29T21:08:53.164789Z",
+    "excerpt": "Only autonomous units can be the object of horizontal property: units that are independent, distinct and isolated from each other, with their own exit to a common part of the building or to the public way.",
+    "source_id": "pt-codigo-civil-propriedade-horizontal",
+    "trust_status": "trusted",
+    "version": "Código Civil, arts. 1414.º–1438.º-A (consolidated)",
+    "snapshot_id": null,
+    "sha256": null,
+    "locator": "art. 1415.º"
+   },
+   {
+    "evidence_id": "E10",
+    "title": "Código Civil — propriedade horizontal",
+    "reference": "Código Civil (Decreto-Lei n.º 47 344, de 25 de novembro de 1966), arts. 1414.º–1438.º-A — art. 1416.º",
+    "url": null,
+    "source_type": "regulatory_source",
+    "verification_status": "curated_reference",
+    "retrieved_at": "2026-10-29T21:08:53.164866Z",
+    "excerpt": "If the legal requirements are missing, the title constituting the horizontal property is null and the building is subject to co-ownership instead.",
+    "source_id": "pt-codigo-civil-propriedade-horizontal",
+    "trust_status": "trusted",
+    "version": "Código Civil, arts. 1414.º–1438.º-A (consolidated)",
+    "snapshot_id": null,
+    "sha256": null,
+    "locator": "art. 1416.º"
+   },
+   {
+    "evidence_id": "E11",
+    "title": "Regulamento Geral das Edificações Urbanas (RGEU)",
+    "reference": "Decreto-Lei n.º 38 382, de 7 de agosto de 1951",
+    "url": null,
+    "source_type": "regulatory_source",
+    "verification_status": "curated_reference",
+    "retrieved_at": "2026-10-29T21:08:53.164940Z",
+    "excerpt": "Dwellings must meet the RGEU's general habitability requirements (such as minimum areas, ceiling heights, natural light and ventilation); each new dwelling created by a division has to satisfy them on its own.",
+    "source_id": "pt-rgeu",
+    "trust_status": "trusted",
+    "version": "Decreto-Lei n.º 38 382/51, as amended (incl. Decreto-Lei n.º 10/2024)",
+    "snapshot_id": null,
+    "sha256": null,
+    "locator": null
+   },
+   {
+    "evidence_id": "E16",
+    "title": "Information supplied by the user",
+    "reference": "Answer to: What is the property's currently licensed use?",
+    "url": null,
+    "source_type": "user_statement",
+    "verification_status": "user_declared",
+    "retrieved_at": "2026-10-29T21:08:53.174306Z",
+    "excerpt": "One single-family dwelling (habitação).",
+    "source_id": null,
+    "trust_status": null,
+    "version": null,
+    "snapshot_id": null,
+    "sha256": null,
+    "locator": null
+   },
+   {
+    "evidence_id": "E17",
+    "title": "Information supplied by the user",
+    "reference": "Answer to: How would the two flats be laid out, and would each have its own door?",
+    "url": null,
+    "source_type": "user_statement",
+    "verification_status": "user_declared",
+    "retrieved_at": "2026-10-29T21:08:53.174361Z",
+    "excerpt": "Two flats, one per floor, about 90 m2 each; each floor has its own street door.",
+    "source_id": null,
+    "trust_status": null,
+    "version": null,
+    "snapshot_id": null,
+    "sha256": null,
+    "locator": null
+   },
+   {
+    "evidence_id": "E18",
+    "title": "Information supplied by the user",
+    "reference": "Answer to: Is the property under a single owner, or already divided into fractions (propriedade horizontal) with other owners?",
+    "url": null,
+    "source_type": "user_statement",
+    "verification_status": "user_declared",
+    "retrieved_at": "2026-10-29T21:08:53.174404Z",
+    "excerpt": "Single owner; not divided into fractions.",
+    "source_id": null,
+    "trust_status": null,
+    "version": null,
+    "snapshot_id": null,
+    "sha256": null,
+    "locator": null
+   }
+  ]
+ },
+ "pending": [
+  "Planning classification: confirm on the official maps or with the competent authority.",
+  "Condition: The land-use category applicable to this parcel has not yet been determined by HABITA. It must be confirmed on the official PDM map or with the Câmara Municipal before concluding whether the operation is admissible. Check against the official documents: Planta de Ordenamento 01-02; Planta de Ordenamento 01-01; Planta de Ordenamento 01-06; Planta de Condicionantes 02-04; Planta de Condicionantes 02-01-03A; Planta de Condicionantes 02-01-03B; Planta de Ordenamento 01-10A; Planta de Ordenamento 01-10B; Planta de Condicionantes 02-01-01; Plano Diretor Municipal de Cascais (PDM-Cascais) — Regulamento; PDM-Cascais — compilação dos elementos constituintes em vigor.",
+  "Condition: Confirm the documents required for the application with the competent authority before applying."
+ ],
+ "demo": false,
+ "disclaimer": "HABITA AI provides decision support, not legal advice. This report is not a permit, licence or authorisation: only the competent authority decides. Statements are shown with their verification status and sources."
+}

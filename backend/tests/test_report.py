@@ -151,3 +151,15 @@ def test_a_classification_appears_only_when_resolved_by_a_verified_layer():
 def test_demo_data_is_labelled():
     report = build_report(_property(), _context("requires_manual_confirmation"), [], demo=True)
     assert "DEMONSTRATION DATA" in pdf_text(render_pdf(report))
+
+
+def test_the_frontends_report_fixture_still_matches_the_schema():
+    """frontend/src/features/report/fixtures/verified-report.json is this backend's report; the map post-it tests
+    (AC4.5) rely on it, so a schema change must regenerate it."""
+    import json
+    from pathlib import Path
+    from app.schemas.report import PermitReport
+    path = Path(__file__).parents[2] / "frontend/src/features/report/fixtures/verified-report.json"
+    data = json.loads(path.read_text())
+    assert PermitReport.model_validate(data).model_dump(mode="json").keys() == data.keys()
+    assert data["assessment"]["status"] == "VERIFIED" and data["planning"]["verified_zoning"] is False
