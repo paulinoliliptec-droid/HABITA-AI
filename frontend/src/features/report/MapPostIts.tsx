@@ -12,7 +12,7 @@ import styles from "./MapPostIts.module.css";
 /** HR-004 post-its over the map and the HR-006 PDF download, both from the same report. */
 export function MapPostIts({ propertyId }: { propertyId: string }) {
   // The report shown and the capability it was read with: the PDF always downloads that same report.
-  const [shown, setShown] = useState<{ report: PermitReport; own: MatterCapability | null } | null>(null);
+  const [shown, setShown] = useState<{ report: PermitReport; own: MatterCapability | null; version: number } | null>(null);
   const [version, setVersion] = useState(0);
   const [open, setOpen] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -23,13 +23,12 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
   useEffect(() => {
     const controller = new AbortController();
     const own = recallMatter(propertyId);
-    setShown(null); // never keep showing another matter's notes while this one loads
     // A capability the server no longer accepts still leaves the public property report.
     getReport(propertyId, own, controller.signal)
-      .then((report) => ({ report, own }))
+      .then((report) => ({ report, own, version }))
       .catch((err: unknown) => {
         if (own && err instanceof ApiError && [401, 403, 404].includes(err.status)) {
-          return getReport(propertyId, null, controller.signal).then((report) => ({ report, own: null }));
+          return getReport(propertyId, null, controller.signal).then((report) => ({ report, own: null, version }));
         }
         throw err;
       })
@@ -38,7 +37,8 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
     return () => controller.abort();
   }, [propertyId, version]);
 
-  if (!shown) return null;
+  // A report read before the matter changed is never shown next to the new matter's PDF.
+  if (!shown || shown.version !== version) return null;
   const { report, own } = shown;
 
   async function download() {
