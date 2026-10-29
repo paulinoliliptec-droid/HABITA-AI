@@ -27,7 +27,7 @@ are not global milestones.
 | C2 on a real replica set (`test_permit_commit_atlas.py`) | **PENDING** (needs authorisation + credentials) | TD-001 |
 | Shadow measurement on live drafter output | **PENDING** (needs live runs) | TD-031 |
 | Pre-demo live gate, preview redeploy and visual QA (MU-1/4/5) | **PENDING** (needs authorisation) | TD-033 |
-| CX-3, CX-4, CX-5 backlog | in work (offline) | TD-016…018 |
+| CX-3, CX-4, CX-5 backlog | met offline (Codex backlog review, final NO P1) | TD-016…018; `test_sources_concurrency.py`, `test_sources_ingest_concurrency.py`, `test_planning_context.py` |
 
 ## Candidate modules named in the approved architecture (not yet assigned to HR numbers)
 
@@ -50,6 +50,21 @@ scope or acceptance criteria** yet; numbering and order are the owner's decision
    risky: voice input (feeds the existing Permit question), then segmentation/visualisation (SAM 3.1 → Muse Image).
 3. Afford and HABITA Live once defined.
 4. JurisdictionAdapter after the Cascais MVP is stable.
+
+### Preparation of the next modules (no requirement invented)
+
+What each candidate needs before it can start, from what the repository already has:
+
+| Module | Already in place | Needs from the owner |
+|---|---|---|
+| Voice input (Muse Voice Transcribe) | `integrations/meta/` client; Permit question entry point; architecture §1 voice path (WebSocket) | HR number, scope (languages, max duration, consent/retention), acceptance criteria, Meta ASR model access |
+| Segmentation (SAM 3.1) | Meta client; property workspace with map | HR number, input source (user photos vs imagery), output use, acceptance criteria |
+| Muse Image (visualisation) | Meta client | HR number, scope (renovation visualisation?), disclaimers, acceptance criteria |
+| Afford | — | definition |
+| HABITA Live | — | definition |
+
+HR-003 items that remain need real services: Atlas transaction run (TD-001), shadow measurement on live output
+(TD-031), pre-demo live gate / preview (TD-033).
 
 ## Progress (calculable)
 
