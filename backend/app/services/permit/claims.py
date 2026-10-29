@@ -652,6 +652,27 @@ def _coordinated_clause(atom: str) -> str | None:
     return clause if _tokens(clause) else None
 
 
+_RELATIVES = {"which", "that", "who", "whose", "que", "o qual", "a qual", "os quais", "as quais", "cujo", "cuja"}
+
+
+def _clause_after_deferral(atom: str) -> bool:
+    """Whether a clause follows the deferral (outside a question being deferred): "… must be confirmed with the Câmara,
+    which confirms this property's permits" asserts that clause, whatever its verb (FP review round 4)."""
+    folded = _fold(atom.lower())
+    m = _DEFERRAL.search(folded) or _IMPERATIVE.search(folded)
+    if m is None:
+        return False
+    suffix = _UNASSERTED_BOUNDED.sub(lambda q: " " * len(q.group()), folded[m.end():])
+    for b in _BOUNDARY.finditer(suffix):
+        after = _tokens(suffix[b.end():])
+        # A relative clause (always a verb), a reference to the matter or a verb form asserts; a bare qualifier
+        # (", subject to the conditions") doesn't.
+        if after and (b.group().strip() in _RELATIVES or _matter_spans(after)
+                      or any(t in _FINITE or _STATE_FORM.match(t) for t in after)):
+            return True
+    return False
+
+
 def _asserts(rest: str) -> bool:
     tokens = _tokens(rest)
     return any(t in _FINITE for t in tokens) or bool(re.search(r"\b\w+(?:ed|ad[oa]s?|id[oa]s?)\s+(?:by|pel[oa]s?)\b",
@@ -839,7 +860,7 @@ def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False,
         if inner.problem and inner.enforced:
             return Atom(atom, inner.kind, inner.bearer, (), inner.problem)
     if (rest := _deferral_rest(atom)) is not None:
-        if _asserts(rest) and (legal or _matter_spans(_tokens(rest))):
+        if (_asserts(rest) or _clause_after_deferral(atom)) and (legal or _matter_spans(_tokens(rest))):
             return Atom(atom, "legal_status" if legal else "unsupported", bearer, (),
                         "defers to the authority but still asserts something about the matter")
         return Atom(atom, "deferral", bearer, (), None)
@@ -992,7 +1013,7 @@ def _free_text_atom(atom: str, cited: list[Evidence]) -> Atom:
         if inner.problem:
             return Atom(atom, inner.kind, inner.bearer, (), inner.problem)
     if (rest := _deferral_rest(atom)) is not None:
-        if _asserts(rest):
+        if _asserts(rest) or _clause_after_deferral(atom):
             return Atom(atom, "legal_status", bearer, (), "defers to the authority but still asserts a legal status")
         return Atom(atom, "deferral", bearer, (), None)
     authorities = [e for e in cited if e.source_type == "authority_record" and not is_user_declared(e)]

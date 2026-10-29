@@ -553,22 +553,26 @@ _STATUS_QUESTION = re.compile(
     r"(?:(?:a|an|the|um|uma)\s+)?" + _STATUS + r"(?:\s+(?:or|ou)\s+(?:not|nao|" + _STATUS + r"))?\s*$")
 
 
-def _subject_question_removed(sentence: str) -> str:
-    """The sentence without a status question that is the subject of its deferral ("Whether the property is licensed
-    must be confirmed …"): deferred, not asserted (FP-4). Only that closed shape is removed; any other question
-    ("… licensed although it was approved for 3 floors") and anything after the deferral is grounded as written."""
+def _subject_question_removed(sentence: str, authority_names: set[str]) -> str:
+    """The sentence without its status question when the whole sentence is the closed deferral shape: "Whether <the
+    property> <is> <status> must be confirmed [with <the cited authority>]." (FP-4). Any other sentence, including a
+    question with anything more in it ("… although it was approved") or anything after the authority ("…, which
+    confirms this property's permits"), is grounded as written."""
     d = _DEFERRAL.search(sentence)
     if d is None or not _STATUS_QUESTION.match(sentence[:d.start()]):
+        return sentence
+    if not set(_tokens(sentence[d.end():])) <= authority_names:
         return sentence
     return sentence[d.start():]
 
 
-def _asserted_words(text: str) -> list[str]:
+def _asserted_words(text: str, authority_names: set[str] = frozenset()) -> list[str]:
     """The words a free-text statement asserts: a question that is the subject of a deferral ("Whether the property is
     licensed must be confirmed …") is not asserted (FP-4). The object of an instruction to check ("Confirm the
     full list of … with the Câmara") still is: it presupposes its content ("Confirm the 3 documents …"), so FP-5 stays
     a known, fail-closed limitation rather than a vocabulary filter."""
-    return [w for sentence in _sentences(fold(text)) for w in _tokens(_subject_question_removed(sentence))]
+    return [w for sentence in _sentences(fold(text))
+            for w in _tokens(_subject_question_removed(sentence, authority_names))]
 
 
 def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidence]) -> str | None:
@@ -583,13 +587,15 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
         # "The property is located in Cascais …" restating HABITA's own location record: the neutral location verb
         # is grounded by that record; every other word (the place itself) still has to be.
         corpus |= {_stem(w) for w in _LOCATION_PREDICATES}
-    ungrounded = sorted({w for w in _asserted_words(text) if _stem(w) not in corpus})
+    names = {w for e in cited if e.source_type == "authority_record" and not is_user_declared(e)
+             for w in _tokens(e.source_title)}
+    ungrounded = sorted({w for w in _asserted_words(text, names) if _stem(w) not in corpus})
     # Numbers aren't words for ``_tokens``, so they were never grounded ("Confirm the 3 documents …"): every number a
     # free-text statement asserts must be one of its cited records'.
     numbers = {n for e in [*cited, *case_facts] if not is_user_declared(e)
                for n in _NUMBER.findall(" ".join((e.excerpt, e.source_title, e.source_reference)))}
     ungrounded += sorted({n for sentence in _sentences(fold(text))
-                          for n in _NUMBER.findall(_subject_question_removed(sentence))} - numbers)
+                          for n in _NUMBER.findall(_subject_question_removed(sentence, names))} - numbers)
     if len(ungrounded) > UNGROUNDED_ALLOWED:
         return f"is not grounded in its cited evidence (unsupported words: {', '.join(ungrounded)})"
     return None

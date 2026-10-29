@@ -98,3 +98,25 @@ async def test_a_reversed_inclusion_is_not_the_records_competence():
     """Codex FP review round 3 (exact): the record's activity is restated only as a run of the record, in order."""
     text = "Câmara Municipal de Cascais handles building permits, including licensing of urban operations."
     assert "VERIFIED" not in await outcomes(text)
+
+
+# --- Codex FP review, round 4 (2026-10-29): exact case ------------------------------------------------------------
+
+@pytest.mark.parametrize("text", [
+    "Whether the property is licensed must be confirmed with Câmara Municipal de Cascais, which confirms this "
+    "property's building permits.",  # exact
+    "Whether the property is licensed must be confirmed with Câmara Municipal de Cascais before the works start.",
+])
+async def test_the_deferral_shape_ends_with_the_authority(text):
+    assert "VERIFIED" not in await outcomes(text)
+
+
+@pytest.mark.parametrize("text", [
+    "Licensing must be confirmed with Câmara Municipal de Cascais, which confirms this property's building permits.",
+    "Licensing must be confirmed with Câmara Municipal de Cascais and the property holds a permit.",
+    "Confirm the licensing with Câmara Municipal de Cascais, that already approved the works.",
+])
+async def test_a_clause_after_a_deferral_is_an_assertion_of_its_own(text):
+    """Found while checking round 4 (pre-existing in claims): a relative or coordinated clause after a deferral was
+    read as part of it, so a legal claim about the property verified with every word grounded."""
+    assert "VERIFIED" not in await outcomes(text)
