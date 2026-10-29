@@ -617,3 +617,33 @@ async def test_nrm_task_r4_a_statement_is_not_merged_with_its_next_sentence():
     text = (E13.excerpt.split(" 1 - ", 1)[1] + " The property already holds that licence.")
     atoms = assess(text, EXPLANATION, None, [E13])
     assert [a.kind for a in atoms] == ["general_rule", "legal_status"]
+
+
+# --- OPEN (NRM-10/11 task, Codex round 5, the last allowed): registered with reproducible tests, not patched -------
+
+E904 = official("E904", "TEST FIXTURE Artigo 904.º Estacionamento 1 - A dotação de estacionamento deve ser assegurada. "
+                        "As obras são permitidas.")
+E901 = official("E901", "TEST FIXTURE Artigo 901.º Multifuncionalidade 1 - A multifuncionalidade do solo é permitida. Ela "
+                        "depende de parecer favorável da Câmara.")
+E905 = official("E905", "TEST FIXTURE Artigo 905.º Multifuncionalidade 1 - A multifuncionalidade do solo é permitida. 2 - "
+                        "Essa permissão depende de parecer favorável da Câmara.")
+RECS.extend([E904, E901, E905])
+
+
+@pytest.mark.xfail(strict=True, reason="OPEN P1 (ACC-NRM-22): the 'adds nothing' test pools concepts across a "
+                                       "passage's sentences, so a permission for works lends 'permitida' to parking")
+async def test_open_nrm22_a_concept_from_another_sentence_is_not_the_descriptions():
+    text = "Nas operações urbanísticas, o PDM regula a dotação de estacionamento permitida."
+    assert rejected(await explained(text, "E904"))
+
+
+@pytest.mark.xfail(strict=True, reason="OPEN P2 (ACC-NRM-23): a personal pronoun ('Ela depende …') is not read as "
+                                       "taking up the previous sentence")
+async def test_open_nrm23_a_pronoun_takes_up_the_previous_sentence():
+    assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E901"))
+
+
+@pytest.mark.xfail(strict=True, reason="OPEN P2 (ACC-NRM-24): numbered paragraphs are split before coreference, so "
+                                       "'2 - Essa permissão depende …' doesn't join paragraph 1")
+async def test_open_nrm24_a_condition_in_the_next_numbered_paragraph():
+    assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E905"))
