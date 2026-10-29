@@ -201,3 +201,34 @@ async def test_finishing_one_merge_keeps_another_merges_mark():
     assert collection.docs[keep]["absorbing"] == [b] and await repo.identity(keep) is None  # B still in flight
     assert await repo.resume_pending_merges() == 1  # B completes at startup
     assert not collection.docs[keep]["absorbing"] and await repo.identity(keep) is not None
+
+
+# --- Codex Phase 2 binding review, round 4 (2026-10-29): exact cases ----------------------------------------------
+
+async def _three(repo):
+    ids = []
+    for n, (place, lat) in enumerate((("ChIJ-a", 38.70), ("ChIJ-b", 38.71), ("ChIJ-c", 38.72))):
+        ids.append((await repo.save(snapshot(place_id=place, address=f"Rua {n} 1, Cascais", lat=lat), {place})).property_id)
+    return ids
+
+
+async def test_a_superseded_merge_leaves_no_mark_behind():
+    repo, collection = make_repo()
+    a, b, c = await _three(repo)
+    await collection.update_one({"_id": b}, {"$addToSet": {"absorbing": {"$each": [a]}}})  # B → A started (step 0)
+    await repo.merge(keep=c, duplicate=a)  # A went to C instead
+    await repo.resume_pending_merges()  # B's attempt is superseded: logged, not raised
+    assert not collection.docs[b].get("absorbing") and await repo.identity(b) is not None
+
+
+async def test_a_chained_merge_clears_the_former_kept_mark_and_settles():
+    repo, collection = make_repo()
+    a, b, c = await _three(repo)
+    await collection.update_one({"_id": b}, {"$addToSet": {"absorbing": {"$each": [a]}}})  # A → B, step 0 …
+    await collection.update_one({"_id": a}, {"$set": {"merging_into": b, "snapshot_state": "merging",
+                                                      "merged_aliases": ["ChIJ-a"]}, "$unset": {"place_ids": ""}})
+    await repo.merge(keep=c, duplicate=b)  # … then B → C
+    assert await repo.resume_pending_merges() == 1
+    version = collection.docs[c]["identity_version"]
+    assert await repo.resume_pending_merges() == 0 and collection.docs[c]["identity_version"] == version
+    assert not collection.docs[b].get("absorbing")

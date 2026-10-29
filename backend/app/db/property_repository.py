@@ -417,6 +417,7 @@ class MongoPropertyRepository:
             if target:
                 canonical_target = await self._canonical_doc(await self._collection.find_one({"_id": target}))
                 if canonical_target is None or canonical_target["_id"] != keep:
+                    await self._unmark(duplicate, keep)  # a mark left on `keep` by a superseded attempt
                     raise ValueError(f"{duplicate} is already merged into {target}.")
 
             # Step 0 (C2): mark `keep` as absorbing the duplicate *first*, moving its identity, so a VERIFIED commit
@@ -445,6 +446,7 @@ class MongoPropertyRepository:
                 )
                 dup = await self._collection.find_one({"_id": duplicate})
                 if _merge_target(dup) != keep:
+                    await self._unmark(duplicate, keep)  # only ours: the winning merge keeps its mark
                     raise ValueError(f"{duplicate} was merged concurrently; re-run to inspect.")
 
             # Step 2, idempotent: attach the recorded aliases to `keep` (its canonical property
@@ -477,14 +479,18 @@ class MongoPropertyRepository:
                     **_BUMP,
                 },
             )
-            # Step 3b: `keep` no longer absorbs this duplicate (identity moves again). An atomic $pull, never a
-            # read-and-rewrite, so another merge's mark added meanwhile is kept.
-            for pid in {keep, kept["_id"]}:
-                await self._collection.update_one({"_id": pid, "absorbing": duplicate},
-                                                  {"$pull": {"absorbing": duplicate}, **_BUMP})
+            # Step 3b: the duplicate is merged, so no property absorbs it any more, including a former kept one along
+            # a merge chain (identity moves again).
+            await self._unmark(duplicate)
         except PyMongoError as exc:
             raise _unavailable(exc) from None
         logger.info("Merged property %s into %s (%d aliases moved)", duplicate, keep, len(aliases))
+
+    async def _unmark(self, duplicate: str, holder: str | None = None) -> None:
+        """Remove this duplicate's mark from ``holder``, or from every property holding it once the duplicate is
+        merged. An atomic $pull per document, never a read-and-rewrite, so another duplicate's mark is kept."""
+        flt = {"absorbing": duplicate, **({"_id": holder} if holder else {})}
+        await self._collection.update_many(flt, {"$pull": {"absorbing": duplicate}, **_BUMP})
 
     async def resume_pending_merges(self) -> int:
         """Complete merges interrupted between steps, including one stopped right after marking the kept property
@@ -501,7 +507,10 @@ class MongoPropertyRepository:
         merges = {(doc["merging_into"], doc["_id"]) for doc in pending}
         started = {(doc["_id"], dup) for doc in marked for dup in doc.get("absorbing") or []}
         for keep, duplicate in sorted(merges | {pair for pair in started if pair[1] not in {d for _, d in merges}}):
-            await self.merge(keep=keep, duplicate=duplicate)
+            try:
+                await self.merge(keep=keep, duplicate=duplicate)
+            except ValueError as exc:  # superseded (the duplicate went elsewhere): its mark is gone, carry on
+                logger.warning("Pending merge %s → %s not resumed: %s", duplicate, keep, exc)
         return len(merges | started)
 
     async def _save_once(
