@@ -14,7 +14,7 @@ import pytest
 from app.schemas.permit import Conclusion
 from app.services.permit.admissibility import render_draft
 from app.services.permit.verifier import Verifier
-from app.services.permit.claims import assess
+from app.services.permit.claims import assess, bound_quote
 from tests.mu9_acceptance import E13, RECORDS
 from tests.test_permit_admissibility import TRUSTED, claim, draft, in_section, record
 from tests.test_permit_verifier import CHAIN, VERIFIED, Reviewer, checklist, codes, matter
@@ -346,7 +346,7 @@ async def test_normative_round2_a_restatement_is_held_to_the_wording_whatever_it
 
 @pytest.mark.parametrize("section", SECTIONS)
 async def test_normative_round2_the_sentence_itself_verifies(section):
-    report = await explained(E86.excerpt.split(" 1 - ", 1)[1], "E86", section)
+    report = await explained(bound_quote(E86, E86.excerpt.split(" 1 - ", 1)[1]), "E86", section)  # header bound
     assert report.outcome == "VERIFIED", report.issues
     report = await quoted(E80.excerpt.split(" 1 - ", 1)[1], "E80", section)
     assert report.outcome == "VERIFIED", report.issues
@@ -415,7 +415,7 @@ async def test_normative_round3_a_clause_ending_in_a_semicolon_is_not_the_senten
 
 @pytest.mark.parametrize("section", SECTIONS)
 async def test_normative_round3_the_whole_sentence_with_its_semicolon_verifies(section):
-    for report in (await explained(WHOLE_E91, "E91", section), await quoted(WHOLE_E91, "E91", section)):
+    for report in (await explained(bound_quote(E91, WHOLE_E91), "E91", section), await quoted(WHOLE_E91, "E91", section)):
         assert report.outcome == "VERIFIED", report.issues
 
 
@@ -438,7 +438,7 @@ async def test_normative_round4_an_unsupported_statement_is_a_shadow_only_when_i
 
 async def test_normative_round4_a_two_concept_definition_reversed_is_a_restatement():
     assert rejected(await explained("O uso é estacionamento.", "E97"))  # exact
-    report = await explained("O estacionamento é um uso.", "E97")
+    report = await explained(bound_quote(E97, "O estacionamento é um uso."), "E97")  # "Usos" is bound
     assert report.outcome == "VERIFIED", report.issues
 
 
@@ -944,3 +944,10 @@ async def test_closure_r1_header_words_scattered_over_the_body_stay_bound():
     RECS.append(e)
     quote = "Em solo urbano, as obras são permitidas mediante pedido de vistoria municipal."
     assert "Obras mediante vistoria municipal" in shown(quote, "SYN-SCOPE-01")
+
+
+async def test_closure_r2_a_header_is_redundant_only_as_a_literal_phrase_of_the_body():
+    e = official("SYN-ROOT-PERM", "TEST FIXTURE Artigo 997.º Obras permitidas com vistoria municipal 1 - As obras "
+                                  "permitem vistoria municipal.")
+    RECS.append(e)
+    assert "Obras permitidas com vistoria municipal" in shown("As obras permitem vistoria municipal.", "SYN-ROOT-PERM")

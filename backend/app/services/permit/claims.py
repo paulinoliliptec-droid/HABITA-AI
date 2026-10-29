@@ -387,17 +387,11 @@ def _title_only(header: str, body: str) -> bool:
     title = re.sub(r"^.*?\bartigo\s+", "", re.sub(r"\d+\.\s*[oº]", "", header), flags=re.IGNORECASE)
     if re.search(r"[.!?;()\[\]]", title):
         return False
-    # The title's content words must occur in the body as one contiguous run ("Dotação de estacionamento" in "… a
-    # dotação de estacionamento"): words scattered over the body relate differently ("Obras mediante vistoria" vs
-    # "obras … mediante pedido de vistoria").
-    head = [_root(t) for t in _tokens(title) if t not in _FUNCTION]
-    roots = [_root(t) for t in _tokens(body) if t not in _FUNCTION]
-    return bool(head) and any(roots[i:i + len(head)] == head for i in range(len(roots) - len(head) + 1))
-
-
-def _root(word: str) -> str:
-    """A word without its plural ending, cut to five letters ("usos" ~ "uso", "edificações" ~ "edificação")."""
-    return re.sub(r"(?:oes|aes|es|s)$", "", word)[:5]
+    # The title must be a literal phrase of the body ("Dotação de estacionamento" in "… a dotação de estacionamento"):
+    # any approximation (scattered words, shared roots) can relate the words differently ("Obras permitidas com
+    # vistoria" vs "As obras permitem vistoria"), so none is used.
+    phrase = _norm(title)
+    return bool(phrase) and re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", _norm(body)) is not None
 
 
 def _excerpt_parts(text: str) -> tuple[str | None, list[str]]:
