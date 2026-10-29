@@ -26,6 +26,9 @@ from pymongo import ASCENDING, DESCENDING, AsyncMongoClient
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
 from app.core.errors import ConflictError, StorageUnavailableError
+from app.db.property_repository import (
+    InMemoryPropertyRepository, MongoPropertyRepository, PropertyIdentity, identity_filter,
+)
 from app.schemas.permit import Checklist, Evidence, MatterState, PermitMatter, VerificationReport
 from app.services.permit.protocol import DEFAULT_FLOOR, FLOOR_ID, Floor, validator
 from app.services.sources.registry import TrustPin
@@ -67,11 +70,17 @@ class PermitRepository(Protocol):
     async def save_verification(self, report: VerificationReport) -> None: ...
     async def latest_verification(self, matter_id: str) -> VerificationReport | None: ...
     async def commit_verified(self, matter: PermitMatter, report: VerificationReport, pin: TrustPin,
-                              sources: Any) -> bool: ...
+                              sources: Any, identity: PropertyIdentity | None, properties: Any) -> bool: ...
+
+
+def _binds(identity: PropertyIdentity | None, matter: PermitMatter) -> bool:
+    """A VERIFIED commit binds the matter's own property document; no identity (merged, purged, unversioned) or
+    another document's identity fails closed."""
+    return identity is not None and identity.property_id == matter.property_id
 
 
 class _PinMoved(Exception):
-    """A pinned source changed after the final gate: the VERIFIED commit must not happen."""
+    """A pinned source (or the property, C2) changed after the final gate: the VERIFIED commit must not happen."""
 
 
 class CommitOutcomeUnknown(StorageUnavailableError):
@@ -202,9 +211,11 @@ class InMemoryPermitRepository:
         self.verifications.setdefault(report.matter_id, []).append(report.model_copy(deep=True))
 
     async def commit_verified(self, matter: PermitMatter, report: VerificationReport, pin: TrustPin,
-                              sources: InMemorySourceRepository) -> bool:
-        """Persist the VERIFIED report and matter only if every pinned source is unchanged, atomically with respect
-        to status changes (same lock). Returns False, writing nothing, if the registry moved after the gate."""
+                              sources: InMemorySourceRepository, identity: PropertyIdentity | None,
+                              properties: InMemoryPropertyRepository) -> bool:
+        """Persist the VERIFIED report and matter only if every pinned source and the property the gate read
+        (``identity``, C2) are unchanged, atomically with respect to status changes (same lock). Returns False,
+        writing nothing, if either moved after the gate or the property has no identity to bind to."""
         _check_pair(matter, report)
         async with sources.trust_lock:
             stored = self.matters.get(matter.matter_id)
@@ -212,6 +223,8 @@ class InMemoryPermitRepository:
                 return True  # idempotent: this exact commit already happened
             _check_floor(self.floor, report)
             if not sources.pin_holds(pin.versions):
+                return False
+            if not _binds(identity, matter) or not properties.identity_holds(identity):
                 return False
             if (stored is None or stored.state != MatterState.VERIFYING or stored.revision != matter.revision
                     or stored.property_id != matter.property_id):
@@ -384,7 +397,8 @@ class MongoPermitRepository:
         return VerificationReport.model_validate(doc) if doc else None
 
     async def commit_verified(self, matter: PermitMatter, report: VerificationReport, pin: TrustPin,
-                              sources: MongoSourceRepository) -> bool:
+                              sources: MongoSourceRepository, identity: PropertyIdentity | None,
+                              properties: MongoPropertyRepository) -> bool:
         """One multi-document transaction (MongoDB core API, with the documented retry pattern):
 
         - idempotent: a matter already VERIFIED by this report is success, with no writes;
@@ -392,15 +406,19 @@ class MongoPermitRepository:
           ``ProtocolBelowFloor``; the collection validator enforces the same server-side;
         - every pinned source is matched on its (status, trust_version) and written, so a concurrent status change
           is a write conflict, never a silent interleaving (CX-2);
+        - the property is matched on the identity the gate read (version, active, no merge in flight) and written
+          the same way, so a save, merge or purge after the gate aborts the commit (C2, ``identity_filter``);
         - the matter must match exactly ``{_id, state: VERIFYING, revision, property_id}``; anything else aborts
           everything;
         - then the report is inserted.
 
-        Returns False (nothing written) if a pin moved. ``TransientTransactionError`` re-runs the whole transaction;
+        Returns False (nothing written) if a pin or the property moved, or the property has no identity to bind to. ``TransientTransactionError`` re-runs the whole transaction;
         ``UnknownTransactionCommitResult`` retries only the commit, and if it stays unknown raises
         ``CommitOutcomeUnknown`` (never a failure: the caller reads the matter back). Other errors abort and raise
         ``StorageUnavailableError``; ``MatterCommitConflict`` aborts and is raised. Never a partial write."""
         _check_pair(matter, report)
+        if not _binds(identity, matter):
+            return False
         now = datetime.now(UTC)
         async with self._client.start_session() as session:
             for attempt in range(_TXN_ATTEMPTS):
@@ -419,6 +437,10 @@ class MongoPermitRepository:
                             {"$set": {"last_verified_commit_at": now}}, session=session)
                         if result.matched_count != 1:
                             raise _PinMoved(source_id)
+                    result = await properties.collection.update_one(
+                        identity_filter(identity), {"$set": {"last_verified_commit_at": now}}, session=session)
+                    if result.matched_count != 1:
+                        raise _PinMoved(identity.property_id)
                     result = await self._matters.update_one(
                         {"_id": matter.matter_id, "state": MatterState.VERIFYING.value, "revision": matter.revision,
                          "property_id": matter.property_id},

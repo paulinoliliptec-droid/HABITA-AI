@@ -4,10 +4,11 @@ import pytest
 
 from app.services.permit import verifier as verifier_module
 from app.services.permit.protocol import CURRENT, DEFAULT_FLOOR, PROTOCOLS, Floor, FloorError, raise_floor, validator
+from app.db.property_repository import InMemoryPropertyRepository
 from app.services.permit.repository import InMemoryPermitRepository, ProtocolBelowFloor
 from app.services.sources.repository import InMemorySourceRepository
 from tests.permit_fakes import ScriptedModel, make_client
-from tests.test_permit_commit_durability import PIN, coherent, persisted, stores, verified
+from tests.test_permit_commit_durability import IDENT, PIN, coherent, persisted, props, stores, verified
 from tests.test_permit_official_sources import auth, ingest_regulamento, run_matter
 
 
@@ -28,14 +29,15 @@ def test_the_floor_only_goes_up_and_never_forgets_an_unsafe_protocol():
 
 
 async def test_the_in_memory_store_refuses_a_report_below_the_floor():
-    repo, sources = InMemoryPermitRepository(), InMemorySourceRepository()
+    repo, sources, properties = InMemoryPermitRepository(), InMemorySourceRepository(), InMemoryPropertyRepository()
+    properties.touch(IDENT.property_id)  # version 0
     m, r = verified()
     old = r.model_copy(update={"protocol": "statement-v1"})
     await repo.create_matter(m.model_copy(update={"state": "VERIFYING"}), "h")
     with pytest.raises(ProtocolBelowFloor):
-        await repo.commit_verified(m, old, PIN.__class__({}), sources)
+        await repo.commit_verified(m, old, PIN.__class__({}), sources, IDENT, properties)
     assert repo.verifications == {} and repo.matters[m.matter_id].state == "VERIFYING"
-    assert await repo.commit_verified(m, r, PIN.__class__({}), sources) is True
+    assert await repo.commit_verified(m, r, PIN.__class__({}), sources, IDENT, properties) is True
 
 
 @pytest.mark.parametrize("stored_floor", [None, Floor(CURRENT, ("statement-v1",)).to_doc()])
@@ -46,10 +48,10 @@ async def test_the_mongo_commit_reads_the_floor_in_its_transaction_and_writes_no
         permit._policy.docs["floor"] = stored_floor
     m, r = verified()
     with pytest.raises(ProtocolBelowFloor):
-        await permit.commit_verified(m, r.model_copy(update={"protocol": "statement-v1"}), PIN, src)
+        await permit.commit_verified(m, r.model_copy(update={"protocol": "statement-v1"}), PIN, src, IDENT, props(client))
     matter, reports = persisted(permit)
     assert matter["state"] == "VERIFYING" and reports == {} and coherent(permit) and client.aborts >= 1
-    assert await permit.commit_verified(m, r, PIN, src) is True and coherent(permit)
+    assert await permit.commit_verified(m, r, PIN, src, IDENT, props(client)) is True and coherent(permit)
 
 
 async def test_a_binary_below_a_raised_floor_cannot_commit():
@@ -58,7 +60,7 @@ async def test_a_binary_below_a_raised_floor_cannot_commit():
     permit._policy.docs["floor"] = Floor(CURRENT, ("statement-v1", CURRENT)).to_doc()
     m, r = verified()
     with pytest.raises(ProtocolBelowFloor):
-        await permit.commit_verified(m, r, PIN, src)
+        await permit.commit_verified(m, r, PIN, src, IDENT, props(client))
     assert persisted(permit)[1] == {}
 
 

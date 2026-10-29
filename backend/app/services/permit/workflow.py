@@ -62,6 +62,7 @@ from app.services.permit.repository import (
 )
 from app.services.permit.sources.base import SourceRegistry
 from app.services.planning.resolver import PlanningContextService
+from app.db.property_repository import PropertyIdentity
 from app.services.sources.registry import OfficialSourceRegistry, TrustPin
 from app.services.sources.retrieval import RegulatoryRetriever
 from app.services.permit.tools import TOOL_SPECS, PermitTools, compact_evidence
@@ -455,6 +456,10 @@ class PermitWorkflow:
             for _ in range(COMMIT_ATTEMPTS):
                 checklist.items = requirements.reconcile(checklist.intent, checklist.items, await tools.admissible_evidence())
                 await self._repo.save_checklist(checklist)
+                # C2: refresh the property if needed, then read the identity the commit will be bound to, before
+                # the pin and the gate's own reads; any property write after this read makes the commit refuse.
+                await self._properties.get(matter.property_id)
+                identity = await self._properties.identity(matter.property_id)
                 pin = await self._official.pin(chain)
                 report = await self._verifier.final_gate(
                     reviewed, matter, checklist.model_copy(deep=True), matter.draft,
@@ -462,13 +467,13 @@ class PermitWorkflow:
                 report = report.model_copy(update={"unresolved": [i.key for i in checklist.items if i.status != "satisfied"]})
                 if report.outcome != "VERIFIED":
                     break
-                if await self._commit_verified(matter, report, pin):
+                if await self._commit_verified(matter, report, pin, identity):
                     return
-                logger.info("Permit VERIFIED commit refused, sources changed after the final gate: matter=%s",
-                            matter.matter_id)
+                logger.info("Permit VERIFIED commit refused, sources or the property changed after the final gate: "
+                            "matter=%s", matter.matter_id)
             else:
-                raise TrustChangedError("Official sources changed while this assessment was being verified. "
-                                        "It can be resumed.")
+                raise TrustChangedError("Official sources or the property changed while this assessment was being "
+                                        "verified. It can be resumed.")
         await self._repo.save_verification(report)
         matter.latest_verification_id = report.verification_id
         matter.unresolved_items = report.unresolved
@@ -496,7 +501,8 @@ class PermitWorkflow:
                 i.message for i in report.issues[:2]]
             await self._escalate(matter, " ".join(reasons) or "The available sources do not settle this question.", checklist)
 
-    async def _commit_verified(self, matter: PermitMatter, report: VerificationReport, pin: TrustPin) -> bool:
+    async def _commit_verified(self, matter: PermitMatter, report: VerificationReport, pin: TrustPin,
+                               identity: PropertyIdentity | None) -> bool:
         """Persist the report and the VERIFIED transition as one atomic step bound to ``pin`` (see the repository's
         ``commit_verified``). The in-memory matter changes only if the commit happened."""
         now = datetime.now(UTC)
@@ -508,7 +514,8 @@ class PermitWorkflow:
         committed.updated_at = now
         committed.progress.append(ProgressEvent(state=MatterState.VERIFIED, label=LABELS[MatterState.VERIFIED], at=now))
         try:
-            ok = await self._repo.commit_verified(committed, report, pin, self._official.repository)
+            ok = await self._repo.commit_verified(committed, report, pin, self._official.repository, identity,
+                                                  self._properties.repository)
         except StorageUnavailableError:
             # The outcome may be unknown (lost acknowledgement): read it back before treating it as a failure.
             if await self._adopt_if_committed(matter, report.verification_id):

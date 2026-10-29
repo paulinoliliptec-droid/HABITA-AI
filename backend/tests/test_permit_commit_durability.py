@@ -17,6 +17,7 @@ from pymongo.errors import DuplicateKeyError, OperationFailure
 from app.core.errors import StorageUnavailableError
 from app.schemas.permit import MatterState, VerificationReport
 from app.services.permit.protocol import CURRENT
+from app.db.property_repository import MongoPropertyRepository, PropertyIdentity
 from app.services.permit.repository import MongoPermitRepository
 from app.services.sources.registry import TrustPin
 from app.services.sources.repository import MongoSourceRepository
@@ -126,6 +127,8 @@ def _matches(doc, flt):
     for key, want in flt.items():
         have = doc.get(key)
         if isinstance(want, dict):
+            if "$exists" in want and (key in doc) != want["$exists"]:
+                return False
             if "$in" in want and have not in want["$in"]:
                 return False
             if "$ne" in want and have == want["$ne"]:
@@ -187,6 +190,9 @@ def stores(commit_plan=(), *, matter_state="VERIFYING", revision=0, with_matter=
     src = MongoSourceRepository.__new__(MongoSourceRepository)
     src.client, src._sources = client, client.collection("official_sources")
     src._sources.docs["pt-rjue"] = {"_id": "pt-rjue", "status": "trusted", "trust_version": 2}
+    # The matter's property, as the final gate read it (C2): version 0, active, no merge.
+    client.collection("properties").docs[make_matter().property_id] = {
+        "_id": make_matter().property_id, "identity_version": 0, "snapshot_state": "current"}
     if with_matter:
         permit._matters.docs["pm_1"] = {"_id": "pm_1", "matter_id": "pm_1", "state": matter_state, "revision": revision,
                                         "property_id": make_matter().property_id}
@@ -194,6 +200,14 @@ def stores(commit_plan=(), *, matter_state="VERIFYING", revision=0, with_matter=
 
 
 PIN = TrustPin({"pt-rjue": ("trusted", 2)})
+IDENT = PropertyIdentity(make_matter().property_id, 0)
+
+
+def props(client):
+    """The property store over the fake's ``properties`` collection (the commit writes it under ``identity_filter``)."""
+    repo = MongoPropertyRepository.__new__(MongoPropertyRepository)
+    repo._client, repo._collection = client, client.collection("properties")
+    return repo
 
 
 def verified(report_id="pv_1", matter_id="pm_1", revision=0):
@@ -224,7 +238,7 @@ async def test_committed_but_acknowledgement_lost_is_resolved_as_committed():
     """The server applied the transaction, the response was lost; the retried commit is answered: committed."""
     client, permit, src = stores(["lost_ack", "ok"])
     m, r = verified()
-    assert await permit.commit_verified(m, r, PIN, src) is True
+    assert await permit.commit_verified(m, r, PIN, src, IDENT, props(client)) is True
     assert client.commits_applied == 1 and coherent(permit)
     assert persisted(permit)[0]["state"] == MatterState.VERIFIED
 
@@ -232,7 +246,7 @@ async def test_committed_but_acknowledgement_lost_is_resolved_as_committed():
 async def test_unknown_result_before_apply_is_retried_and_commits_once():
     client, permit, src = stores(["unknown", "ok"])
     m, r = verified()
-    assert await permit.commit_verified(m, r, PIN, src) is True
+    assert await permit.commit_verified(m, r, PIN, src, IDENT, props(client)) is True
     assert client.commits_attempted == 2 and client.commits_applied == 1 and coherent(permit)
 
 
@@ -242,14 +256,14 @@ async def test_repeated_unknown_result_never_reports_failure_while_the_outcome_i
     client, permit, src = stores(["lost_ack"] + ["unknown"] * 20)
     m, r = verified()
     with pytest.raises(CommitOutcomeUnknown):
-        await permit.commit_verified(m, r, PIN, src)
+        await permit.commit_verified(m, r, PIN, src, IDENT, props(client))
     assert coherent(permit)  # it did commit: report and matter are both VERIFIED and linked
 
 
 async def test_transient_error_retries_the_whole_transaction_without_duplicates():
     client, permit, src = stores(["transient", "ok"])
     m, r = verified()
-    assert await permit.commit_verified(m, r, PIN, src) is True
+    assert await permit.commit_verified(m, r, PIN, src, IDENT, props(client)) is True
     assert list(permit._verifications.docs) == ["pv_1"] and coherent(permit)
 
 
@@ -257,7 +271,7 @@ async def test_a_definitive_error_leaves_nothing_verified():
     client, permit, src = stores(["fatal"])
     m, r = verified()
     with pytest.raises(StorageUnavailableError):
-        await permit.commit_verified(m, r, PIN, src)
+        await permit.commit_verified(m, r, PIN, src, IDENT, props(client))
     matter, reports = persisted(permit)
     assert matter["state"] == "VERIFYING" and reports == {} and coherent(permit)
 
@@ -266,26 +280,26 @@ async def test_repeating_the_same_commit_is_idempotent():
     """A process retry of an already-committed commit: success, no second report, nothing rewritten."""
     client, permit, src = stores()
     m, r = verified()
-    assert await permit.commit_verified(m, r, PIN, src) is True
-    assert await permit.commit_verified(m, r, PIN, src) is True
+    assert await permit.commit_verified(m, r, PIN, src, IDENT, props(client)) is True
+    assert await permit.commit_verified(m, r, PIN, src, IDENT, props(client)) is True
     assert list(permit._verifications.docs) == ["pv_1"] and client.commits_applied == 1 and coherent(permit)
 
 
 async def test_a_different_report_cannot_overwrite_a_verified_matter():
     client, permit, src = stores()
     m, r = verified()
-    assert await permit.commit_verified(m, r, PIN, src) is True
+    assert await permit.commit_verified(m, r, PIN, src, IDENT, props(client)) is True
     m2, r2 = verified("pv_2")
     from app.services.permit.repository import MatterCommitConflict
     with pytest.raises(MatterCommitConflict):
-        await permit.commit_verified(m2, r2, PIN, src)
+        await permit.commit_verified(m2, r2, PIN, src, IDENT, props(client))
     assert list(permit._verifications.docs) == ["pv_1"] and coherent(permit)
 
 
 async def test_a_moved_pin_still_aborts_with_no_writes():
     client, permit, src = stores()
     m, r = verified()
-    assert await permit.commit_verified(m, r, TrustPin({"pt-rjue": ("trusted", 1)}), src) is False
+    assert await permit.commit_verified(m, r, TrustPin({"pt-rjue": ("trusted", 1)}), src, IDENT, props(client)) is False
     assert persisted(permit)[1] == {} and persisted(permit)[0]["state"] == "VERIFYING"
 
 
@@ -296,7 +310,7 @@ async def test_missing_matter_never_gets_an_orphan_verified_report():
     client, permit, src = stores(with_matter=False)
     m, r = verified()
     with pytest.raises(MatterCommitConflict):
-        await permit.commit_verified(m, r, PIN, src)
+        await permit.commit_verified(m, r, PIN, src, IDENT, props(client))
     assert permit._verifications.docs == {} and client.commits_applied == 0
 
 
@@ -312,7 +326,7 @@ async def test_matter_removed_concurrently_aborts_the_whole_transaction():
     permit._matters.update_one = deleted_then_update
     m, r = verified()
     with pytest.raises(MatterCommitConflict):
-        await permit.commit_verified(m, r, PIN, src)
+        await permit.commit_verified(m, r, PIN, src, IDENT, props(client))
     assert permit._verifications.docs == {} and "last_verified_commit_at" not in src._sources.docs["pt-rjue"]
 
 
@@ -323,7 +337,7 @@ async def test_matter_in_an_unexpected_state_or_revision_fails_closed(state, rev
     client, permit, src = stores(matter_state=state, revision=revision)
     m, r = verified()
     with pytest.raises(MatterCommitConflict):
-        await permit.commit_verified(m, r, PIN, src)
+        await permit.commit_verified(m, r, PIN, src, IDENT, props(client))
     assert permit._verifications.docs == {} and persisted(permit)[0]["state"] == state
 
 
@@ -339,14 +353,14 @@ async def test_a_wrong_matter_or_report_pair_is_refused_before_any_write(which):
     else:
         m = m.model_copy(update={"latest_verification_id": "pv_other"})
     with pytest.raises(MatterCommitConflict):
-        await permit.commit_verified(m, r, PIN, src)
+        await permit.commit_verified(m, r, PIN, src, IDENT, props(client))
     assert permit._verifications.docs == {} and client.commits_attempted == 0
 
 
 async def test_normal_commit_writes_report_matter_and_pins_together():
     client, permit, src = stores()
     m, r = verified()
-    assert await permit.commit_verified(m, r, PIN, src) is True
+    assert await permit.commit_verified(m, r, PIN, src, IDENT, props(client)) is True
     matter, reports = persisted(permit)
     assert matter["state"] == MatterState.VERIFIED and matter["latest_verification_id"] == "pv_1"
     assert list(reports) == ["pv_1"] and "last_verified_commit_at" in src._sources.docs["pt-rjue"]
@@ -363,7 +377,7 @@ async def test_a_failure_part_way_leaves_no_partial_write():
     permit._verifications.insert_one = failing_insert
     m, r = verified()
     with pytest.raises(StorageUnavailableError):
-        await permit.commit_verified(m, r, PIN, src)
+        await permit.commit_verified(m, r, PIN, src, IDENT, props(client))
     matter, reports = persisted(permit)
     assert matter["state"] == "VERIFYING" and reports == {} and client.commits_applied == 0
     _ = original
@@ -455,7 +469,7 @@ async def test_mongo_stored_matter_of_another_property_aborts_everything():
     permit._matters.docs["pm_1"]["property_id"] = "prp_ffffffffffffffff"
     m, r = verified()
     with pytest.raises(MatterCommitConflict):
-        await permit.commit_verified(m, r, PIN, src)
+        await permit.commit_verified(m, r, PIN, src, IDENT, props(client))
     assert permit._verifications.docs == {} and permit._matters.docs["pm_1"]["state"] == "VERIFYING"
     assert "last_verified_commit_at" not in src._sources.docs["pt-rjue"] and client.commits_applied == 0
 
@@ -477,14 +491,14 @@ async def test_mongo_revision_mismatch_is_refused_before_any_write(case):
     else:
         m = _with_draft(m, 1)  # the matter's draft is not the draft the report verified
     with pytest.raises(MatterCommitConflict):
-        await permit.commit_verified(m, r, PIN, src)
+        await permit.commit_verified(m, r, PIN, src, IDENT, props(client))
     assert permit._verifications.docs == {} and client.commits_attempted == 0
 
 
 async def test_mongo_matching_draft_revision_commits():
     client, permit, src = stores()
     m, r = verified()
-    assert await permit.commit_verified(_with_draft(m, 0), r, PIN, src) is True
+    assert await permit.commit_verified(_with_draft(m, 0), r, PIN, src, IDENT, props(client)) is True
     assert list(permit._verifications.docs) == ["pv_1"] and coherent(permit)
 
 
@@ -492,7 +506,9 @@ async def test_mongo_matching_draft_revision_commits():
 async def test_in_memory_linkage_mismatch_aborts_without_writes(case):
     from app.services.permit.repository import InMemoryPermitRepository, MatterCommitConflict
     from app.services.sources.repository import InMemorySourceRepository
-    repo, sources = InMemoryPermitRepository(), InMemorySourceRepository()
+    from app.db.property_repository import InMemoryPropertyRepository
+    repo, sources, properties = InMemoryPermitRepository(), InMemorySourceRepository(), InMemoryPropertyRepository()
+    properties.touch(IDENT.property_id)
     stored = make_matter().model_copy(update={"matter_id": "pm_1", "state": MatterState.VERIFYING, "revision": 0})
     if case == "stored-other-property":
         stored = stored.model_copy(update={"property_id": "prp_ffffffffffffffff"})
@@ -503,5 +519,5 @@ async def test_in_memory_linkage_mismatch_aborts_without_writes(case):
     elif case == "draft-revision":
         m = _with_draft(m, 1)
     with pytest.raises(MatterCommitConflict):
-        await repo.commit_verified(m, r, TrustPin({}), sources)
+        await repo.commit_verified(m, r, TrustPin({}), sources, IDENT, properties)
     assert repo.verifications == {} and repo.matters["pm_1"].state == MatterState.VERIFYING

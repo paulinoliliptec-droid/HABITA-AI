@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 
 from app.core.rate_limit import ResolutionLimiter
-from app.db.property_repository import PropertyRepository
+from app.db.property_repository import PropertyIdentity, PropertyRepository
 from app.integrations.maps.geocoding import GeocodedLocation, GeocodingClient
 from app.schemas.property import (
     AuthorityOut,
@@ -69,6 +69,14 @@ class PropertyLocationService:
         return await self._repository.save(
             resolution.snapshot, resolution.aliases, address_key=resolution.address_key, property_id=stored.property_id
         )
+
+    async def identity(self, property_id: str) -> PropertyIdentity | None:
+        """The stored identity a VERIFIED commit is bound to (HR-003 MU-9 C2)."""
+        return await self._repository.identity(property_id)
+
+    @property
+    def repository(self) -> PropertyRepository:
+        return self._repository
 
     async def purge_expired(self) -> int:
         return await self._repository.purge_expired()

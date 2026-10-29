@@ -11,6 +11,7 @@ import pytest
 from pymongo import AsyncMongoClient
 
 from app.core.config import Settings
+from app.db.property_repository import MongoPropertyRepository, PropertyIdentity
 from app.schemas.permit import MatterState, VerificationReport
 from app.services.permit.protocol import CURRENT
 from app.services.permit.repository import (
@@ -34,12 +35,19 @@ async def _run():
     client = AsyncMongoClient(settings.mongodb_uri.get_secret_value(), serverSelectionTimeoutMS=10000)
     db = client[settings.mongodb_db_name]
     permit, src = MongoPermitRepository(client, settings.mongodb_db_name), MongoSourceRepository(client, settings.mongodb_db_name)
+    props = MongoPropertyRepository(client, settings.mongodb_db_name)
     tag = secrets.token_hex(4)
     jurisdiction = f"test/txn-{tag}"
     s1, s2 = f"txn-test-{tag}-a", f"txn-test-{tag}-b"
     mids = [f"pm_txntest_{tag}_{i}" for i in range(1, 5)]
     template = ALL_SOURCES[0]
+    pid = make_matter().property_id
+    ident = PropertyIdentity(pid, 0)
     try:
+        # The matters' property, as a final gate would read it (C2); restored to version 0 for each run.
+        await db["properties"].update_one({"_id": pid}, {"$set": {"identity_version": 0, "snapshot_state": "current"},
+                                                         "$unset": {"merged_into": "", "merging_into": ""}},
+                                          upsert=True)
         for sid in (s1, s2):
             await src.insert_source(template.model_copy(update={
                 "source_id": sid, "jurisdiction_id": jurisdiction, "status": "trusted", "status_history": [],
@@ -68,7 +76,7 @@ async def _run():
 
         # 1. Normal commit: report + matter + pinned sources, one real transaction.
         m1, r1 = pair(mids[0], f"pv_txntest_{tag}_1")
-        assert await permit.commit_verified(m1, r1, pin, src) is True
+        assert await permit.commit_verified(m1, r1, pin, src, ident, props) is True
         doc = await db["permit_matters"].find_one({"_id": mids[0]})
         assert doc["state"] == "VERIFIED" and doc["latest_verification_id"] == r1.verification_id
         assert await reports(mids[0]) == 1
@@ -76,7 +84,7 @@ async def _run():
             assert (await db["official_sources"].find_one({"_id": sid})).get("last_verified_commit_at")
 
         # 2. Idempotent repeat of the same commit: success, still exactly one report.
-        assert await permit.commit_verified(m1, r1, pin, src) is True
+        assert await permit.commit_verified(m1, r1, pin, src, ident, props) is True
         assert await reports(mids[0]) == 1
 
         # 3. VERIFIED can't be overwritten by a later save.
@@ -89,14 +97,14 @@ async def _run():
         await src.set_status(s1, StatusChange(status="retired", operator="txn-test", reason="atlas check",
                                               at=datetime.now(UTC)))
         m2, r2 = pair(mids[1], f"pv_txntest_{tag}_2")
-        assert await permit.commit_verified(m2, r2, pin, src) is False
+        assert await permit.commit_verified(m2, r2, pin, src, ident, props) is False
         assert await state(mids[1]) == "VERIFYING" and await reports(mids[1]) == 0
 
         # 5. Missing matter: refused, no orphan report.
         fresh = TrustPin({s1: ("retired", 1), s2: ("trusted", 0)})
         m3, r3 = pair(mids[2], f"pv_txntest_{tag}_3")
         with pytest.raises(MatterCommitConflict):
-            await permit.commit_verified(m3, r3, fresh, src)
+            await permit.commit_verified(m3, r3, fresh, src, ident, props)
         assert await reports(mids[2]) == 0 and await state(mids[2]) is None
 
         # 6. Induced write conflict: another transaction holds a write on a pinned source.
@@ -104,11 +112,11 @@ async def _run():
         async with client.start_session() as blocker:
             await blocker.start_transaction()
             await db["official_sources"].update_one({"_id": s2}, {"$set": {"txn_blocker": True}}, session=blocker)
-            assert await permit.commit_verified(m4, r4, fresh, src) is False  # conflict → retried → refused
+            assert await permit.commit_verified(m4, r4, fresh, src, ident, props) is False  # conflict → retried → refused
             assert await state(mids[3]) == "VERIFYING" and await reports(mids[3]) == 0
             await blocker.abort_transaction()
         # ... and once the conflicting transaction is gone, the same commit goes through, once.
-        assert await permit.commit_verified(m4, r4, fresh, src) is True
+        assert await permit.commit_verified(m4, r4, fresh, src, ident, props) is True
         assert await state(mids[3]) == "VERIFIED" and await reports(mids[3]) == 1
         print(f"\nATLAS_TXN_OK tag={tag} normal=committed idempotent=1-report overwrite=refused pin-moved=refused "
               f"missing-matter=refused write-conflict=refused-then-committed")
@@ -116,6 +124,7 @@ async def _run():
         await db["permit_verifications"].delete_many({"matter_id": {"$in": mids}})
         await db["permit_matters"].delete_many({"_id": {"$in": mids}})
         await db["official_sources"].delete_many({"_id": {"$in": [s1, s2]}})
+        await db["properties"].delete_one({"_id": pid, "place_id": {"$exists": False}})  # the synthetic one only
         left = (await db["permit_verifications"].count_documents({"matter_id": {"$in": mids}})
                 + await db["permit_matters"].count_documents({"_id": {"$in": mids}})
                 + await db["official_sources"].count_documents({"_id": {"$in": [s1, s2]}}))

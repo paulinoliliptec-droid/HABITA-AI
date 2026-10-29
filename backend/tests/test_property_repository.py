@@ -114,6 +114,8 @@ class FakeCollection:
         new = {**target, **update.get("$set", {})}
         for field in update.get("$unset", {}):
             new.pop(field, None)
+        for field, step in update.get("$inc", {}).items():
+            new[field] = new.get(field, 0) + step
         for field, spec in update.get("$addToSet", {}).items():
             new[field] = list(dict.fromkeys([*new.get(field, []), *spec["$each"]]))
         self._check_aliases(target["_id"], new.get("place_ids"))
