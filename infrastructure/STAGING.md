@@ -119,6 +119,13 @@ done
 infrastructure/deploy-staging.sh --preflight
 ```
 
+### Setup log
+| Date | Step | Done by | Result (verified read-only) |
+|---|---|---|---|
+| 2026-10-29 | Atlas custom role `habitaStagingMigrate` (owner-authorised; profile `habita`, project 6adfdf61d52b2b35f1de0cf3) | Claude, Atlas CLI | Role did not exist before. Now: action `COLL_MOD` on `habita_ai_staging` (whole database) + inherited `readWrite@habita_ai_staging`; assigned to no user. Users unchanged (`habita_app`: `readWrite@habita_ai`, scope `habita-ai-m0`); network access unchanged; no database or data touched. |
+| pending | Atlas user `habita-staging-app` (`readWrite@habita_ai_staging`, scope `habita-ai-m0`, generated password) | owner, Atlas UI | to verify with `atlas dbusers describe` |
+| pending | Secret `mongodb-uri-staging`, IAM API, service accounts, secret grants | owner authorisation | — |
+
 ### Migrations (only when needed)
 Needed when the backend logs `MU-9: could not install the permit_verifications validator` after a release, or to raise
 the protocol floor. Not needed for the first deploy.
