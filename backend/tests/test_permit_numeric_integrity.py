@@ -820,3 +820,12 @@ async def test_nrm36_the_whole_excerpt_quoted_verifies(eid):
     e = next(r for r in RECS if r.evidence_id == eid)
     report = await quoted(e.excerpt.split(" 1 - ", 1)[1], eid)
     assert report.outcome == "VERIFIED", report.issues
+
+
+# --- owner-rules task, Codex round 1 (2026-10-29): exact case -------------------------------------------------------
+
+async def test_owner_rules_r1_an_unpunctuated_paragraph_1_after_the_article_header_is_not_a_title():
+    e = official("R-NOSTOP", "TEST FIXTURE Artigo 997.º Obras 1 - Em solo urbano, as obras são permitidas 2 - O PDM "
+                             "condiciona a permissão à vistoria municipal.")
+    RECS.append(e)
+    assert rejected(await quoted("Em solo urbano, as obras são permitidas", "R-NOSTOP"))

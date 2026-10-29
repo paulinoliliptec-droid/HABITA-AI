@@ -388,10 +388,13 @@ def _heading(text: str) -> bool:
 def _passage_sentences(e: Evidence) -> list[_Sentence]:
     text = e.excerpt.lower()  # folded by _tokens, which keeps PT "é" apart from "e"
     out = []
-    paragraphs = [re.sub(r"^\s*\d+\s*-\s*", "", p) for p in _PARAGRAPH.split(_HEADER.sub("", text, count=1))]
-    # A heading is only the title before "1 - " ("Princípios gerais do solo urbano"); a last paragraph without a
-    # closing stop is still a statement.
-    title = paragraphs[0] if len(paragraphs) > 1 and _heading(paragraphs[0]) else None
+    stripped, headed = _HEADER.subn("", text, count=1)
+    raw = _PARAGRAPH.split(stripped)
+    paragraphs = [re.sub(r"^\s*\d+\s*-\s*", "", p) for p in raw]
+    # A heading is only an unnumbered title before "1 - " ("Princípios gerais do solo urbano 1 - …"). When "Artigo …
+    # 1 - " was stripped, the first paragraph is paragraph 1, punctuated or not.
+    title = (paragraphs[0] if not headed and len(raw) > 1 and not re.match(r"\s*\d+\s*-", raw[0])
+             and _heading(paragraphs[0]) else None)
     units = ([title] if title else []) + [s for p in paragraphs[1 if title else 0:] for s in _full_sentences(p)]
     # Owner rule (after ACC-NRM-36): an excerpt with more than one unit besides its title is quoted whole. Which other
     # unit conditions, excepts or merely describes can't be read reliably from its words, so none is left out.
