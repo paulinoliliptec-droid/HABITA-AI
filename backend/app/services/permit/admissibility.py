@@ -466,7 +466,10 @@ def _quoted_record(quote: str | None, cited: list[Evidence]) -> Evidence | None:
 def rendered_text(basis: str, quote: str | None, cited: list[Evidence], matter: PermitMatter, conditions) -> str | None:
     """The HABITA-derived text a structured statement must consist of, or None if it can't be derived."""
     if basis == "general_rule":
-        return re.sub(r"\s+", " ", quote).strip() if quote and _quoted_record(quote, cited) else None
+        if not quote or (record := _quoted_record(quote, cited)) is None:
+            return None
+        from app.services.permit.claims import bound_quote  # claims builds on this module
+        return bound_quote(record, quote)
     if basis == "authority_confirmation":
         return planning_condition(conditions)
     if basis == "parcel_determination":

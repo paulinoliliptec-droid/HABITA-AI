@@ -129,9 +129,11 @@ async def test_only_official_regulatory_records_are_ever_linked():
 def test_cascais_workflow_reconciles_the_forgotten_citation_without_resolving_zoning():
     """End to end: the model cites only the curated PDM summary for a general explanation and words the parcel's
     category as a deferral → HABITA links the PDM passage, renders the condition, VERIFIED conditional, manual."""
-    # Art. 61.º has two paragraphs, so its rule is quoted whole (owner rule after ACC-NRM-36).
-    general = ("Em solo urbano os espaços destinam-se predominantemente à urbanização e edificação, designadamente de "
-               "habitação, comércio e serviços. A qualificação do solo urbano consta da Planta de Ordenamento.")
+    # Art. 61.º has two paragraphs, so its rule is transcribed whole (owner rule after ACC-NRM-36), with the header
+    # that stays bound to it (ACC-NRM-44).
+    general = ("Princípios gerais do solo urbano Em solo urbano os espaços destinam-se predominantemente à urbanização e "
+               "edificação, designadamente de habitação, comércio e serviços. A qualificação do solo urbano consta da "
+               "Planta de Ordenamento.")
 
     def drafting(parcel_risk):
         def draft_(payload):

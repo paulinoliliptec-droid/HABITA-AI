@@ -56,6 +56,13 @@ async def quoted(quote, eid, section="claim"):
     return await outcome(in_section(section, "x", [eid], basis="general_rule", quote=quote))
 
 
+def shown(quote, eid, section="claim"):
+    """The statement text HABITA renders for a quote: the quote, with the header its record keeps bound to it."""
+    from app.services.permit.verifier import model_statements
+    d = render_draft(in_section(section, "x", [eid], basis="general_rule", quote=quote), RECS, matter())
+    return next(st.text for st in model_statements(d) if st.planning_basis == "general_rule")
+
+
 def rejected(report):
     return report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues)
 
@@ -843,8 +850,12 @@ SYN_TITLE = official("SYN-TITLE", "TEST FIXTURE Obras: 1 - Em solo urbano, as ob
 RECS.extend([SYN_HDR, SYN_ADM, SYN_TITLE])
 
 
-async def test_owner_rules_r2_a_sentence_before_paragraph_1_is_not_a_header():
-    assert rejected(await quoted("Em solo urbano, as obras são permitidas.", "SYN-HDR"))
+async def test_owner_rules_r2_a_sentence_before_paragraph_1_stays_bound_to_the_quote():
+    """ACC-NRM-39 under the binding principle (ACC-NRM-44): the condition is never dropped; it is shown with the quote."""
+    quote = "Em solo urbano, as obras são permitidas."
+    assert "A permissão depende de vistoria municipal." in shown(quote, "SYN-HDR")
+    report = await quoted(quote, "SYN-HDR")
+    assert report.outcome == "VERIFIED", report.issues
 
 
 async def test_owner_rules_r2_a_source_title_frames_no_deontic_word():
@@ -864,9 +875,11 @@ async def test_owner_rules_r2_a_title_ending_in_a_colon_is_a_title():
                 "obras são permitidas."),  # exact
     ("H-PAREN2", "TEST FIXTURE Artigo 996.º Obras sujeitas a vistoria 1 - Em solo urbano, as obras são permitidas."),
 ])
-async def test_owner_rules_r3_a_header_that_says_anything_is_not_stripped(eid, text):
+async def test_owner_rules_r3_a_header_that_says_anything_stays_bound_to_the_quote(eid, text):
     RECS.append(official(eid, text))
-    assert rejected(await quoted("Em solo urbano, as obras são permitidas.", eid))
+    quote = "Em solo urbano, as obras são permitidas."
+    assert "vistoria" in shown(quote, eid)
+    assert (await quoted(quote, eid)).outcome == "VERIFIED"
 
 
 # --- owner-rules task, Codex round 4 (2026-10-29): exact case -------------------------------------------------------
@@ -876,9 +889,13 @@ async def test_owner_rules_r3_a_header_that_says_anything_is_not_stripped(eid, t
     ("H-COM", "Obras com parecer da Câmara"),
     ("H-UNTIL", "Works until the municipal inspection"),
 ])
-async def test_owner_rules_r4_a_title_that_relates_things_is_a_unit(eid, title):
+async def test_owner_rules_r4_a_title_that_relates_things_stays_bound_to_the_quote(eid, title):
     RECS.append(official(eid, f"TEST FIXTURE Artigo 997.º {title} 1 - Em solo urbano, as obras são permitidas."))
-    assert rejected(await quoted("Em solo urbano, as obras são permitidas.", eid))
+    quote = "Em solo urbano, as obras são permitidas."
+    assert title in shown(quote, eid)
+    assert (await quoted(quote, eid)).outcome == "VERIFIED"
+    # A transcription in other words can't leave the header out either.
+    assert rejected(await explained(quote, eid))
 
 
 @pytest.mark.parametrize("title", ["Princípios gerais do solo urbano", "Dotação de estacionamento", "Use of land",
@@ -890,7 +907,7 @@ async def test_owner_rules_r4_a_noun_phrase_title_is_a_title(title):
     assert report.outcome == "VERIFIED", report.issues
 
 
-# --- OPEN (owner-rules task, Codex round 5, the last allowed): registered with reproducible tests, not patched -------
+# --- owner-rules task round 5 (ACC-NRM-44..45), closed by the structural closure task -----------------------------
 
 SYN_HVERB = official("SYN-HVERB-0", "TEST FIXTURE Artigo 997.º Obras necessitam de vistoria municipal 1 - Em solo urbano, "
                                     "as obras são permitidas.")
@@ -901,13 +918,19 @@ ADM_FRAME = record("ADM-FRAME", "regulatory_source", "TEST FIXTURE Artigo 996.º
 RECS.extend([SYN_HVERB, ADM_FRAME])
 
 
-@pytest.mark.xfail(strict=True, reason="OPEN P1 (ACC-NRM-44): a verb outside the closed lists ('necessitam') leaves a "
-                                       "requirement in the header read as a title, so the quote omits it")
-async def test_open_nrm44_a_header_with_an_unlisted_verb():
-    assert rejected(await quoted("Em solo urbano, as obras são permitidas.", "SYN-HVERB-0"))
+async def test_nrm44_a_header_requirement_stays_bound_whatever_its_verb():
+    """Decided by content (does the header add to the body?), not by a list of verbs."""
+    quote = "Em solo urbano, as obras são permitidas."
+    assert "necessitam de vistoria municipal" in shown(quote, "SYN-HVERB-0")
+    assert (await quoted(quote, "SYN-HVERB-0")).outcome == "VERIFIED"
+    assert rejected(await explained(quote, "SYN-HVERB-0"))
 
 
-@pytest.mark.xfail(strict=True, reason="OPEN P2 (ACC-NRM-45): the restatement test treats source-title concepts as "
-                                       "framing, so 'usos permitidos' paraphrases 'usos admissíveis' and verifies")
-async def test_open_nrm45_admissibility_paraphrased_under_a_title_that_names_it():
+async def test_nrm44_a_header_that_only_repeats_the_body_is_not_added():
+    quote = "Nas operações urbanísticas de edificação, incluindo obras de ampliação e alteração de uso, sujeitas a " \
+            "licenciamento ou comunicação prévia, deve ser assegurada a dotação de estacionamento."
+    assert shown(quote, "E13") == quote  # "Dotação de estacionamento" adds nothing
+
+
+async def test_nrm45_admissibility_paraphrased_under_a_title_that_names_it():
     assert rejected(await explained("Nas operações urbanísticas, o PDM define usos permitidos.", "ADM-FRAME"))

@@ -224,8 +224,9 @@ async def test_codex_phase1_bypasses_are_rejected(text, cites, basis, quote, sec
 async def test_codex_phase1_false_positive_a_verbatim_pt_rule_with_esta_verifies(section):
     """F8: accent folding read "está" (is) as "esta" (this), so a verbatim rule looked like a claim about the matter."""
     records = [*RECORDS, PT_RULE]
-    d = render_draft(in_section(section, "A ampliação de moradias está sujeita a licenciamento.", ["E31"],
-                                basis=EXPLANATION), records, matter())
+    # "Regime" adds to the body, so the transcription carries its article header (ACC-NRM-44).
+    d = render_draft(in_section(section, "Artigo 901.º Regime A ampliação de moradias está sujeita a licenciamento.",
+                                ["E31"], basis=EXPLANATION), records, matter())
     report = await Verifier(Reviewer(VERIFIED), TRUSTED).verify(matter(), checklist(), d, records, CHAIN)
     assert report.outcome == "VERIFIED", report.issues
 

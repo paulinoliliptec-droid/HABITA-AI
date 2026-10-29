@@ -31,8 +31,11 @@ PDM_TEXT = ("Princípios gerais do solo urbano 1 - Em solo urbano os espaços de
             "urbanização e edificação, designadamente de habitação, comércio e serviços.")
 #: PDM_TEXT's rule in its own wording: the only form in which a restatement of it verifies, and the whole sentence a
 #: quote must be (owner decision after ACC-QO-09 / ACC-ROLE-01).
-PDM_SENTENCE = PDM_TEXT.split(" 1 - ", 1)[1]
-PDM_QUOTE = PDM_SENTENCE.rstrip(".")
+#: Its header ("Princípios gerais do solo urbano") adds to the body, so it stays bound to the rule (ACC-NRM-44): a quote
+#: is shown with it, and a transcription carries it.
+PDM_HEADER, PDM_BODY = PDM_TEXT.split(" 1 - ", 1)
+PDM_SENTENCE = f"{PDM_HEADER} {PDM_BODY}"
+PDM_QUOTE = PDM_BODY.rstrip(".")
 FAQ_TEXT = ("Q: Que entidades é necessário registar no MyCascais para iniciar um pedido de licenciamento ou "
             "comunicação prévia? R: Todas as entidades do pedido deverão estar registadas e validadas no MyCascais.")
 PLANNING_TEXT = "Planning classification requires confirmation against the official map(s)."
@@ -114,7 +117,7 @@ def claim(text: str, *ids: str, basis="none", quote=None) -> Claim:
 
 def rule_claim(eid="E3") -> Claim:
     """A general planning rule in the structured form: HABITA's text is the official passage itself."""
-    return claim(PDM_QUOTE, eid, basis="general_rule", quote=PDM_QUOTE)
+    return claim(f"{PDM_HEADER} {PDM_QUOTE}", eid, basis="general_rule", quote=PDM_QUOTE)  # as HABITA renders it
 
 
 SECTIONS = ("conclusion", "claim", "procedure", "risk", "next action")
@@ -212,7 +215,7 @@ async def test_rendering_replaces_model_wording_with_habita_content(section):
     """The structured bases are rendered by HABITA: the paraphrase disappears; what verifies is HABITA's text."""
     paraphrase = ADVERSARIAL[0]
     for basis, ids, quote, expected in (
-        ("general_rule", ["E3"], PDM_QUOTE, PDM_QUOTE),
+        ("general_rule", ["E3"], PDM_QUOTE, f"{PDM_HEADER} {PDM_QUOTE}"),
         ("authority_confirmation", ["E2"], None, CONDITION_TEXT),
     ):
         rendered = render_draft(in_section(section, paraphrase, ids, basis=basis, quote=quote), MANUAL_RECORDS, matter())

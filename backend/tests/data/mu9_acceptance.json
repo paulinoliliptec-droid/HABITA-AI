@@ -17726,14 +17726,20 @@
     "claim_type": "condition stripped with the article header (P1)",
     "modality": "quote"
    },
-   "expected": "REJECTED",
-   "rationale": "VERIFIED on 27cf6d5. Fixed: a header carrying a sentence before \"1 - \" is not stripped.",
+   "expected": "VERIFIED",
+   "rationale": "VERIFIED on 27cf6d5. Fixed: a header carrying a sentence before \"1 - \" is not stripped. Owner principle (ACC-NRM-44 closure): a header that adds to the body is never dropped; HABITA renders the quote with it, so the condition is shown with the verified quote instead of the quote being rejected.",
    "harness": "unit_test",
    "final_gate": false,
    "fixed_in_phase": 1,
    "status": "not_run",
    "observed": {},
-   "covered_by": "tests/test_permit_numeric_integrity.py::test_owner_rules_r2_a_sentence_before_paragraph_1_is_not_a_header"
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_owner_rules_r2_a_sentence_before_paragraph_1_is_not_a_header",
+   "policy_change": {
+    "date": "2026-10-29",
+    "by": "owner",
+    "from": "REJECTED",
+    "to": "VERIFIED (header bound)"
+   }
   },
   {
    "id": "ACC-NRM-40",
@@ -17831,14 +17837,20 @@
     "claim_type": "condition in a bracketed aside of the article header (P1)",
     "modality": "quote"
    },
-   "expected": "REJECTED",
-   "rationale": "VERIFIED on 75f20ac. Fixed: a header is stripped only when its text is a title (no sentence or bracketed aside, no verb, participle, condition, subjection, negation, limit or dependency); the same test applies to an unnumbered title before \"1 - \".",
+   "expected": "VERIFIED",
+   "rationale": "VERIFIED on 75f20ac. Fixed: a header is stripped only when its text is a title (no sentence or bracketed aside, no verb, participle, condition, subjection, negation, limit or dependency); the same test applies to an unnumbered title before \"1 - \". Owner principle (ACC-NRM-44 closure): a header that adds to the body is never dropped; HABITA renders the quote with it, so the condition is shown with the verified quote instead of the quote being rejected.",
    "harness": "unit_test",
    "final_gate": false,
    "fixed_in_phase": 1,
    "status": "not_run",
    "observed": {},
-   "covered_by": "tests/test_permit_numeric_integrity.py::test_owner_rules_r3_a_header_that_says_anything_is_not_stripped"
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_owner_rules_r3_a_header_that_says_anything_is_not_stripped",
+   "policy_change": {
+    "date": "2026-10-29",
+    "by": "owner",
+    "from": "REJECTED",
+    "to": "VERIFIED (header bound)"
+   }
   },
   {
    "id": "ACC-NRM-43",
@@ -17866,14 +17878,20 @@
     "claim_type": "condition in a header worded \"mediante\" (P1)",
     "modality": "quote"
    },
-   "expected": "REJECTED",
-   "rationale": "VERIFIED on f1f2f88. Fixed: a title is a noun phrase; its only function words are de/do/da/e/em/of/and/in …, and any other preposition or conjunction (mediante, com, salvo, until …) makes it a unit.",
+   "expected": "VERIFIED",
+   "rationale": "VERIFIED on f1f2f88. Fixed: a title is a noun phrase; its only function words are de/do/da/e/em/of/and/in …, and any other preposition or conjunction (mediante, com, salvo, until …) makes it a unit. Owner principle (ACC-NRM-44 closure): a header that adds to the body is never dropped; HABITA renders the quote with it, so the condition is shown with the verified quote instead of the quote being rejected.",
    "harness": "unit_test",
    "final_gate": false,
    "fixed_in_phase": 1,
    "status": "not_run",
    "observed": {},
-   "covered_by": "tests/test_permit_numeric_integrity.py::test_owner_rules_r4_a_title_that_relates_things_is_a_unit"
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_owner_rules_r4_a_title_that_relates_things_is_a_unit",
+   "policy_change": {
+    "date": "2026-10-29",
+    "by": "owner",
+    "from": "REJECTED",
+    "to": "VERIFIED (header bound)"
+   }
   },
   {
    "id": "ACC-NRM-44",
@@ -17901,14 +17919,20 @@
     "claim_type": "requirement in the header with an unlisted verb (P1)",
     "modality": "quote"
    },
-   "expected": "REJECTED",
-   "rationale": "OPEN (round limit): VERIFIED on 6c17297; \"necessitam\" is outside the verb lists, so the header reads as a title.",
+   "expected": "VERIFIED",
+   "rationale": "VERIFIED without the header on 6c17297. Closed structurally: whether a header may be dropped is decided by content (it adds nothing to the body), not by verb lists; otherwise it is bound to paragraph 1 and HABITA renders the quote with it ('… Obras necessitam de vistoria municipal Em solo urbano, as obras são permitidas.'). A transcription without it is rejected.",
    "harness": "unit_test",
    "final_gate": false,
    "fixed_in_phase": 1,
    "status": "not_run",
    "observed": {},
-   "covered_by": "tests/test_permit_numeric_integrity.py::test_open_nrm44_a_header_with_an_unlisted_verb (strict xfail)"
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm44_a_header_requirement_stays_bound_whatever_its_verb",
+   "policy_change": {
+    "date": "2026-10-29",
+    "by": "owner",
+    "from": "REJECTED",
+    "to": "VERIFIED (header bound)"
+   }
   },
   {
    "id": "ACC-NRM-45",
@@ -17937,13 +17961,13 @@
     "modality": "assertion"
    },
    "expected": "REJECTED",
-   "rationale": "OPEN (round limit): VERIFIED on 6c17297; restatement detection drops source-title concepts as framing, deontic ones included.",
+   "rationale": "VERIFIED on 6c17297. Closed: a deontic word is never source framing in restatement detection; admissível, permitido, obrigatório … are not interchangeable.",
    "harness": "unit_test",
    "final_gate": false,
    "fixed_in_phase": 1,
    "status": "not_run",
    "observed": {},
-   "covered_by": "tests/test_permit_numeric_integrity.py::test_open_nrm45_admissibility_paraphrased_under_a_title_that_names_it (strict xfail)"
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm45_admissibility_paraphrased_under_a_title_that_names_it"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
@@ -18148,6 +18172,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "owner-rules task round 5 (Codex, last): ACC-NRM-44 (P1) and ACC-NRM-45 (P2) open, registered with strict xfail tests; not patched."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "structural closure (ACC-NRM-44/45): headers are bound to the rule unless they add nothing (content test, no verb lists) and rendered with the quote; deontic words are never framing. ACC-NRM-39/42/43/44 now VERIFIED with the header bound (policy change, condition shown); ACC-NRM-45 closed."
   }
  ]
 }

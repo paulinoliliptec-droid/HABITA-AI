@@ -79,7 +79,8 @@ Role: DRAFTER. Write a structured draft answer from the checklist, the evidence 
   instead ("Whether … must be confirmed with the Câmara", "Confirm with the Câmara whether …"). A legal requirement,
   duty, permission, prohibition, number, limit or exception must ALWAYS be quoted literally ("general_rule" with the
   whole sentence of a cited official_text passage as the quote, never a part of it; when the passage has more than
-  one sentence or numbered paragraph, the whole passage), never restated, reordered,
+  one sentence or numbered paragraph, the whole passage; HABITA shows it with its article header when the header
+  adds anything), never restated, reordered,
   abridged or translated in your own words: a paraphrase is never verified. The same holds for any sentence that
   restates an official sentence, for a use designation ("destina-se a …") and for any wording of admissibility
   ("admissível", "admitido", "permitted", "allowed"). Curated references never support it. A quoted rule says what the

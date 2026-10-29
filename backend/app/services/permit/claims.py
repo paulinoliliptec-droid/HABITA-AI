@@ -244,7 +244,6 @@ def _matter_spans(tokens: list[str]) -> set[int]:
 
 # --- official passages -------------------------------------------------------------------------------------------
 
-_HEADER = re.compile(r"^.*?\bartigo\s+\d+\.?\s*[oº]?(?!\w).*?(?<!\d)\d+\s*-\s+", re.IGNORECASE)
 _PARAGRAPH = re.compile(r"\s(?=\d+\s*-\s)")
 _INCLUSION = re.compile(r"\b(?:incluindo|including|nomeadamente|designadamente|namely)\b[^,;:]*", re.IGNORECASE)
 
@@ -380,57 +379,60 @@ def _same_pair(a: frozenset, b: frozenset) -> bool:
     return bool((a[0] & b[0] and a[1] & b[1]) or (a[0] & b[1] and a[1] & b[0]))
 
 
-def _heading(text: str) -> bool:
-    """A heading ("Princípios gerais do solo urbano", "Obras:"), not a statement: no closing stop."""
-    return not re.search(r"[.!?;]\s*$", text.strip())  # "Obras:" is a title
+def _title_only(header: str, body: str) -> bool:
+    """Whether the text of an "Artigo N.º … 1 - " header (or before "1 - ") is a label that adds nothing to the
+    excerpt: no sentence or bracketed aside, and every concept it uses is in the body ("Dotação de estacionamento").
+    Anything else ("Obras necessitam de vistoria municipal", "Princípios gerais …") stays bound to the quote: what a
+    header adds is decided by content, not by which words it uses (owner principle, ACC-NRM-44)."""
+    title = re.sub(r"^.*?\bartigo\s+", "", re.sub(r"\d+\.\s*[oº]", "", header), flags=re.IGNORECASE)
+    if re.search(r"[.!?;()\[\]]", title):
+        return False
+    known = {c for _, alts in _concepts_of(_tokens(body)) for c in alts}
+    stems = {_root(t) for t in _tokens(body)}
+    return all(alts & known or _root(t) in stems for t, alts in _concepts_of(_tokens(title)))
 
 
-#: The function words a title may have (a noun phrase), and the relators it may not.
-_TITLE_WORDS = {"de", "do", "da", "dos", "das", "e", "em", "no", "na", "nos", "nas", "o", "a", "os", "as", "of", "and",
-                "the", "in", "on"}
-_RELATORS = {"mediante", "com", "sem", "sob", "salvo", "exceto", "excepto", "apos", "ate", "segundo", "conforme",
-             "consoante", "para", "por", "pelo", "pela", "pelos", "pelas", "perante", "durante", "desde", "contra",
-             "entre", "sobre", "quando", "se", "caso", "ou", "nem", "with", "without", "under", "upon", "after", "until",
-             "unless", "except", "provided", "by", "for", "to", "from", "per", "via", "when", "if", "where", "or", "but"}
+def _root(word: str) -> str:
+    """A word without its plural ending, cut to five letters ("usos" ~ "uso", "edificações" ~ "edificação")."""
+    return re.sub(r"(?:oes|aes|es|s)$", "", word)[:5]
 
 
-def _title_only(header: str) -> bool:
-    """Whether the text of an "Artigo N.º … 1 - " header (or before "1 - ") is a title only: it may name things
-    ("Licença", "Dispensa") but says nothing about them: no sentence or bracketed aside, no verb or participle, no
-    condition, subjection, negation, limit or dependency ("Obras (A permissão depende de …)", "Obras sujeitas a
-    vistoria")."""
-    title = re.sub(r"\d+\s*-\s*$", "", re.sub(r"\d+\.\s*[oº]", "", header))
-    tokens = _tokens(title)
-    says = (set(tokens) & (_FINITE | _MODAL_AUX | _COPULA)
-            or any(_DEPENDENCY_VERB.match(t) or _STATE_FORM.match(t) for t in tokens)
-            or any(alts & (_PRECISE | {"COND", "NEG", "PERM", "SUBJECT"}) or any(c.startswith("NUM:") for c in alts)
-                   for _, alts in _concepts_of(tokens)))
-    # Its only function words are those of a noun phrase ("Princípios gerais do solo urbano", "Use of land"): any other
-    # preposition or conjunction relates things ("Obras mediante vistoria", "Works subject to …", "… salvo …").
-    linking = any(t in _FUNCTION | _RELATORS and t not in _TITLE_WORDS for t in tokens)
-    return not re.search(r"[.!?;()\[\]]", title) and not says and not linking
+def _excerpt_parts(text: str) -> tuple[str | None, list[str]]:
+    """(the header text that stays bound to the rule, the numbered paragraphs without their numbers). The text before
+    "1 - " ("Artigo 120.º Dotação de estacionamento", "Princípios gerais do solo urbano", "Artigo 997.º Obras
+    necessitam de vistoria municipal") is dropped only when it adds nothing to the body (``_title_only``); otherwise it
+    is part of paragraph 1, so a quote or transcription carries it (owner principle, ACC-NRM-44)."""
+    raw = _PARAGRAPH.split(text)
+    if len(raw) > 1 and not re.match(r"\s*\d+\s*-", raw[0]):
+        header, raw = raw[0].strip(), raw[1:]
+    else:
+        header = None
+    paragraphs = [re.sub(r"^\s*\d+\s*-\s*", "", p) for p in raw]
+    if header and _title_only(header, " ".join(paragraphs)):
+        header = None
+    return header, paragraphs
+
+
+def bound_quote(e: Evidence, quote: str) -> str:
+    """A quote as HABITA shows it: with the header its record keeps bound to the rule (``_excerpt_parts``)."""
+    header, _ = _excerpt_parts(e.excerpt)
+    quote = re.sub(r"\s+", " ", quote).strip()
+    if header and not _norm(quote).startswith(_norm(header)):
+        return f"{header} {quote}"
+    return quote
 
 
 def _passage_sentences(e: Evidence) -> list[_Sentence]:
     text = e.excerpt.lower()  # folded by _tokens, which keeps PT "é" apart from "e"
     out = []
-    header = _HEADER.match(text)
-    # "Artigo 997.º Obras 1 - …" is a header; "Artigo 997.º Obras. A permissão depende de … 1 - …" carries a sentence
-    # before paragraph 1, so nothing is stripped and that sentence counts.
-    headed = bool(header) and _title_only(header.group(0))
-    stripped = text[header.end():] if headed else text
-    raw = _PARAGRAPH.split(stripped)
-    paragraphs = [re.sub(r"^\s*\d+\s*-\s*", "", p) for p in raw]
-    # A heading is only an unnumbered title before "1 - " ("Princípios gerais do solo urbano 1 - …"). When "Artigo …
-    # 1 - " was stripped, the first paragraph is paragraph 1, punctuated or not.
-    title = (paragraphs[0] if not headed and len(raw) > 1 and not re.match(r"\s*\d+\s*-", raw[0])
-             and _heading(paragraphs[0]) and _title_only(paragraphs[0]) else None)
-    units = ([title] if title else []) + [s for p in paragraphs[1 if title else 0:] for s in _full_sentences(p)]
-    # Owner rule (after ACC-NRM-36): an excerpt with more than one unit besides its title is quoted whole. Which other
-    # unit conditions, excepts or merely describes can't be read reliably from its words, so none is left out.
-    statements = [u for u in units if u is not title]
-    body = " ".join(u.strip() for u in statements)
-    units_whole = [(body if len(statements) > 1 else u, u) for u in units]
+    header, paragraphs = _excerpt_parts(text)
+    units = [s for p in paragraphs for s in _full_sentences(p)]
+    if header and units:
+        units[0] = f"{header} {units[0].lstrip()}"  # bound to paragraph 1 (see ``_excerpt_parts``)
+    # Owner rule (after ACC-NRM-36): an excerpt with more than one unit is quoted whole. Which other unit conditions,
+    # excepts or merely describes can't be read reliably from its words, so none is left out.
+    body = " ".join(u.strip() for u in units)
+    units_whole = [(body if len(units) > 1 else u, u) for u in units]
     for whole, sentence in ((w, c) for w, u in units_whole for c in _sentences(u)):
         concepts = _concepts_of(_tokens(sentence))
         core_concepts = _concepts_of(_tokens(_without_inclusions(sentence, _INCLUSION)))
@@ -496,7 +498,7 @@ def _without_inclusions(sentence: str, pattern: re.Pattern) -> str:
 
 
 #: A paragraph number at the start of the quote or of one of its sentences ("… é permitida. 2 - Essa …").
-_NUMBERING = re.compile(r"(?:^|(?<=[.!?;]))\s*\d+\s*-\s+")
+_NUMBERING = re.compile(r"(?:^|(?<=[.!?;])|(?<=\w))\s*(?<![\d.])\d+\s*-\s+")
 
 
 def _literal(atom: str | tuple[str, ...], s: _Sentence) -> bool:
@@ -762,7 +764,10 @@ def _restates(concepts: list[tuple[str, set[str]]], cited: list[Evidence]) -> bo
             # Attribution to the cited source ("Segundo o PDM, …", "Under the PDM-Cascais regulation, …") frames the
             # restatement; it doesn't make it say something else.
             framing = {c for _, alts in _concepts_of(_tokens(f"{e.source_title} {_ATTRIBUTION}")) for c in alts}
-            content = [alts for _, alts in concepts if alts != {"COND"} and not alts <= framing]
+            # A deontic word is never mere framing (a title "Usos Admissíveis" doesn't make "usos permitidos" the
+            # source's own wording; ACC-NRM-45): admissível, permitido, obrigatório … are not interchangeable.
+            content = [alts for _, alts in concepts
+                       if alts != {"COND"} and (not alts <= framing or alts & _DEONTIC_CONCEPTS)]
             if len(content) < 2:
                 continue
             for s in _passage_sentences(e):
