@@ -788,3 +788,26 @@ async def test_nrm_r4_a_predicative_complement_alone_makes_a_unit_content():
                          "como solo rústico a faixa costeira.")
     RECS.append(e)
     assert rejected(await quoted("Em solo urbano, as obras são permitidas.", "PX12"))
+
+
+# --- OPEN (NRM-22..24 task, Codex round 5, the last allowed): registered with reproducible tests, not patched -------
+
+RCOND = official("RCOND", "TEST FIXTURE Artigo 999.º Obras 1 - Em solo urbano, as obras são permitidas. 2 - O PDM "
+                          "condiciona a permissão à vistoria municipal.")
+REXC = official("REXC", "TEST FIXTURE Artigo 998.º Obras 1 - Em solo urbano, as obras são permitidas. 2 - O PDM define "
+                        "exceção para as obras de demolição.")
+D2 = official("D2", "TEST FIXTURE Artigo 995.º Residência 1 - Nas operações urbanísticas, o uso residencial é obrigatório.")
+RECS.extend([RCOND, REXC, D2])
+
+
+@pytest.mark.xfail(strict=True, reason="OPEN P1 (ACC-NRM-36): 'condiciona' / 'define exceção' pass as structural "
+                                       "verbs, so the condition or exception paragraph may be left out of a quote")
+@pytest.mark.parametrize("eid", ["RCOND", "REXC"])
+async def test_open_nrm36_a_structural_verb_stating_a_condition_or_exception(eid):
+    assert rejected(await quoted("Em solo urbano, as obras são permitidas.", eid))
+
+
+@pytest.mark.xfail(strict=True, reason="OPEN P1 (ACC-NRM-37): 'residenciais' is a planning topic, so 'os usos "
+                                       "admissíveis residenciais' names no use and a duty reads as admissibility")
+async def test_open_nrm37_a_use_named_by_an_adjective():
+    assert rejected(await explained("Nas operações urbanísticas, o PDM define os usos admissíveis residenciais.", "D2"))
