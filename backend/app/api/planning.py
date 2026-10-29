@@ -18,8 +18,14 @@ async def planning_context(
     prop = await request.app.state.property_service.get(property_id)
     if prop is None:
         raise NotFoundError("This property hasn't been resolved yet.")
-    context = await request.app.state.planning.resolve(prop)
-    registry = request.app.state.official_sources
+    return await planning_response(request.app.state, prop)
+
+
+async def planning_response(state, prop) -> PlanningContextResponse:
+    """The property's planning context and the trusted official sources of its jurisdiction chain (also used by the
+    report, HR-004/HR-006, so both show exactly the same)."""
+    context = await state.planning.resolve(prop)
+    registry = state.official_sources
     chain = [level.id for level in prop.jurisdiction.levels]
     sources = []
     for s in await registry.trusted(chain):

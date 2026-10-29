@@ -5,3 +5,7 @@ pydantic-settings==2.16.1
 pymongo==4.19.0
 httpx==0.28.1
 pypdf==6.1.3
+# HR-006 PDF report (pure-Python wheel; Pillow and charset-normalizer are its runtime dependencies).
+reportlab==4.4.4
+pillow==13.0.0
+charset-normalizer==3.5.2

@@ -13,6 +13,7 @@ from app.api import maintenance as maintenance_api
 from app.api import permit as permit_api
 from app.api import planning as planning_api
 from app.api import property as property_api
+from app.api import report as report_api
 from app.core.config import Settings, get_settings
 from app.core.errors import register_error_handlers
 from app.core.rate_limit import ResolutionLimiter
@@ -195,6 +196,7 @@ def create_app(
     app.include_router(maintenance_api.router)
     app.include_router(permit_api.router)
     app.include_router(planning_api.router)
+    app.include_router(report_api.router)
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:
