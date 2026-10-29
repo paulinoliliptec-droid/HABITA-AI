@@ -178,3 +178,11 @@ async def test_an_in_memory_identity_needs_the_property_to_exist():
     captured = await repo.identity(pid)
     del repo._items[pid]  # deleted
     assert not repo.identity_holds(captured) and await repo.identity(pid) is None
+
+
+async def test_the_commit_filter_refuses_an_absorbing_property_even_at_the_same_version():
+    """Defence in depth: the filter itself refuses a merge in flight into the property."""
+    client, permit, src = durability.stores()
+    client.collection("properties").docs[PID]["absorbing"] = ["prp_dup"]
+    m, r = durability.verified()
+    assert await permit.commit_verified(m, r, durability.PIN, src, durability.IDENT, durability.props(client)) is False
