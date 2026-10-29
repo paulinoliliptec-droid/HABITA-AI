@@ -176,6 +176,22 @@ _MATTER_NOUNS = ("propert", "parcel", "plot", "site", "premise", "house", "home"
 _DEFINITE = {"the", "o", "a", "os", "as", "do", "da", "dos", "das", "no", "na", "nos", "nas", "ao", "pelo", "pela"}
 
 
+_TARGET_WORDS = {"to", "para"}
+_ARTICLES = {"a", "an", "the", "o", "um", "uma", "os", "as"}
+
+
+def _limit_follows(tokens: list[str], i: int) -> bool:
+    """Whether a numeric limit starts at ``tokens[i]`` (articles skipped): a number or a comparator phrase."""
+    while i < len(tokens) and tokens[i] in _ARTICLES:
+        i += 1
+    if i >= len(tokens):
+        return False
+    if tokens[i].isdigit():
+        return True
+    return any(tuple(tokens[i:i + len(p)]) == p for c, p in _PHRASES if c in _COMPARATORS) or any(
+        tokens[i] == p for c, ps in _CONCEPT_TABLE if c in _COMPARATORS for p in ps if " " not in p)
+
+
 def _concepts_of(tokens: list[str]) -> list[tuple[str, set[str]]]:
     """[(surface, alternatives)] — function words dropped; unknown words stand for themselves (``w:<stem>``)."""
     out, i = [], 0
@@ -188,6 +204,11 @@ def _concepts_of(tokens: list[str]) -> list[tuple[str, set[str]]]:
         else:
             t = tokens[i]
             i += 1
+            if t in _TARGET_WORDS and _limit_follows(tokens, i):
+                # "enlarged *to* a maximum of 20 %" sets the resulting value; "by up to 20 %" / "até 20 %" limit the
+                # amount. The role is part of what the limit means, so it is a concept, not a function word.
+                out.append((t, {"TARGET"}))
+                continue
             if t.isdigit() or re.fullmatch(r"\d+[.,]\d+", t):
                 out.append((t, {"NUM:" + t.replace(",", ".")}))
                 continue
@@ -277,7 +298,7 @@ def _numbered_slots(concepts: list[tuple[str, set[str]]]) -> list[tuple[int, tup
     return out
 
 
-_STRUCTURAL = _COMPARATORS | _OPERATORS | _UNITS | {"EXC", "INCL", "COND", "NEG", "ONLY", "ALL", "SOME"}
+_STRUCTURAL = _COMPARATORS | _OPERATORS | _UNITS | {"EXC", "INCL", "COND", "NEG", "ONLY", "ALL", "SOME", "TARGET"}
 
 
 def _structural(alts) -> bool:

@@ -339,3 +339,27 @@ async def test_adjacent_content_words_may_still_swap_in_a_multi_limit_rule():
     text = ("Single-family houses with a construction area of up to 200 m2 may be enlarged by up to 20 % of the area "
             "existing, except buildings classified.")
     assert (await verify(text, ["E30"])).outcome == "VERIFIED"
+
+
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_codex_v2_round4_a_target_limit_is_not_an_amount_limit(section):
+    """Codex V2 review, round 4: "enlarged to a maximum of 20 %" (resulting size) vs E30's amount of enlargement."""
+    text = ("Single-family houses with a construction area of up to 200 m2 may be enlarged to a maximum of 20 % of the "
+            "existing area, except classified buildings.")
+    report = await verify(text, ["E30"], section)
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
+async def test_an_amount_limit_worded_by_a_maximum_of_still_verifies():
+    text = ("Single-family houses with a construction area of up to 200 m2 may be enlarged by a maximum of 20 % of the "
+            "existing area, except classified buildings.")
+    assert (await verify(text, ["E30"])).outcome == "VERIFIED"
+
+
+@pytest.mark.xfail(strict=True, reason="known limitation (Codex V2 round 4, P2): a multi-limit paraphrase that puts "
+                                       "the quantity after its limit ('up to 200 m2 of construction area') is not "
+                                       "aligned with the passage; quote instead")
+async def test_a_multi_limit_paraphrase_with_the_quantity_after_its_limit_verifies():
+    text = ("Single-family houses with up to 200 m2 of construction area may be enlarged by up to 20 % of the existing "
+            "area, except classified buildings.")
+    assert (await verify(text, ["E30"])).outcome == "VERIFIED"
