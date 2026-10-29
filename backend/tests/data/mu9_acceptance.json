@@ -3526,6 +3526,61 @@
    }
   },
   {
+   "id": "ACC-CXP1-15",
+   "group": "CXP1",
+   "statement": "Single-family houses with a construction area of up to 200 m2 may be enlarged by up to 20 % of the area, except existing classified buildings.",
+   "lang": "en",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex V2 review round 3, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on bf2080b)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "num"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general permission (limit attached to another quantity)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "'existing' moved from the limited quantity to the exception (Codex V2 review, round 3).",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "closed",
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "num/general_planning_explanation/claim",
+      "num/general_planning_explanation/procedure",
+      "num/general_planning_explanation/risk",
+      "num/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    }
+   }
+  },
+  {
    "id": "ACC-COND-N01",
    "group": "COND",
    "statement": "The works must ensure parking provision.",
@@ -14422,6 +14477,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "V2 round 2: multi-limit sentences require ordered alignment; ACC-CXP1-14 added (exact wording)."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "V2 round 3: adjacent swaps may not cross structural markers; ACC-CXP1-15 added (exact wording)."
   }
  ]
 }

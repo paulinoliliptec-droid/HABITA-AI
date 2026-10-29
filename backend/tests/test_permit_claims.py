@@ -324,3 +324,18 @@ async def test_a_multi_limit_paraphrase_with_an_added_quantity_word_verifies():
     text = ("Single-family houses with a construction area of up to 200 m2 may be enlarged by an area of up to 20 % of "
             "the existing area, except classified buildings.")
     assert (await verify(text, ["E30"])).outcome == "VERIFIED"
+
+
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_codex_v2_round3_a_modifier_moved_into_the_exception_is_rejected(section):
+    """Codex V2 review, round 3: "existing" moved from the 20 % quantity onto the exception."""
+    text = ("Single-family houses with a construction area of up to 200 m2 may be enlarged by up to 20 % of the area, "
+            "except existing classified buildings.")
+    report = await verify(text, ["E30"], section)
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
+async def test_adjacent_content_words_may_still_swap_in_a_multi_limit_rule():
+    text = ("Single-family houses with a construction area of up to 200 m2 may be enlarged by up to 20 % of the area "
+            "existing, except buildings classified.")
+    assert (await verify(text, ["E30"])).outcome == "VERIFIED"

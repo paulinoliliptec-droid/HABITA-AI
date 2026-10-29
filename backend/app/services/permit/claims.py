@@ -277,6 +277,13 @@ def _numbered_slots(concepts: list[tuple[str, set[str]]]) -> list[tuple[int, tup
     return out
 
 
+_STRUCTURAL = _COMPARATORS | _OPERATORS | _UNITS | {"EXC", "INCL", "COND", "NEG", "ONLY", "ALL", "SOME"}
+
+
+def _structural(alts) -> bool:
+    return any(c in _STRUCTURAL or c.startswith("NUM:") for c in alts)
+
+
 def _aligned(concepts: list[tuple[str, set[str]]], sequence: tuple[frozenset, ...]) -> bool:
     """Whether the atom's concepts appear in the passage sentence's order. Each concept is matched to the next unused
     occurrence after the last match; the one occurrence just before it is also allowed, so adjacent pairs may swap,
@@ -285,7 +292,10 @@ def _aligned(concepts: list[tuple[str, set[str]]], sequence: tuple[frozenset, ..
     used: set[int] = set()
     last = -1
     for _, alts in concepts:
-        if last - 1 >= 0 and last - 1 not in used and alts & sequence[last - 1]:
+        # A swap exchanges two content concepts only: it never crosses an exception, inclusion, condition, "or" /
+        # "and", comparator, number or unit, so nothing moves from a limit into an exception or vice versa.
+        if (last - 1 >= 0 and last - 1 not in used and alts & sequence[last - 1]
+                and not _structural(alts) and not _structural(sequence[last]) and not _structural(sequence[last - 1])):
             used.add(last - 1)
             continue
         j = next((j for j in range(last + 1, len(sequence)) if j not in used and alts & sequence[j]), None)
