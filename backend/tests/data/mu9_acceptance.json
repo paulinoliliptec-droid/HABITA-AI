@@ -17337,6 +17337,76 @@
    "status": "not_run",
    "observed": {},
    "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r1_a_long_linked_quote_verifies"
+  },
+  {
+   "id": "ACC-NRM-29",
+   "group": "NRM",
+   "statement": "Nas operações urbanísticas, o PDM regula os usos da área admissível.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex NRM-22..24 task round 2, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on b1646c3)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E973 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "obligation presented as admissibility of the area (P1)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "VERIFIED on b1646c3. Fixed: \"(which) uses … admits\" may only reach back across scope words (zona, distrito, categoria), not another noun.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r2_admissibility_reaching_back_past_another_noun_qualifies_that_noun"
+  },
+  {
+   "id": "ACC-NRM-30",
+   "group": "NRM",
+   "statement": "A multifuncionalidade do solo é permitida.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex NRM-22..24 task round 2, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on b1646c3)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E970 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_rule"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "source",
+    "object": "see claim_type",
+    "claim_type": "quote leaving out \"O exercício depende de anuência …\" (P2)",
+    "modality": "quote"
+   },
+   "expected": "REJECTED",
+   "rationale": "VERIFIED on b1646c3. Fixed: in official text a dependency (depende de …) is a condition, counted as a normative unit for the whole-excerpt rule.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r2_an_official_dependency_is_a_condition"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
@@ -17491,6 +17561,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "NRM-22..24 task round 1 (Codex): deontic content in descriptions is held to the wording; admissibility next to uses only; several normative units → whole excerpt; uncapped runs. ACC-NRM-25..28 added."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "NRM-22..24 task round 2 (Codex): scope-only reach-back for admissibility of uses; official dependencies are normative units. ACC-NRM-29..30 added."
   }
  ]
 }

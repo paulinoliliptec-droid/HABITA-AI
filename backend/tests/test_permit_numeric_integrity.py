@@ -705,3 +705,21 @@ async def test_nrm_r1_a_long_linked_quote_verifies():
 async def test_nrm_r1_one_normative_unit_beside_a_descriptive_one_is_quoted_alone():
     report = await quoted("A dotação de estacionamento deve ser assegurada.", "E989")
     assert report.outcome == "VERIFIED", report.issues
+
+
+# --- NRM-22..24 task, Codex round 2 (2026-10-29): exact cases -------------------------------------------------------
+
+E973 = official("E973", "TEST FIXTURE Artigo 973.º Área 1 - Nas operações urbanísticas, o uso da área é obrigatório.")
+E970 = official("E970", "TEST FIXTURE Artigo 970.º Multifuncionalidade 1 - A multifuncionalidade do solo é permitida. 2 - "
+                        "O exercício depende de anuência da Câmara.")
+RECS.extend([E973, E970])
+
+
+async def test_nrm_r2_admissibility_reaching_back_past_another_noun_qualifies_that_noun():
+    assert rejected(await explained("Nas operações urbanísticas, o PDM regula os usos da área admissível.", "E973"))
+
+
+async def test_nrm_r2_an_official_dependency_is_a_condition():
+    assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E970"))  # exact
+    report = await quoted(E970.excerpt.split(" 1 - ", 1)[1], "E970")
+    assert report.outcome == "VERIFIED", report.issues

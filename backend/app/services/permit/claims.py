@@ -381,8 +381,10 @@ def _same_pair(a: frozenset, b: frozenset) -> bool:
 
 
 def _normative_text(text: str) -> bool:
+    """A normative unit of an official text. There, "X depende de Y" is a condition, not a hedge."""
     tokens, folded = _tokens(text), _fold(text.lower())
-    return _normative(_concepts_of(tokens), tokens, folded, _legal(folded))
+    return (_normative(_concepts_of(tokens), tokens, folded, _legal(folded))
+            or any(_DEPENDENCY_VERB.match(t) for t in tokens) or bool(_DEPENDENCY_CLAUSE.search(folded)))
 
 
 def _passage_sentences(e: Evidence) -> list[_Sentence]:
@@ -917,6 +919,10 @@ _DEONTIC_CONCEPTS = (_RESTRICTIVE - {"ALL", "SOME", "COND"}) | {"LICENSED_STATE"
                                                                  "LEGAL_CONDITIONS"}
 
 
+#: What may stand between "uses" and "admits": the scope of the uses ("the uses each district or zone admits").
+_SCOPE_STEMS = ("zon", "distrit", "district", "categor", "espac", "space")
+
+
 def _qualifies_uses(words: list[str], i: int) -> bool:
     """Whether admissibility qualifies a category of uses: next to it ("os usos admissíveis", "the admissible uses") or
     as the verb of "(which) uses each zone admits" / "que usos … admite", with only topic words between; not "uso"
@@ -929,8 +935,8 @@ def _qualifies_uses(words: list[str], i: int) -> bool:
     for _, w in reversed(content[max(0, k - 5):k]):
         if w.startswith(("uso", "use")):
             return True
-        if not (w.startswith(_TOPIC_STEMS) or w in {"each", "cada", "which", "quais", "or", "ou", "and", "e"}):
-            return False
+        if not (w.startswith(_SCOPE_STEMS) or w in {"each", "cada", "which", "quais", "or", "ou", "and", "e"}):
+            return False  # "os usos da área admissível": admissibility qualifies the area
     return False
 
 
