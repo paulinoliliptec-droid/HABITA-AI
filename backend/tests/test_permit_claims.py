@@ -242,3 +242,25 @@ def test_attributive_or_epistemic_permission_wording_stays_a_shadow_verdict(text
 async def test_codex_phase1_rereview_bypasses_are_rejected(text, cites, section):
     report = await verify(text, cites, section)
     assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
+# --- Codex bounded verification pass (2026-10-29, gpt-6-sol, on d3372dd): exact variants --------------------------
+
+@pytest.mark.parametrize("text, cites", [
+    # V1: a pronoun between the clause boundary and the deferral hid the boundary.
+    ("The property holds a licence and it must be confirmed with the Câmara.", ["E13"]),
+    ("O imóvel tem licença e isso deve ser confirmado junto da Câmara.", ["E13"]),
+    # V2: a number's head shared one concept with the passage's but added another.
+    ("Single-family houses with a construction area for enlargement up to 20 % of the existing area may be enlarged "
+     "up to 200 m2, except classified buildings.", ["E30"]),
+])
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_codex_bounded_pass_variants_are_rejected(text, cites, section):
+    report = await verify(text, cites, section)
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
+async def test_boundaries_inside_the_deferred_question_do_not_split_it():
+    report = await verify("Whether the works need licensing and parking provision must be confirmed with the Câmara.",
+                          ["E13"])
+    assert "unsupported_legal_claim" not in codes(report.issues), report.issues

@@ -3251,6 +3251,116 @@
    }
   },
   {
+   "id": "ACC-CXP1-10",
+   "group": "CXP1",
+   "statement": "The property holds a licence and it must be confirmed with the Câmara.",
+   "lang": "en",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex bounded verification pass, 2026-10-29 (gpt-6-sol, read-only, via codex exec on d3372dd)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "pdm"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "property",
+    "object": "see claim_type",
+    "claim_type": "compound: legal_status + deferral (pronoun)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "A pronoun after the clause boundary does not hide the clause (V1).",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "closed",
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    }
+   }
+  },
+  {
+   "id": "ACC-CXP1-11",
+   "group": "CXP1",
+   "statement": "Single-family houses with a construction area for enlargement up to 20 % of the existing area may be enlarged up to 200 m2, except classified buildings.",
+   "lang": "en",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex bounded verification pass, 2026-10-29 (gpt-6-sol, read-only, via codex exec on d3372dd)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "num"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general permission (limit heads altered)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "A number may not limit anything the passage's number does not (V2).",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "closed",
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "num/general_planning_explanation/claim",
+      "num/general_planning_explanation/procedure",
+      "num/general_planning_explanation/risk",
+      "num/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    }
+   }
+  },
+  {
    "id": "ACC-COND-N01",
    "group": "COND",
    "statement": "The works must ensure parking provision.",
@@ -14127,6 +14237,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "added ACC-CXP1-07..09 (Codex re-review, exact wording); fixed: clause boundary before a deferral, numbers bound to what they limit."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "added ACC-CXP1-10..11 (Codex bounded pass, exact wording); fixed: last clause boundary anywhere before a deferral, number heads compared as subsets."
   }
  ]
 }

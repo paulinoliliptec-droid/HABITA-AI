@@ -248,8 +248,8 @@ def _slots(concepts: list[tuple[str, set[str]]]) -> set[tuple]:
             # What the number limits: the content concepts just before it and its comparator ("construction area
             # up to 200 m2", "enlarged by up to 20 %"); EN and PT order them differently, so a window, not one word.
             start = i - (1 if before else 0)
-            head = frozenset(c for j in range(max(0, start - 3), start) for c in seq[j]
-                             if c not in _COMPARATORS and c not in _OPERATORS and not c.startswith("NUM:"))
+            head = frozenset(c for j in range(max(0, start - 2), start) for c in seq[j]
+                             if c not in _COMPARATORS | _OPERATORS | _UNITS and not c.startswith("NUM:"))
             out.add(("NUM", before, number, after, head))
         elif alts & _OPERATORS and 0 < i < len(seq) - 1:
             op = next(iter(alts & _OPERATORS))
@@ -260,7 +260,8 @@ def _slots(concepts: list[tuple[str, set[str]]]) -> set[tuple]:
 def _slot_matches(slot: tuple, others: set[tuple]) -> bool:
     if slot[0] == "OP":
         return any(o[0] == "OP" and o[1] == slot[1] and _same_pair(slot[2], o[2]) for o in others)
-    # Same comparator, number and unit, limiting the same thing (the heads share a concept).
+    # Same comparator, number and unit, limiting the same thing (the heads, the two concepts just before each
+    # comparator, share one).
     return any(o[0] == "NUM" and o[1:4] == slot[1:4] and (o[4] & slot[4] or not (o[4] or slot[4])) for o in others)
 
 
@@ -363,11 +364,9 @@ def _deferral_rest(atom: str) -> str | None:
     return _UNASSERTED.sub(" ", folded[:m.start()] + " " + folded[m.end():])
 
 
-#: A clause boundary right before the deferral: a comma, colon or bracket, a coordinator or a relative pronoun.
-_COORDINATED = re.compile(r"^(?P<clause>.*?\w.*?)\s*(?:[,;:(]\s*)?(?:\b(?:and|e|but|mas|yet|porem|contudo|which|that|"
-                          r"who|whose|que|o qual|a qual|os quais|as quais|cujo|cuja)\b\s*)?$")
-_BOUNDARY = re.compile(r"(?:[,;:(]|\b(?:and|e|but|mas|yet|porem|contudo|which|that|who|whose|que|o qual|a qual|"
-                       r"os quais|as quais|cujo|cuja))\s*$")
+#: A clause boundary: a comma, colon or bracket, a coordinator or a relative pronoun.
+_BOUNDARY = re.compile(r"[,;:(]|\b(?:and|e|but|mas|yet|porem|contudo|which|that|who|whose|que|o qual|a qual|"
+                       r"os quais|as quais|cujo|cuja)\b")
 
 
 def _coordinated_clause(atom: str) -> str | None:
@@ -382,10 +381,14 @@ def _coordinated_clause(atom: str) -> str | None:
         return None
     # Folding keeps offsets when accented letters are precomposed (the usual case); otherwise use the folded text.
     prefix = atom[:m.start()] if len(atom) == len(folded) else folded[:m.start()]
-    if not _BOUNDARY.search(_fold(prefix.lower())):
+    # The last clause boundary before the deferral, anywhere ("… a licence and it must be confirmed"), ignoring the
+    # boundaries inside the question being deferred ("Whether X and Y must be confirmed").
+    masked = _UNASSERTED.sub(lambda q: " " * len(q.group()), _fold(prefix.lower()))
+    cuts = [b for b in _BOUNDARY.finditer(masked)]
+    if not cuts:
         return None
-    c = _COORDINATED.match(prefix)
-    return c.group("clause") if c and c.group("clause").strip() else None
+    clause = prefix[:cuts[-1].start()].strip(" ,;:(")
+    return clause if _tokens(clause) else None
 
 
 def _asserts(rest: str) -> bool:
