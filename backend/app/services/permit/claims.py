@@ -384,8 +384,9 @@ def _title_only(header: str, body: str) -> bool:
     excerpt: no sentence or bracketed aside, and its words are a phrase of the body ("Dotação de estacionamento").
     Anything else ("Obras necessitam de vistoria municipal", "Princípios gerais …") stays bound to the quote: what a
     header adds is decided by content, not by which words it uses (owner principle, ACC-NRM-44)."""
-    # Only the article's own number goes ("Artigo 997.º"); any other number or ordinal is content ("2.º acesso").
-    title = re.sub(r"^.*?\bartigo\s+\d+(?:\.\s*[oº])?\s*", "", header, flags=re.IGNORECASE)
+    # Only the article's own number goes ("Artigo 997.º"); any other number or ordinal ("2.º acesso") or any text
+    # before it ("A permissão depende de … Artigo 997.º") is content.
+    title = re.sub(r"\bartigo\s+\d+(?:\.\s*[oº])?\s*", "", header, count=1, flags=re.IGNORECASE)
     if re.search(r"[.!?;()\[\]]", title):
         return False
     # The title must be a literal phrase of the body ("Dotação de estacionamento" in "… a dotação de estacionamento"):

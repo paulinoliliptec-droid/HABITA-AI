@@ -24,6 +24,8 @@ SECTIONS = ("claim", "procedure", "risk", "next action")
 
 
 def official(eid, text):
+    # "TEST FIXTURE" marks the source title; kept out of the excerpt, where it would read as article-header content.
+    text = text.removeprefix("TEST FIXTURE ")
     return record(eid, "regulatory_source", text, source="cascais-pdm", basis="official_text",
                   authority_class="municipal_instrument", title="PDM-Cascais — Regulamento (TEST FIXTURE)",
                   status="official_text")
@@ -963,3 +965,11 @@ async def test_closure_r3_the_header_comparison_is_literal(eid, text, quote, hea
     """Codex final review round 3: only the article number is dropped; accents are kept."""
     RECS.append(official(eid, text))
     assert header_part in shown(quote, eid)
+
+
+async def test_closure_r4_text_before_the_article_number_is_header_content():
+    e = official("SYN-PRE-ART-COND", "A permissão depende de vistoria municipal. Artigo 997.º Obras 1 - Em solo urbano, as "
+                                     "obras são permitidas.")
+    RECS.append(e)
+    assert "A permissão depende de vistoria municipal." in shown("Em solo urbano, as obras são permitidas.",
+                                                                  "SYN-PRE-ART-COND")

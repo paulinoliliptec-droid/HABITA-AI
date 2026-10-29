@@ -48,7 +48,7 @@ E18 = record("E18", "user_statement", "TEST DATA: licensed as one single-family 
 E20 = planning("E20", status="resolved", classification=CENTRAL)
 #: Synthetic official passage with a numeric limit and an exception (no real Cascais article says this).
 E30 = record("E30", "regulatory_source",
-             "TEST FIXTURE Artigo 900.º Ampliação 1 - Nas moradias unifamiliares com área de construção até 200 m2, "
+             "Artigo 900.º Ampliação 1 - Nas moradias unifamiliares com área de construção até 200 m2, "
              "é admitida a ampliação até 20 % da área existente, exceto em edifícios classificados.",
              source="cascais-pdm", basis="official_text", authority_class="municipal_instrument",
              title="PDM-Cascais — Regulamento (TEST FIXTURE)", status="official_text")
