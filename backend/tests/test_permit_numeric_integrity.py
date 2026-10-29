@@ -243,3 +243,12 @@ async def test_round4_the_limits_object_dropped_and_found_in_the_exception_is_re
     """Codex quote-only round 4: "das edificações" dropped; "edifícios" in the exception must not stand in for it."""
     text = "Em solo urbano, a altura não pode exceder 9 m, salvo em edifícios classificados."
     assert rejected(await explained(text, "E33", section))
+
+
+# --- OPEN (BLOCKED after 5 Codex rounds): a paraphrase keeps the words but swaps their roles -----------------------
+
+@pytest.mark.xfail(strict=True, reason="OPEN P1 (Codex quote-only round 5): concept-set support loses grammatical "
+                                       "roles; 'a altura do solo' in 'edifícios urbanos' verifies against E33")
+async def test_open_a_single_limit_rule_with_swapped_roles_is_rejected():
+    text = "Em edifícios urbanos, a altura do solo não pode exceder 9 m, salvo em edifícios classificados."
+    assert rejected(await explained(text, "E33"))

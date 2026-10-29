@@ -3390,6 +3390,44 @@
    "covered_by": "tests/test_permit_numeric_integrity.py::test_round4_the_limits_object_dropped_and_found_in_the_exception_is_rejected"
   },
   {
+   "id": "ACC-QO-09",
+   "group": "QO",
+   "statement": "Em edifícios urbanos, a altura do solo não pode exceder 9 m, salvo em edifícios classificados.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex quote-only review round 5 (final), 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 1cb7b53)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E33/E36 (unit-test fixtures)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general requirement, verbatim (PT)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "OPEN (BLOCKED): words kept, roles swapped (ground height in urban buildings vs building height on urban land); reproduced VERIFIED ×4 on 1cb7b53.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_open_a_single_limit_rule_with_swapped_roles_is_rejected (strict xfail)"
+  },
+  {
    "id": "ACC-CXP1-07",
    "group": "CXP1",
    "statement": "The property holds a licence, which must be confirmed with the Câmara.",
@@ -3661,6 +3699,66 @@
      "runs": 4,
      "verified_runs": [],
      "passes": true
+    }
+   }
+  },
+  {
+   "id": "ACC-ROLE-01",
+   "group": "ROLE",
+   "statement": "Nas operações urbanísticas de estacionamento sujeitas a licenciamento ou comunicação prévia, deve ser assegurada a dotação de edificação.",
+   "lang": "en",
+   "provenance": {
+    "reviewer": "builder (Claude)",
+    "source": "probe after Codex quote-only round 5, 2026-10-29",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "pdm"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general requirement (objects swapped)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "OPEN (BLOCKED): E13 with its objects swapped (parking ↔ building); the same role-loss mechanism as ACC-QO-09, without numbers.",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "open",
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": false
     }
    }
   },
@@ -14969,6 +15067,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "quote-only task round 4: the passage's own part's restrictive concepts must be in the atom's own part. ACC-QO-08 added."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "quote-only task: 5 rounds reached; ACC-QO-09 (Codex round 5) and ACC-ROLE-01 (builder probe, same mechanism without numbers) open; BLOCKED."
   }
  ]
 }
