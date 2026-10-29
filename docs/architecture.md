@@ -176,6 +176,27 @@ Google Maps determines location; HABITA determines jurisdiction; official source
 - **Planning context** (`app/services/planning/`). `PlanningContextResolver` per jurisdiction; `resolved` only when a trusted machine-readable layer returns exactly one zoning feature for a precisely located point away from class boundaries. Otherwise `requires_manual_confirmation` with the instrument and version, the exact official maps to check, the reasons, the competent authority and verification dates. `GET /api/property/{id}/planning-context` exposes it with the trusted sources consulted. The `planning_constraints` checklist item is settled only by a resolved context; otherwise it remains a condition naming those maps.
 - **Verifier.** Rule `untrusted_source`: cited regulatory or planning evidence must come from a source trusted *at verification time* for the jurisdiction chain, and official text must carry its snapshot hash.
 
+### 9.5 JurisdictionAdapter for legal research (proposal, not implemented)
+International expansion waits until the Cascais MVP is stable. The proposal extends the §9.1 adapters from *where* a
+property is to *which law applies*, behind one interface per jurisdiction:
+
+- **Official source discovery.** Each adapter lists candidate sources (national gazette, regional and municipal
+  instruments) as `candidate` entries in the existing registry (§9.4); only an operator moves them to `trusted`. Model
+  tools never add or promote sources.
+- **Applicable plans and norms.** The adapter maps a jurisdiction chain to the instruments in force (e.g. PT: RJUE →
+  PDM → PU/PP → regulations), with their territorial scope, so retrieval asks only the instruments that can apply.
+- **Incremental vector indexing.** Embeddings per snapshot chunk, added incrementally next to the deterministic
+  ranking; the vector index proposes passages, it never decides admissibility (MU-9 rules still verify official text).
+- **Versioned cache and change detection.** Snapshots are content-addressed (sha256) and versioned; a scheduled check
+  detects a changed or withdrawn instrument and marks dependent evidence for re-verification (TrustPin bumps).
+- **Provenance and validity.** Every passage carries source, snapshot, article/paragraph, publication and in-force
+  dates; expired or superseded text is never admissible.
+- **Jurisdiction-specific legal tests.** Each adapter ships its own acceptance corpus (legit + adversarial rows, as
+  `tests/data/mu9_acceptance.json`) and must keep 0 unsupported VERIFIED before it serves.
+- **Strict evidence separation per property.** Evidence stays scoped to its matter, property identity and
+  jurisdiction chain (C2 identity binding, `wrong_jurisdiction`/`foreign_evidence` rules); nothing is shared across
+  properties except the official snapshots themselves.
+
 ## 10. Implementation status
 - **Done (HR-001):**
   - design system and app shell; address entry with Places Autocomplete;
@@ -186,4 +207,8 @@ Google Maps determines location; HABITA determines jurisdiction; official source
   - property workspace with map; privacy & terms page.
 - **Done (HR-002 foundation):** Permit Intelligence workflow (§9.3) with Muse Spark, tools, evidence, independent verifier, resumable state and the workspace's Permit section.
 - **Done (HR-003 foundation):** official source registry with trust lifecycle, SafeFetcher, PDF ingestion and snapshots, jurisdiction-aware retrieval, PlanningContextResolver (Cascais: manual-confirmation fallback), provenance on evidence and the verifier's trust rule, planning context in the Jurisdiction section (§9.4).
-- **Not started:** SAM 3.1, voice, Muse Image, Afford, HABITA Live, broader jurisdiction coverage and sources.
+- **In progress (HR-003 MU-9, branch `mu9/structural-verification`, local):** structural verification of legal claims
+  (Phase 1 closed operationally) and Phase 2: property identity binding of the VERIFIED commit, grounding false
+  positives. Open problems are tracked in `.ai-review/HABITA-AI-TECHNICAL-DEBT.md`.
+- **Not started:** SAM 3.1, voice, Muse Image, Afford, HABITA Live, broader jurisdiction coverage and sources
+  (JurisdictionAdapter proposal, §9.5).
