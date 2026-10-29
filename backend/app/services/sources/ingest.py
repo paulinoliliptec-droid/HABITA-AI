@@ -54,6 +54,8 @@ class SourceIngestor:
         digest = hashlib.sha256(fetched.body).hexdigest()
         existing = await self._repo.find_snapshot(source_id, digest)
         if existing is not None:
+            if not existing.text_extracted:  # never made current: there is no text to cite
+                return IngestReport(source_id, "no_text", "no extractable text (scanned PDF?)", existing.snapshot_id)
             await self._repo.set_latest_snapshot(source_id, existing.snapshot_id)
             return IngestReport(source_id, "unchanged", snapshot_id=existing.snapshot_id, chunks=existing.chunk_count)
 

@@ -42,7 +42,8 @@ def _matches(doc: dict, flt: dict) -> bool:
         if isinstance(cond, dict):
             for op, arg in cond.items():
                 if op == "$in":
-                    ok = any(v in arg for v in value) if isinstance(value, list) else value in arg
+                    # MongoDB: an array matches if any element, or the array itself, is listed.
+                    ok = (value in arg or any(v in arg for v in value)) if isinstance(value, list) else value in arg
                 elif op == "$lt":
                     ok = value is not None and value < arg
                 elif op == "$lte":

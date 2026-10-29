@@ -436,8 +436,11 @@ class MongoPropertyRepository:
 
             if not target:
                 # Step 1, atomic: release the aliases into merged_aliases and mark the merge pending.
+                # Atomic with the pending-merge refusal: a merge into the duplicate that started after the read
+                # above (its mark) makes this write miss (Codex backlog review round 1).
                 await self._collection.update_one(
-                    {"_id": duplicate, "merged_into": {"$exists": False}, "merging_into": {"$exists": False}},
+                    {"_id": duplicate, "merged_into": {"$exists": False}, "merging_into": {"$exists": False},
+                     "absorbing": {"$in": [None, []]}},
                     {
                         "$set": {
                             "merging_into": keep,
@@ -453,6 +456,8 @@ class MongoPropertyRepository:
                 dup = await self._collection.find_one({"_id": duplicate})
                 if _merge_target(dup) != keep:
                     await self._unmark(duplicate, keep)  # only ours: the winning merge keeps its mark
+                    if dup.get("absorbing"):
+                        raise ValueError(f"{duplicate} has a pending merge into it; complete pending merges first.")
                     raise ValueError(f"{duplicate} was merged concurrently; re-run to inspect.")
 
             # Step 2, idempotent: attach the recorded aliases to `keep` (its canonical property

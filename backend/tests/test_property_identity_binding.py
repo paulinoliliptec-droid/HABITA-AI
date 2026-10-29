@@ -261,3 +261,27 @@ async def test_a_mark_for_a_deleted_duplicate_is_removed():
     await collection.update_one({"_id": keep}, {"$addToSet": {"absorbing": {"$each": ["prp_gone"]}}})
     await repo.resume_pending_merges()
     assert not collection.docs[keep].get("absorbing") and await repo.identity(keep) is not None
+
+
+# --- Codex backlog review, round 1 (2026-10-29): the pending-merge refusal is atomic --------------------------------
+
+async def test_a_merge_into_the_duplicate_that_starts_after_the_check_still_blocks_merging_it():
+    """merge(C, B) reads B (no mark), then merge(B, A) marks B; merge(C, B) must not merge B away: its write is
+    conditional on B carrying no mark, and C's own mark is removed."""
+    repo, collection = make_repo()
+    a, b, c = await _three(repo)
+    real_find = collection.find_one
+    raced = []
+
+    async def find_one(flt, *args, **kwargs):
+        doc = await real_find(flt, *args, **kwargs)
+        if flt == {"_id": b} and not raced:  # merge(C, B)'s read of B; merge(B, A) starts right after it
+            raced.append(True)
+            await collection.update_one({"_id": b}, {"$addToSet": {"absorbing": {"$each": [a]}},
+                                                     "$inc": {"identity_version": 1}})
+        return doc
+    collection.find_one = find_one
+    with pytest.raises(ValueError, match="pending merge"):
+        await repo.merge(keep=c, duplicate=b)
+    collection.find_one = real_find
+    assert "merging_into" not in collection.docs[b] and not collection.docs[c].get("absorbing")

@@ -59,3 +59,22 @@ async def test_the_mongo_status_write_is_a_compare_and_swap():
     assert repo._sources.docs["s"]["status"] == "validated"
     await repo.set_status("s", change, expected=("validated", 3))
     assert repo._sources.docs["s"]["status"] == "trusted"
+
+
+# --- Codex backlog review, round 1 (2026-10-29) ---------------------------------------------------------------------
+
+async def test_an_existing_text_less_snapshot_is_never_made_current():
+    """P2: re-ingesting content whose stored snapshot has no text reports no_text and leaves the current one."""
+    import hashlib
+
+    from tests.pdf_fixture import REGULAMENTO_PAGES, make_pdf
+    from tests.test_sources import ingestor
+    from tests.test_sources_ingest_concurrency import snapshot as make_snapshot
+    reg = await registry()
+    body = make_pdf(REGULAMENTO_PAGES)
+    snap, chunks = make_snapshot("ss_scan")
+    snap = snap.model_copy(update={"text_extracted": False, "sha256": hashlib.sha256(body).hexdigest()})
+    await reg.repository.save_snapshot(snap, chunks)
+    ing, _ = ingestor(reg, body)
+    report = await ing.ingest("cascais-pdm")
+    assert report.outcome == "no_text" and (await reg.repository.get_source("cascais-pdm")).latest_snapshot_id != "ss_scan"

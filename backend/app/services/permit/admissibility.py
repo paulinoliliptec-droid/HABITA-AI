@@ -547,6 +547,7 @@ _COMPETENCE_PREDICATES = ("handled", "handles", "responsible", "competent", "com
                           "tratada", "competente", "responsavel")
 
 
+_NEGATION_WORDS = re.compile(r"\b(?:no|not|never|none|nor|nobody|nothing|nao|nunca|nenhum|nenhuma|nem|ninguem|nada)\b")
 _NUMBER = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)?")
 
 
@@ -596,6 +597,12 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
     names = {w for e in cited if e.source_type == "authority_record" and not is_user_declared(e)
              for w in _tokens(e.source_title)}
     ungrounded = sorted({w for w in _asserted_words(text, names) if _stem(w) not in corpus})
+    # A negation is a function word for ``_tokens``, so it was never grounded ("The Câmara handles no applications"
+    # against "handles applications"): every negation a free-text statement asserts must be in a cited record.
+    stated = {n for e in [*cited, *case_facts] if not is_user_declared(e)
+              for n in _NEGATION_WORDS.findall(fold(" ".join((e.excerpt, e.source_title))))}
+    asserted_text = " ".join(_DEFERRAL.sub(" ", _subject_question_removed(x, names)) for x in _sentences(fold(text)))
+    ungrounded += sorted(set(_NEGATION_WORDS.findall(asserted_text)) - stated)
     # Numbers aren't words for ``_tokens``, so they were never grounded ("Confirm the 3 documents …"): every number a
     # free-text statement asserts must be one of its cited records'.
     numbers = {n for e in [*cited, *case_facts] if not is_user_declared(e)

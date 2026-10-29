@@ -126,3 +126,30 @@ async def test_a_negated_competence_is_never_the_records():
     """Codex FP review round 5 (exact, P2); fixed after the last round, not re-reviewed."""
     text = "No licensing of urban operations, including building permits, is handled by Câmara Municipal de Cascais."
     assert "VERIFIED" not in await outcomes(text)
+
+
+# --- Codex backlog review, round 1 (2026-10-29): negations are grounded ------------------------------------------
+
+@pytest.mark.parametrize("text", [
+    "Licensing of urban operations, including building permits (licenciamento urbanístico) is not handled by Câmara "
+    "Municipal de Cascais.",
+    "Câmara Municipal de Cascais handles no building permits.",
+    "Câmara Municipal de Cascais never handles licensing of urban operations.",
+])
+async def test_a_negation_the_records_dont_state_is_never_verified(text):
+    assert "VERIFIED" not in await outcomes(text)
+
+
+async def test_the_reviews_exact_negation_against_an_affirmative_record():
+    """Codex backlog review round 1 (exact): a record saying the Câmara handles applications doesn't support that it
+    handles none; the affirmative restatement still verifies."""
+    from tests.test_permit_admissibility import CASE_RECORDS, codes, draft, in_section, record, rendered_verify
+    rec = record("E50", "authority_record", "Câmara Municipal de Cascais handles applications.", status="system_record",
+                 title="Câmara Municipal de Cascais")
+    records = [*CASE_RECORDS, rec]
+    negated = await rendered_verify(in_section("claim", "Câmara Municipal de Cascais handles no applications.",
+                                               ["E50"]), records)
+    assert negated.outcome != "VERIFIED" and "unverified_zoning" in codes(negated.issues)
+    plain = await rendered_verify(in_section("claim", "Câmara Municipal de Cascais handles applications.", ["E50"]),
+                                  records)
+    assert plain.outcome == "VERIFIED", plain.issues
