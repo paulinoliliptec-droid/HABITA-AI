@@ -298,3 +298,12 @@ async def test_a_reordered_multi_limit_paraphrase_must_be_quoted_instead():
             "to 200 m2, except classified buildings.")
     report = await verify(text, ["E30"])
     assert report.outcome == "REJECTED", report.issues
+
+
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_codex_v2_round1_a_limit_moved_onto_the_enlarged_area_is_rejected(section):
+    """Codex V2 review, round 1: 200 m2 applied to the area after enlargement instead of the existing area."""
+    text = ("Single-family houses whose construction area is enlarged up to 200 m2 may be enlarged by up to 20 % of "
+            "the existing area, except classified buildings.")
+    report = await verify(text, ["E30"], section)
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues

@@ -279,9 +279,15 @@ def _numbered_slots(concepts: list[tuple[str, set[str]]]) -> list[tuple[int, tup
 def _slot_matches(slot: tuple, others: set[tuple]) -> bool:
     if slot[0] == "OP":
         return any(o[0] == "OP" and o[1] == slot[1] and _same_pair(slot[2], o[2]) for o in others)
-    # Same comparator, number and unit, limiting the same thing (the heads, the two concepts just before each
-    # comparator, share one).
-    return any(o[0] == "NUM" and o[1:4] == slot[1:4] and (o[4] & slot[4] or not (o[4] or slot[4])) for o in others)
+    # Same comparator, number and unit, limiting the same thing: what the atom says the limit applies to (the two
+    # concepts just before its comparator) is all among what the passage's limit applies to, so a limit can't be
+    # moved onto another quantity ("construction area is enlarged up to 200 m2" vs "construction area up to 200 m2").
+    return any(o[0] == "NUM" and o[1:4] == slot[1:4] and slot[4] <= _expand(o[4]) and (slot[4] or not o[4])
+               for o in others)
+
+
+def _expand(concepts: frozenset) -> set:
+    return {a for c in concepts for a in _ALTERNATIVES.get(c, {c})}
 
 
 def _same_pair(a: frozenset, b: frozenset) -> bool:
