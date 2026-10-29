@@ -154,3 +154,20 @@ async def test_the_reviews_exact_negation_against_an_affirmative_record():
     plain = await rendered_verify(in_section("claim", "Câmara Municipal de Cascais handles applications.", ["E50"]),
                                   records)
     assert plain.outcome == "VERIFIED", plain.issues
+
+
+@pytest.mark.parametrize("text", ["Câmara Municipal de Cascais cannot handle applications.",
+                                  "Câmara Municipal de Cascais can't handle applications.",
+                                  "Câmara Municipal de Cascais doesn't handle applications."])
+async def test_contracted_and_fused_negations_are_grounded_too(text):
+    """Codex backlog review round 3 (P2)."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", "Câmara Municipal de Cascais handles applications.", status="system_record",
+                 title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED"
+
+
+def in_section_claim(text):
+    from tests.test_permit_admissibility import in_section
+    return in_section("claim", text, ["E50"])

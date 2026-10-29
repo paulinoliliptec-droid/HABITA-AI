@@ -26,6 +26,8 @@ class Collection:
             raise AutoReconnect("connection closed")
 
     async def insert_many(self, docs):
+        if self.unique and any(d["_id"] in self.docs for d in docs):
+            raise DuplicateKeyError("E11000")
         for n, doc in enumerate(docs):
             if self.fail_insert_many is not None and n == self.fail_insert_many:
                 raise AutoReconnect("injected")
@@ -79,3 +81,12 @@ async def test_a_lost_acknowledgement_keeps_a_published_snapshot_whole():
     r._snapshots.lost_ack = True
     assert (await r.save_snapshot(*snapshot("ss_acked"))).snapshot_id == "ss_acked"
     assert len([d for d in r._chunks.docs.values() if d["snapshot_id"] == "ss_acked"]) == 3
+
+
+async def test_publishing_the_same_snapshot_twice_keeps_its_chunks():
+    """Codex backlog review round 3 (P2): a retry of the same snapshot is not a losing worker."""
+    r = repo()
+    r._chunks.unique = ("_id",)
+    await r.save_snapshot(*snapshot("ss_same"))
+    assert (await r.save_snapshot(*snapshot("ss_same"))).snapshot_id == "ss_same"
+    assert len(r._chunks.docs) == 3

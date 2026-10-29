@@ -196,8 +196,10 @@ class MongoSourceRepository:
                 {"_id": snapshot.snapshot_id, **to_bson(snapshot.model_dump(mode="python"))})
             return snapshot
         except DuplicateKeyError:
-            await self._call(self._chunks.delete_many({"snapshot_id": snapshot.snapshot_id}))
             winner = await self.find_snapshot(snapshot.source_id, snapshot.sha256)
+            if winner is not None and winner.snapshot_id == snapshot.snapshot_id:
+                return winner  # this very snapshot, already published (a retry): its chunks are in use
+            await self._call(self._chunks.delete_many({"snapshot_id": snapshot.snapshot_id}))
             if winner is None:
                 raise StorageUnavailableError(_UNAVAILABLE) from None
             return winner

@@ -547,7 +547,10 @@ _COMPETENCE_PREDICATES = ("handled", "handles", "responsible", "competent", "com
                           "tratada", "competente", "responsavel")
 
 
-_NEGATION_WORDS = re.compile(r"\b(?:no|not|never|none|nor|nobody|nothing|nao|nunca|nenhum|nenhuma|nem|ninguem|nada)\b")
+_NEGATION_WORDS = re.compile(r"\b(?:no|not|never|none|nor|nobody|nothing|cannot|nao|nunca|nenhum|nenhuma|nem|ninguem|nada)\b"
+                             r"|\b\w+n['’]t\b")
+_RESTRICTIVE_WORDS = re.compile(r"\b(?:only|exclusively|solely|unless|except\w*|apenas|somente|exclusivamente|"
+                                r"salvo|exceto|excepto)\b")
 _NUMBER = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)?")
 
 
@@ -600,8 +603,11 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
     # A negation is a function word for ``_tokens``, so it was never grounded ("The Câmara handles no applications"
     # against "handles applications"): every negation a free-text statement asserts must be in a cited record.
     # Only the statement's own cited records can state a negation (an uncited address's PT "no" is not one).
-    stated = {n for e in cited if not is_user_declared(e)
-              for n in _NEGATION_WORDS.findall(fold(" ".join((e.excerpt, e.source_title))))}
+    cited_text = fold(" ".join(" ".join((e.excerpt, e.source_title)) for e in cited if not is_user_declared(e)))
+    stated = set(_NEGATION_WORDS.findall(cited_text))
+    if _RESTRICTIVE_WORDS.search(cited_text):
+        # "Only autonomous units can …" states that the others can't: a restriction grounds a negation.
+        stated |= set(_NEGATION_WORDS.findall(fold(text)))
     asserted_text = " ".join(_DEFERRAL.sub(" ", _subject_question_removed(x, names)) for x in _sentences(fold(text)))
     ungrounded += sorted(set(_NEGATION_WORDS.findall(asserted_text)) - stated)
     # Numbers aren't words for ``_tokens``, so they were never grounded ("Confirm the 3 documents …"): every number a
