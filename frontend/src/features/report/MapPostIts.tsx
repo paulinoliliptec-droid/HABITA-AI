@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { recallMatter } from "@/features/permit/capability";
+import { recallMatter, type MatterCapability } from "@/features/permit/capability";
 import { ApiError } from "@/lib/api";
 import { downloadReportPdf, getReport, onReportChanged } from "./api";
 import { buildPostIts } from "./postits";
@@ -11,7 +11,8 @@ import styles from "./MapPostIts.module.css";
 
 /** HR-004 post-its over the map and the HR-006 PDF download, both from the same report. */
 export function MapPostIts({ propertyId }: { propertyId: string }) {
-  const [report, setReport] = useState<PermitReport | null>(null);
+  // The report shown and the capability it was read with: the PDF always downloads that same report.
+  const [shown, setShown] = useState<{ report: PermitReport; own: MatterCapability | null } | null>(null);
   const [version, setVersion] = useState(0);
   const [open, setOpen] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -22,26 +23,29 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
   useEffect(() => {
     const controller = new AbortController();
     const own = recallMatter(propertyId);
+    setShown(null); // never keep showing another matter's notes while this one loads
     // A capability the server no longer accepts still leaves the public property report.
     getReport(propertyId, own, controller.signal)
+      .then((report) => ({ report, own }))
       .catch((err: unknown) => {
         if (own && err instanceof ApiError && [401, 403, 404].includes(err.status)) {
-          return getReport(propertyId, null, controller.signal);
+          return getReport(propertyId, null, controller.signal).then((report) => ({ report, own: null }));
         }
         throw err;
       })
-      .then(setReport)
-      .catch(() => !controller.signal.aborted && setReport(null));
+      .then(setShown)
+      .catch(() => !controller.signal.aborted && setShown(null));
     return () => controller.abort();
   }, [propertyId, version]);
 
-  if (!report) return null;
+  if (!shown) return null;
+  const { report, own } = shown;
 
   async function download() {
     setDownloading(true);
     setError(null);
     try {
-      await downloadReportPdf(propertyId, recallMatter(propertyId));
+      await downloadReportPdf(propertyId, own);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "The report couldn't be generated.");
     } finally {
