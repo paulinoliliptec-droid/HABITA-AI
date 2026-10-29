@@ -413,12 +413,29 @@ def case_restatement(text: str, cited: list[Evidence]) -> bool:
         return False
     corpus = {_stem(w) for e in cited for w in _tokens(" ".join((e.excerpt, e.source_title, e.source_reference)))}
     corpus |= {_stem(w) for w in _META}
-    if any(e.source_type == "authority_record" for e in cited):
+    authorities = [e for e in cited if e.source_type == "authority_record"]
+    words = _tokens(text)
+    if authorities and _competence_oriented(words, authorities):
         # "… is handled by the Câmara" restating the authority's own competence record (FP-3): the neutral competence
         # predicate is grounded by that record; every other word still has to be.
         corpus |= {_stem(w) for w in _COMPETENCE_PREDICATES}
-    words = _tokens(text)
     return bool(words) and all(_stem(w) in corpus for w in words)
+
+
+def _competence_oriented(words: list[str], authorities: list[Evidence]) -> bool:
+    """Whether a competence predicate keeps the record's orientation: the authority is the agent of "handled"
+    ("… is handled by the Câmara", "… tratado pela Câmara") or the subject of "responsible / competent" ("The Câmara is
+    responsible for …"). A reversed relation ("The Câmara is handled by licensing") is not the record's (FP-3 review)."""
+    names = {w for e in authorities for w in _tokens(e.source_title)}
+    for i, w in enumerate(words):
+        if w not in _COMPETENCE_PREDICATES:
+            continue
+        before, after = set(words[:i]), set(words[i + 1:])
+        agent = w in ("handled", "tratado", "tratada")
+        if agent and names <= after and not names & before or not agent and names <= before and not names & after:
+            continue
+        return False
+    return True
 
 
 def case_fact_problem(text: str, cited: list[Evidence], case_facts: list[Evidence]) -> str | None:
@@ -511,12 +528,26 @@ _COMPETENCE_PREDICATES = ("handled", "handles", "responsible", "competent", "com
 _NUMBER = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)?")
 
 
+_QUESTION = re.compile(r"\b(?:whether|if|se|caso)\b")
+
+
+def _subject_question_removed(sentence: str) -> str:
+    """The sentence without a question that is the subject of its deferral ("Whether the property is licensed must be
+    confirmed …"): that question is deferred, not asserted (FP-4). Nothing else is removed, so a question after the
+    deferral or any clause after it is grounded as before, whatever joins it."""
+    d = _DEFERRAL.search(sentence)
+    q = _QUESTION.search(sentence)
+    if d is None or q is None or q.start() > d.start() or _tokens(sentence[:q.start()]):
+        return sentence
+    return sentence[:q.start()] + " " + sentence[d.start():]
+
+
 def _asserted_words(text: str) -> list[str]:
-    """The words a free-text statement asserts: an embedded question ("whether the property is licensed") and the
-    deferral itself ("must be confirmed") are not asserted (FP-4). The object of an instruction to check ("Confirm the
+    """The words a free-text statement asserts: a question that is the subject of a deferral ("Whether the property is
+    licensed must be confirmed …") is not asserted (FP-4). The object of an instruction to check ("Confirm the
     full list of … with the Câmara") still is: it presupposes its content ("Confirm the 3 documents …"), so FP-5 stays
     a known, fail-closed limitation rather than a vocabulary filter."""
-    return [w for sentence in _sentences(fold(text)) for w in _tokens(asserted(sentence))]
+    return [w for sentence in _sentences(fold(text)) for w in _tokens(_subject_question_removed(sentence))]
 
 
 def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidence]) -> str | None:
@@ -537,7 +568,7 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
     numbers = {n for e in [*cited, *case_facts] if not is_user_declared(e)
                for n in _NUMBER.findall(" ".join((e.excerpt, e.source_title, e.source_reference)))}
     ungrounded += sorted({n for sentence in _sentences(fold(text))
-                          for n in _NUMBER.findall(asserted(sentence))} - numbers)
+                          for n in _NUMBER.findall(_subject_question_removed(sentence))} - numbers)
     if len(ungrounded) > UNGROUNDED_ALLOWED:
         return f"is not grounded in its cited evidence (unsupported words: {', '.join(ungrounded)})"
     return None

@@ -69,3 +69,20 @@ async def test_a_question_before_the_deferral_is_deferred_whole():
     text = "Whether the property is licensed and its works approved must be confirmed with the Câmara Municipal de " \
            "Cascais."
     assert await outcomes(text, bases=("none",)) == {"VERIFIED"}
+
+
+# --- Codex FP review, round 2 (2026-10-29): exact cases ------------------------------------------------------------
+
+@pytest.mark.parametrize("text", [
+    "It must be confirmed with the Câmara Municipal de Cascais whether the property is licensed despite the fact that "
+    "it was approved for 3 floors.",  # exact: only a question that is the deferral's subject is deferred
+    "Câmara Municipal de Cascais is handled by licensing of urban operations, including building permits.",  # exact
+    "Licensing of urban operations is responsible for Câmara Municipal de Cascais.",
+])
+async def test_only_the_records_orientation_and_a_subject_question_are_admitted(text):
+    assert "VERIFIED" not in await outcomes(text)
+
+
+async def test_the_competence_record_restated_with_the_authority_as_subject_verifies():
+    text = "Câmara Municipal de Cascais is responsible for licensing of urban operations, including building permits."
+    assert await outcomes(text, bases=("none",)) == {"VERIFIED"}
