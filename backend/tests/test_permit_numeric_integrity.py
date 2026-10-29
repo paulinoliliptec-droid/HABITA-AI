@@ -442,3 +442,15 @@ async def test_normative_round4_a_two_concept_definition_reversed_is_a_restateme
 async def test_normative_round4_a_structural_description_keeps_its_contract(text):
     report = await explained(text, "E13")
     assert report.outcome == "VERIFIED", report.issues
+
+
+# --- builder probes before the last Codex round: structural descriptions that state content ------------------------
+
+@pytest.mark.parametrize("text", [
+    "O PDM não se aplica ao solo urbano.",
+    "The PDM does not apply to urban land.",
+    "Em solo urbano, a edificação segue o regime do solo rústico.",
+    "Urban land follows the rustic land regime.",
+])
+async def test_a_negated_or_specific_applicability_is_content_not_structure(text):
+    assert rejected(await explained(text, "E13"))

@@ -794,10 +794,18 @@ def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False, 
 #: Predicates that describe what an instrument does or how rules relate, without stating a rule's content: "the PDM
 #: classifies and qualifies land", "each zone has specific rules", "housing use may depend on the plan".
 _META = re.compile(
-    r"\b(?:classif\w*|qualif\w*|defin\w*|establish\w*|estabelec\w*|sets?|regul\w*|govern\w*|determin\w*|"
-    r"condicion\w*|condition\w*|depend\w*|vari\w*|differ\w*|segue\w*|follow\w*|consta\w*|contain\w*|cont[eé]m|"
-    r"identif\w*|delimit\w*|organi[sz]\w*|divid\w*|specific|especific\w*|apply|applies|aplic\w*|check\w*|"
-    r"verific\w*)\b")
+    r"\b(?:classif\w*|qualif\w*|defin\w*|establish\w*|estabelec\w*|sets?|regul\w*|determin\w*|condicion\w*|"
+    r"condition\w*|depend\w*|vari\w*|differ\w*|consta\w*|contain\w*|cont[eé]m|identif\w*|delimit\w*|organi[sz]\w*|"
+    r"divid\w*|specific|especific\w*|check\w*|verific\w*|segue|seguem|follows?|apply|applies|aplica|aplicam|"
+    r"governs?|governed)\b")
+_NEGATION = {"not", "nao", "never", "nunca", "nenhum", "nenhuma", "none", "nem", "nor", "sem", "without", "doesn",
+             "don", "isn", "aren"}
+_APPLICABILITY = re.compile(r"\b(?:segue|seguem|follows?|apply|applies|applied|aplica|aplicam|aplicar|aplicado|"
+                            r"aplicada|governs?|governed|rege|regem|regido|regida|subordin\w*)\b")
+#: What a structural statement may say applies: the plan's own rules, not a regime of its choosing.
+_GENERIC_RULES = {"regras", "regra", "rules", "rule", "plano", "plan", "planos", "plans", "municipal", "aplicavel",
+                  "aplicaveis", "applicable", "respetivo", "respetiva", "respective", "pdm", "regulamento", "regulation",
+                  "urbanisticas", "urbanistica", "urbanisticos", "own", "proprio", "propria", "proprias", "its"}
 #: …unless it introduces content of its own: "o PDM define que …", "the plan establishes that …".
 _CONTENT_CLAUSE = re.compile(r"\b(?:que|that)\b")
 
@@ -807,6 +815,12 @@ def _meta_descriptive(tokens: list[str], folded: str) -> bool:
     A predicative complement ("classifies X as Y", "define X como Y") attributes content, whatever Y is."""
     if not _META.search(folded) or _CONTENT_CLAUSE.search(folded):
         return False
+    # Which regime applies to what ("segue o regime …", "does not apply to …") is rule content, not structure.
+    if _NEGATION & set(tokens):  # PT "no" is "in the", not a negation
+        return False
+    if m := _APPLICABILITY.search(folded):
+        if not all(t in _FUNCTION or t in _GENERIC_RULES for t in _tokens(folded[m.end():])):
+            return False
     # EN "as" needs an object between ("classifies land as"): right after the verb it is the PT article ("segue as
     # regras").
     return not any((t == "como" and any(_META.match(w) for w in tokens[max(0, i - 4):i]))
