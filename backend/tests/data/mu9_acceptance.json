@@ -3086,6 +3086,120 @@
    "covered_by": "tests/test_permit_claims.py::test_codex_phase1_false_positive_a_verbatim_pt_rule_with_esta_verifies"
   },
   {
+   "id": "ACC-QO-01",
+   "group": "QO",
+   "statement": "Em edifícios classificados, a altura das edificações não pode exceder 9 m, salvo em solo urbano.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex quote-only review round 1, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on eac4707)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E33/E36 (unit-test fixtures)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general requirement, verbatim (PT)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "exception and scope swapped against E33 (synthetic)",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_round1_exception_and_scope_swapped_is_rejected"
+  },
+  {
+   "id": "ACC-QO-02",
+   "group": "QO",
+   "statement": "Em solo urbano, a altura das edificações não pode exceder 9 m, salvo em edifícios classificados. (conclusion, answer likely_possible, no property-specific evidence)",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex quote-only review round 1, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on eac4707)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E33/E36 (unit-test fixtures)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general requirement, verbatim (PT)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "a general rule giving a definitive answer about the property",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_round1_a_definitive_answer_from_a_general_explanation_is_rejected"
+  },
+  {
+   "id": "ACC-QO-03",
+   "group": "QO",
+   "statement": "Nas habitações coletivas, é admitida a ampliação até 10 % da área existente.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex quote-only review round 1, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on eac4707)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E33/E36 (unit-test fixtures)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general requirement, verbatim (PT)",
+    "modality": "assertion"
+   },
+   "expected": "VERIFIED",
+   "rationale": "a PT definite plural class scope (false positive fixed)",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_round1_a_pt_definite_plural_class_scope_verifies"
+  },
+  {
    "id": "ACC-CXP1-07",
    "group": "CXP1",
    "statement": "The property holds a licence, which must be confirmed with the Câmara.",
@@ -14645,6 +14759,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "owner decision: multi-limit rules quote-only. ACC-LEG-NUM-01 expected REJECTED (policy change); ACC-LEG-NUM-02 (literal quote) added; ACC-CXP1-17 closes."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "quote-only task round 1: exception spans bound; definitive answers need property-specific evidence; PT definite plural is generic (L-6 fixed). ACC-QO-01..03 added."
   }
  ]
 }

@@ -173,6 +173,9 @@ _MATTER_NOUNS = ("propert", "parcel", "plot", "site", "premise", "house", "home"
                  "dwelling", "works", "project", "imovel", "predio", "lote", "terreno", "casa", "moradia", "parcela",
                  "edificio", "obra", "projeto", "projecto", "fraccao", "fracao", "applicant", "requerente", "owner",
                  "proprietari")
+_PT_DEFINITE_PLURAL = {"os", "as", "dos", "das", "nos", "nas", "aos", "pelos", "pelas"}
+#: Nouns that refer to this matter even in the plural ("as obras", "os projetos" of this application).
+_MATTER_ALWAYS = ("obra", "works", "project", "projeto", "projecto", "applicant", "requerente", "owner", "proprietari")
 _DEFINITE = {"the", "o", "a", "os", "as", "do", "da", "dos", "das", "no", "na", "nos", "nas", "ao", "pelo", "pela"}
 
 
@@ -229,6 +232,8 @@ def _matter_spans(tokens: list[str]) -> set[int]:
         if t in _MATTER_WORDS:
             out.add(i)
         elif t.startswith(_MATTER_NOUNS) and i and tokens[i - 1] in _DEFINITE | _MATTER_WORDS:
+            if tokens[i - 1] in _PT_DEFINITE_PLURAL and t.endswith("s") and not t.startswith(_MATTER_ALWAYS):
+                continue  # PT generic plural: "nas moradias", "os imóveis" name a class, not this property
             out |= {i - 1, i}
     return out
 
@@ -276,6 +281,15 @@ def _slots(concepts: list[tuple[str, set[str]]]) -> set[tuple]:
         elif alts & _OPERATORS and 0 < i < len(seq) - 1:
             op = next(iter(alts & _OPERATORS))
             out.add(("OP", op, frozenset({seq[i - 1], seq[i + 1]})))
+        elif "EXC" in alts:
+            # What the exception covers: the concepts after it, up to the next exception or condition, so an
+            # exception can't swap with the rule's scope ("em solo urbano … salvo em edifícios classificados").
+            span = []
+            for nxt in seq[i + 1:]:
+                if nxt & {"EXC", "COND", "INCL"}:
+                    break
+                span.append(nxt)
+            out.add(("EXC", frozenset(span)))
     return out
 
 
@@ -298,6 +312,8 @@ def _numbered_slots(concepts: list[tuple[str, set[str]]]) -> list[tuple[int, tup
 
 
 def _slot_matches(slot: tuple, others: set[tuple]) -> bool:
+    if slot[0] == "EXC":
+        return any(o[0] == "EXC" and _same_span(slot[1], o[1]) for o in others)
     if slot[0] == "OP":
         return any(o[0] == "OP" and o[1] == slot[1] and _same_pair(slot[2], o[2]) for o in others)
     # Same comparator, number and unit, limiting the same thing: what the atom says the limit applies to (the two
@@ -309,6 +325,11 @@ def _slot_matches(slot: tuple, others: set[tuple]) -> bool:
 
 def _expand(concepts: frozenset) -> set:
     return {a for c in concepts for a in _ALTERNATIVES.get(c, {c})}
+
+
+def _same_span(a: frozenset, b: frozenset) -> bool:
+    """Two spans match when every concept of each shares an alternative with one of the other's."""
+    return all(any(x & y for y in b) for x in a) and all(any(x & y for x in a) for y in b)
 
 
 def _same_pair(a: frozenset, b: frozenset) -> bool:
@@ -380,7 +401,7 @@ _GENERIC_SCOPE = re.compile(
     r"espac\w*|operations?|operac\w*|districts?|distritos?|plans?|planos?|spaces?)\b"
     # A scope phrase over a class: "in / em" + an unqualified plural ("Em habitações coletivas", "In single-family
     # houses"). Still enforced as a norm: it needs an official sentence that supports it.
-    r"|(?:^|[,;:]\s*)(?:in|em)\s+(?:[\w-]+\s+){0,2}?[\w-]{3,}s\b")
+    r"|(?:^|[,;:]\s*)(?:in|em|nas|nos)\s+(?:[\w-]+\s+){0,2}?[\w-]{3,}s\b")
 
 
 #: "not (yet) confirmed / verified / determined" says that something is unknown, not that a legal act happened.

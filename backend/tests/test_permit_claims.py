@@ -321,9 +321,8 @@ async def test_a_partial_quote_of_a_multi_limit_rule_does_not_verify():
     assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
 
 
-@pytest.mark.xfail(strict=True, reason="known limitation L-6 (pre-existing at c6e3be4): a PT definite plural of a "
-                                       "place noun ('nas moradias') is read as this matter in a paraphrase")
 async def test_a_pt_generic_definite_plural_is_a_general_scope():
+    """L-6, fixed (Codex quote-only round 1, P2): "nas moradias" names a class, not this property."""
     record_ = record("E32", "regulatory_source", "Artigo 902.º Ampliação 1 - Nas moradias unifamiliares é admitida a "
                      "ampliação até 20 % da área existente.", source="cascais-pdm", basis="official_text",
                      authority_class="municipal_instrument", status="official_text")

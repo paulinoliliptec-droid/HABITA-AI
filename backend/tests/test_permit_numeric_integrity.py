@@ -134,7 +134,7 @@ async def test_a_quoted_rule_as_the_conclusion_cannot_give_a_definitive_answer()
     d = draft(claim("t", "E1"), conclusion=Conclusion(answer="likely_possible", summary="x", evidence_ids=["E34"],
                                                       planning_basis="general_rule", quote=CUMULATIVE), conditions=[])
     report = await outcome(d)
-    assert report.outcome == "REJECTED" and "definitive_from_quote" in codes(report.issues)
+    assert report.outcome == "REJECTED" and "definitive_without_property_evidence" in codes(report.issues)
     assert not report.checks["conclusion_proportionate"]
 
 
@@ -174,3 +174,37 @@ async def test_a_literal_quote_next_to_an_application_to_the_property_does_not_m
 async def test_a_class_scope_does_not_make_an_unsupported_permission_verifiable(text):
     report = await explained(text, "E36")
     assert report.outcome == "REJECTED", report.issues
+
+
+# --- Codex review of the quote-only task, round 1 (2026-10-29): exact cases ------------------------------------------
+
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_round1_exception_and_scope_swapped_is_rejected(section):
+    text = "Em edifícios classificados, a altura das edificações não pode exceder 9 m, salvo em solo urbano."
+    assert rejected(await explained(text, "E33", section))
+
+
+async def test_round1_a_definitive_answer_from_a_general_explanation_is_rejected():
+    d = draft(claim("t", "E1"), conclusion=Conclusion(answer="likely_possible", summary=HEIGHT, evidence_ids=["E33"],
+                                                      planning_basis=EXPLANATION), conditions=[])
+    report = await outcome(d)
+    assert report.outcome == "REJECTED" and "definitive_without_property_evidence" in codes(report.issues)
+
+
+async def test_a_definitive_answer_citing_a_resolved_determination_for_this_property_is_not_refused_for_that():
+    from tests.test_permit_admissibility import resolved_state
+
+    async def state(_matter):
+        return resolved_state()
+    d = draft(claim("t", "E1"), conclusion=Conclusion(answer="likely_possible", summary="x", evidence_ids=["E20"],
+                                                      planning_basis="parcel_determination"), conditions=[])
+    report = await Verifier(Reviewer(VERIFIED), TRUSTED, state).verify(matter(), checklist(),
+                                                                       render_draft(d, RECS, matter()), RECS, CHAIN)
+    assert "definitive_without_property_evidence" not in codes(report.issues), report.issues
+
+
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_round1_a_pt_definite_plural_class_scope_verifies(section):
+    report = await explained("Nas habitações coletivas, é admitida a ampliação até 10 % da área existente.", "E36",
+                             section)
+    assert report.outcome == "VERIFIED", report.issues
