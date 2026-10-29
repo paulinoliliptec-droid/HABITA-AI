@@ -384,14 +384,16 @@ def _title_only(header: str, body: str) -> bool:
     excerpt: no sentence or bracketed aside, and its words are a phrase of the body ("Dotação de estacionamento").
     Anything else ("Obras necessitam de vistoria municipal", "Princípios gerais …") stays bound to the quote: what a
     header adds is decided by content, not by which words it uses (owner principle, ACC-NRM-44)."""
-    title = re.sub(r"^.*?\bartigo\s+", "", re.sub(r"\d+\.\s*[oº]", "", header), flags=re.IGNORECASE)
+    # Only the article's own number goes ("Artigo 997.º"); any other number or ordinal is content ("2.º acesso").
+    title = re.sub(r"^.*?\bartigo\s+\d+(?:\.\s*[oº])?\s*", "", header, flags=re.IGNORECASE)
     if re.search(r"[.!?;()\[\]]", title):
         return False
     # The title must be a literal phrase of the body ("Dotação de estacionamento" in "… a dotação de estacionamento"):
     # any approximation (scattered words, shared roots) can relate the words differently ("Obras permitidas com
     # vistoria" vs "As obras permitem vistoria"), so none is used.
-    phrase = _norm(title)
-    return bool(phrase) and re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", _norm(body)) is not None
+    # Literal means accents kept ("pode" is not "pôde"): only case and spacing are normalised.
+    phrase, text = (re.sub(r"\s+", " ", t.lower()).strip(" .;:") for t in (title, body))
+    return bool(phrase) and re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", text) is not None
 
 
 def _excerpt_parts(text: str) -> tuple[str | None, list[str]]:

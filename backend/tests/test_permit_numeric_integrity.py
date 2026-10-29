@@ -951,3 +951,15 @@ async def test_closure_r2_a_header_is_redundant_only_as_a_literal_phrase_of_the_
                                   "permitem vistoria municipal.")
     RECS.append(e)
     assert "Obras permitidas com vistoria municipal" in shown("As obras permitem vistoria municipal.", "SYN-ROOT-PERM")
+
+
+@pytest.mark.parametrize("eid, text, quote, header_part", [
+    ("SYN-ORDINAL-OBLIG", "TEST FIXTURE Artigo 997.º A construção deve manter 2.º acesso 1 - A construção deve manter "
+                          "acesso livre.", "A construção deve manter acesso livre.", "2.º acesso"),
+    ("SYN-ACCENT-PERM", "TEST FIXTURE Artigo 997.º O promotor pode construir 1 - O promotor pôde construir.",
+     "O promotor pôde construir.", "O promotor pode construir"),
+])
+async def test_closure_r3_the_header_comparison_is_literal(eid, text, quote, header_part):
+    """Codex final review round 3: only the article number is dropped; accents are kept."""
+    RECS.append(official(eid, text))
+    assert header_part in shown(quote, eid)
