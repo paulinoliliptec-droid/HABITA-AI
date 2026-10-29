@@ -385,6 +385,15 @@ def _heading(text: str) -> bool:
     return not re.search(r"[.!?;]\s*$", text.strip())  # "Obras:" is a title
 
 
+#: The function words a title may have (a noun phrase), and the relators it may not.
+_TITLE_WORDS = {"de", "do", "da", "dos", "das", "e", "em", "no", "na", "nos", "nas", "o", "a", "os", "as", "of", "and",
+                "the", "in", "on"}
+_RELATORS = {"mediante", "com", "sem", "sob", "salvo", "exceto", "excepto", "apos", "ate", "segundo", "conforme",
+             "consoante", "para", "por", "pelo", "pela", "pelos", "pelas", "perante", "durante", "desde", "contra",
+             "entre", "sobre", "quando", "se", "caso", "ou", "nem", "with", "without", "under", "upon", "after", "until",
+             "unless", "except", "provided", "by", "for", "to", "from", "per", "via", "when", "if", "where", "or", "but"}
+
+
 def _title_only(header: str) -> bool:
     """Whether the text of an "Artigo N.º … 1 - " header (or before "1 - ") is a title only: it may name things
     ("Licença", "Dispensa") but says nothing about them: no sentence or bracketed aside, no verb or participle, no
@@ -396,7 +405,10 @@ def _title_only(header: str) -> bool:
             or any(_DEPENDENCY_VERB.match(t) or _STATE_FORM.match(t) for t in tokens)
             or any(alts & (_PRECISE | {"COND", "NEG", "PERM", "SUBJECT"}) or any(c.startswith("NUM:") for c in alts)
                    for _, alts in _concepts_of(tokens)))
-    return not re.search(r"[.!?;()\[\]]", title) and not says
+    # Its only function words are those of a noun phrase ("Princípios gerais do solo urbano", "Use of land"): any other
+    # preposition or conjunction relates things ("Obras mediante vistoria", "Works subject to …", "… salvo …").
+    linking = any(t in _FUNCTION | _RELATORS and t not in _TITLE_WORDS for t in tokens)
+    return not re.search(r"[.!?;()\[\]]", title) and not says and not linking
 
 
 def _passage_sentences(e: Evidence) -> list[_Sentence]:

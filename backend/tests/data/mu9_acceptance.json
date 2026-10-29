@@ -17839,6 +17839,41 @@
    "status": "not_run",
    "observed": {},
    "covered_by": "tests/test_permit_numeric_integrity.py::test_owner_rules_r3_a_header_that_says_anything_is_not_stripped"
+  },
+  {
+   "id": "ACC-NRM-43",
+   "group": "NRM",
+   "statement": "Em solo urbano, as obras são permitidas.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex owner-rules task round 4, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on f1f2f88)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "H-MEDIANTE (unit-test fixture)"
+   ],
+   "bases": [
+    "general_rule"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "source",
+    "object": "see claim_type",
+    "claim_type": "condition in a header worded \"mediante\" (P1)",
+    "modality": "quote"
+   },
+   "expected": "REJECTED",
+   "rationale": "VERIFIED on f1f2f88. Fixed: a title is a noun phrase; its only function words are de/do/da/e/em/of/and/in …, and any other preposition or conjunction (mediante, com, salvo, until …) makes it a unit.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_owner_rules_r4_a_title_that_relates_things_is_a_unit"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
@@ -18033,6 +18068,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "owner-rules task round 3 (Codex): headers and titles are stripped only when they say nothing. ACC-NRM-42 added."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "owner-rules task round 4 (Codex): titles are noun phrases (closed list of linking words). ACC-NRM-43 added."
   }
  ]
 }

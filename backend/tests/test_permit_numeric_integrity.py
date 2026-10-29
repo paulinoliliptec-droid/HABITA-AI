@@ -867,3 +867,24 @@ async def test_owner_rules_r2_a_title_ending_in_a_colon_is_a_title():
 async def test_owner_rules_r3_a_header_that_says_anything_is_not_stripped(eid, text):
     RECS.append(official(eid, text))
     assert rejected(await quoted("Em solo urbano, as obras são permitidas.", eid))
+
+
+# --- owner-rules task, Codex round 4 (2026-10-29): exact case -------------------------------------------------------
+
+@pytest.mark.parametrize("eid, title", [
+    ("H-MEDIANTE", "Obras mediante vistoria municipal"),  # exact
+    ("H-COM", "Obras com parecer da Câmara"),
+    ("H-UNTIL", "Works until the municipal inspection"),
+])
+async def test_owner_rules_r4_a_title_that_relates_things_is_a_unit(eid, title):
+    RECS.append(official(eid, f"TEST FIXTURE Artigo 997.º {title} 1 - Em solo urbano, as obras são permitidas."))
+    assert rejected(await quoted("Em solo urbano, as obras são permitidas.", eid))
+
+
+@pytest.mark.parametrize("title", ["Princípios gerais do solo urbano", "Dotação de estacionamento", "Use of land",
+                                   "Estratégia e objetivos"])
+async def test_owner_rules_r4_a_noun_phrase_title_is_a_title(title):
+    eid = "T-" + title[:6]
+    RECS.append(official(eid, f"TEST FIXTURE Artigo 998.º {title} 1 - Em solo urbano, as obras são permitidas."))
+    report = await quoted("Em solo urbano, as obras são permitidas.", eid)
+    assert report.outcome == "VERIFIED", report.issues
