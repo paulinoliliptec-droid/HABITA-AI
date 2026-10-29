@@ -20,6 +20,7 @@ from typing import Protocol
 from urllib.parse import urlsplit
 
 from app.schemas.sources import OfficialSource, SourceSnapshot, SourceStatus, StatusChange
+from app.services.sources.repository import StatusChangedConcurrently
 
 #: Official hosts and the jurisdiction that publishes on them. A source may live on its own
 #: jurisdiction's host or on an ancestor's (a municipal act in the national gazette), never on
@@ -84,7 +85,8 @@ class SourceRepository(Protocol):
     async def insert_source(self, source: OfficialSource) -> bool: ...
     async def get_source(self, source_id: str) -> OfficialSource | None: ...
     async def list_sources(self) -> list[OfficialSource]: ...
-    async def set_status(self, source_id: str, change: StatusChange) -> None: ...
+    async def set_status(self, source_id: str, change: StatusChange,
+                         expected: tuple[str, int] | None = None) -> None: ...
     async def set_latest_snapshot(self, source_id: str, snapshot_id: str) -> None: ...
     async def find_snapshot(self, source_id: str, sha256: str) -> SourceSnapshot | None: ...
     async def get_snapshot(self, snapshot_id: str) -> SourceSnapshot | None: ...
@@ -164,7 +166,10 @@ class OfficialSourceRegistry:
             raise SourceRegistryError("an operator name and a reason are required")
         if to in ("validated", "trusted") and (problems := validation_problems(source)):
             raise SourceRegistryError(f"{source_id} fails validation: {problems}")
-        await self._repo.set_status(
-            source_id, StatusChange(status=to, operator=operator.strip(), reason=reason.strip(), at=datetime.now(UTC))
-        )
+        try:
+            change = StatusChange(status=to, operator=operator.strip(), reason=reason.strip(), at=datetime.now(UTC))
+            await self._repo.set_status(source_id, change, expected=(source.status, source.trust_version))
+        except StatusChangedConcurrently:
+            # CX-3: another change landed after this one was validated; applying it would bypass the lifecycle.
+            raise SourceRegistryError(f"{source_id} changed concurrently; re-read it and retry") from None
         return (await self._repo.get_source(source_id)) or source

@@ -35,6 +35,10 @@ def to_bson(value: Any) -> Any:
     return value
 
 
+class StatusChangedConcurrently(Exception):
+    """The source's status or trust_version moved since the operator's change was validated (CX-3)."""
+
+
 class InMemorySourceRepository:
     def __init__(self) -> None:
         self.sources: dict[str, OfficialSource] = {}
@@ -65,9 +69,14 @@ class InMemorySourceRepository:
     async def list_sources(self) -> list[OfficialSource]:
         return [s.model_copy(deep=True) for s in self.sources.values()]
 
-    async def set_status(self, source_id: str, change: StatusChange) -> None:
+    async def set_status(self, source_id: str, change: StatusChange,
+                         expected: tuple[str, int] | None = None) -> None:
+        """``expected``: the (status, trust_version) the change was validated against; if it moved, nothing is written
+        and ``StatusChangedConcurrently`` is raised (CX-3: a retirement can't be undone by a stale promotion)."""
         async with self.trust_lock:
             source = self.sources[source_id]
+            if expected is not None and (source.status, source.trust_version) != expected:
+                raise StatusChangedConcurrently(source_id)
             source.status = change.status
             source.status_history.append(change)
             source.trust_version += 1
@@ -134,12 +143,17 @@ class MongoSourceRepository:
         docs = await self._call(self._sources.find({}).to_list(None))
         return [OfficialSource.model_validate(d) for d in docs]
 
-    async def set_status(self, source_id: str, change: StatusChange) -> None:
-        await self._call(self._sources.update_one(
-            {"_id": source_id},
+    async def set_status(self, source_id: str, change: StatusChange,
+                         expected: tuple[str, int] | None = None) -> None:
+        """Compare-and-swap when ``expected`` is given (see the in-memory store; CX-3)."""
+        flt = self.pin_filter(source_id, *expected) if expected is not None else {"_id": source_id}
+        result = await self._call(self._sources.update_one(
+            flt,
             {"$set": {"status": change.status}, "$inc": {"trust_version": 1},
              "$push": {"status_history": to_bson(change.model_dump(mode="python"))}},
         ))
+        if expected is not None and result.matched_count != 1:
+            raise StatusChangedConcurrently(source_id)
 
     async def set_latest_snapshot(self, source_id: str, snapshot_id: str) -> None:
         await self._call(self._sources.update_one({"_id": source_id}, {"$set": {"latest_snapshot_id": snapshot_id}}))
