@@ -105,6 +105,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -209,6 +215,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -308,6 +320,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -416,6 +434,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -515,6 +539,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -622,6 +652,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -698,6 +734,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -781,6 +823,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -843,6 +891,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -923,6 +977,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -1015,6 +1075,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -1115,6 +1181,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1209,6 +1281,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1288,6 +1366,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -1384,6 +1468,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1461,6 +1551,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -1553,6 +1649,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -1651,6 +1753,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1719,6 +1827,12 @@
      "runs": 10,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1779,6 +1893,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 10,
      "verified_runs": [],
@@ -1847,6 +1967,12 @@
      "runs": 10,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -1907,6 +2033,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 10,
      "verified_runs": [],
@@ -1975,6 +2107,12 @@
      "runs": 10,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -2035,6 +2173,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 10,
      "verified_runs": [],
@@ -2137,6 +2281,12 @@
      "runs": 30,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 30,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -2192,6 +2342,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 10,
      "verified_runs": [],
@@ -2256,6 +2412,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 10,
      "verified_runs": [],
@@ -2390,6 +2552,12 @@
      "runs": 10,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -2454,6 +2622,12 @@
      "runs": 10,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "observed_final_gate": {
@@ -2514,6 +2688,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 10,
      "verified_runs": [],
@@ -2896,6 +3076,12 @@
      "runs": 20,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 20,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -2977,6 +3163,12 @@
      "runs": 10,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -3035,6 +3227,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -3100,6 +3298,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    }
   },
@@ -3161,6 +3365,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    }
   },
@@ -3218,6 +3428,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -3701,6 +3917,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    }
   },
@@ -3758,6 +3980,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -3823,6 +4051,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    }
   },
@@ -3884,6 +4118,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    }
   },
@@ -3941,6 +4181,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -4011,6 +4257,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    }
   },
@@ -4068,6 +4320,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -4133,6 +4391,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    }
   },
@@ -4190,6 +4454,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -4255,6 +4525,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    }
   },
@@ -4316,6 +4592,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    }
   },
@@ -4373,6 +4655,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -4442,6 +4730,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 5,
      "verified_runs": [],
@@ -4516,6 +4810,12 @@
      "runs": 5,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -4582,6 +4882,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 5,
      "verified_runs": [],
@@ -4656,6 +4962,12 @@
      "runs": 5,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -4722,6 +5034,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 5,
      "verified_runs": [],
@@ -4796,6 +5114,12 @@
      "runs": 5,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -4862,6 +5186,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 5,
      "verified_runs": [],
@@ -4936,6 +5266,12 @@
      "runs": 5,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -4990,6 +5326,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 5,
      "verified_runs": [],
@@ -5065,6 +5407,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -5136,6 +5484,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -5201,6 +5555,12 @@
      "runs": 10,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 10,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -5255,6 +5615,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 5,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 5,
      "verified_runs": [],
@@ -5330,6 +5696,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -5397,6 +5769,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -5472,6 +5850,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -5543,6 +5927,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -5610,6 +6000,12 @@
      "passes": false
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": false
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -5696,6 +6092,12 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed",
@@ -5773,6 +6175,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": false
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": false
     }
    },
    "status": "open",
@@ -5835,6 +6243,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -5906,6 +6320,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -5983,6 +6403,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -6111,6 +6537,17 @@
       "auth/none/next action"
      ],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "auth/none/claim",
+      "auth/none/procedure",
+      "auth/none/risk",
+      "auth/none/next action"
+     ],
+     "passes": true
     }
    },
    "status": "closed"
@@ -6177,9 +6614,20 @@
      "runs": 4,
      "verified_runs": [],
      "passes": false
+    },
+    "phase2_fp": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "auth/none/claim",
+      "auth/none/procedure",
+      "auth/none/risk",
+      "auth/none/next action"
+     ],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-LEG-LOC-01",
@@ -6258,6 +6706,17 @@
       "loc/none/next action"
      ],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "loc/none/claim",
+      "loc/none/procedure",
+      "loc/none/risk",
+      "loc/none/next action"
+     ],
+     "passes": true
     }
    },
    "status": "closed"
@@ -6320,9 +6779,24 @@
      "runs": 8,
      "verified_runs": [],
      "passes": false
+    },
+    "phase2_fp": {
+     "verified": 8,
+     "runs": 8,
+     "verified_runs": [
+      "auth/none/claim",
+      "auth/none/procedure",
+      "auth/none/risk",
+      "auth/none/next action",
+      "auth/general_planning_explanation/claim",
+      "auth/general_planning_explanation/procedure",
+      "auth/general_planning_explanation/risk",
+      "auth/general_planning_explanation/next action"
+     ],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-LEG-DEF-02",
@@ -6392,6 +6866,17 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 4,
      "runs": 4,
      "verified_runs": [
@@ -6482,6 +6967,17 @@
       "pdm/general_planning_explanation/next action"
      ],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": true
     }
    },
    "status": "closed"
@@ -6515,7 +7011,7 @@
     "modality": "general/deferral"
    },
    "expected": "VERIFIED",
-   "rationale": "Procedural recommendation, no status.",
+   "rationale": "Procedural recommendation, no status. Phase 2 (FP-5): kept rejected by design: the object of an instruction to check presupposes its content (\"Confirm the 3 documents …\"), and admitting this wording would need a vocabulary filter.",
    "harness": "verifier",
    "final_gate": false,
    "fixed_in_phase": null,
@@ -6544,6 +7040,12 @@
      "passes": false
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": false
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -6616,6 +7118,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -6693,6 +7201,12 @@
      "runs": 8,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 8,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -6761,6 +7275,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -6837,6 +7357,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -6895,6 +7421,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 4,
      "verified_runs": [],
@@ -6971,6 +7503,12 @@
      "runs": 4,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -7043,6 +7581,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -7109,6 +7653,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7185,6 +7735,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -7253,6 +7809,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7329,6 +7891,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -7397,6 +7965,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7473,6 +8047,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -7545,6 +8125,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -7600,6 +8186,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7663,6 +8255,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -7722,6 +8320,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -7777,6 +8381,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7853,6 +8463,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -7908,6 +8524,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -7971,6 +8593,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -8026,6 +8654,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -8089,6 +8723,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -8148,6 +8788,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -8203,6 +8849,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -8279,6 +8931,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -8347,6 +9005,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -8423,6 +9087,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -8482,6 +9152,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -8537,6 +9213,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -8613,6 +9295,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -8681,6 +9369,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -8757,6 +9451,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -8829,6 +9529,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -8888,6 +9594,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -8943,6 +9655,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -9019,6 +9737,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -9091,6 +9815,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -9146,6 +9876,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -9216,6 +9952,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -9292,6 +10034,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -9347,6 +10095,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -9423,6 +10177,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -9491,6 +10251,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -9567,6 +10333,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -9622,6 +10394,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -9685,6 +10463,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -9740,6 +10524,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -9816,6 +10606,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -9871,6 +10667,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -9947,6 +10749,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -10019,6 +10827,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -10074,6 +10888,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -10137,6 +10957,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -10192,6 +11018,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -10268,6 +11100,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -10340,6 +11178,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -10395,6 +11239,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -10471,6 +11321,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -10539,6 +11395,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -10615,6 +11477,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -10670,6 +11538,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -10746,6 +11620,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -10801,6 +11681,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -10877,6 +11763,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -10936,6 +11828,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -10991,6 +11889,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -11067,6 +11971,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -11126,6 +12036,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -11181,6 +12097,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -11257,6 +12179,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -11325,6 +12253,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -11401,6 +12335,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -11469,6 +12409,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -11545,6 +12491,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -11613,6 +12565,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -11689,6 +12647,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -11757,6 +12721,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -11833,6 +12803,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -11901,6 +12877,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -11977,6 +12959,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -12045,6 +13033,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -12121,6 +13115,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -12189,6 +13189,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -12265,6 +13271,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -12333,6 +13345,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -12409,6 +13427,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -12477,6 +13501,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -12553,6 +13583,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -12621,6 +13657,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -12697,6 +13739,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -12765,6 +13813,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -12841,6 +13895,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -12909,6 +13969,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -12985,6 +14051,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -13053,6 +14125,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -13129,6 +14207,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -13197,6 +14281,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -13273,6 +14363,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -13341,6 +14437,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -13417,6 +14519,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -13485,6 +14593,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -13561,6 +14675,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -13629,6 +14749,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -13705,6 +14831,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -13773,6 +14905,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -13849,6 +14987,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -13917,6 +15061,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -13993,6 +15143,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -14061,6 +15217,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -14137,6 +15299,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -14205,6 +15373,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -14281,6 +15455,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -14349,6 +15529,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -14425,6 +15611,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -14493,6 +15685,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -14569,6 +15767,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -14635,6 +15839,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -14711,6 +15921,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -14781,6 +15997,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -14847,6 +16069,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -14923,6 +16151,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -14991,6 +16225,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -15067,6 +16307,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -15135,6 +16381,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -15211,6 +16463,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -15283,6 +16541,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -15349,6 +16613,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -15425,6 +16695,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -15493,6 +16769,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -15569,6 +16851,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -15637,6 +16925,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -15713,6 +17007,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -15768,6 +17068,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -15844,6 +17150,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -15912,6 +17224,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -15988,6 +17306,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -16056,6 +17380,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -16132,6 +17462,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -16200,6 +17536,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -16276,6 +17618,12 @@
      "runs": 110,
      "verified_runs": [],
      "passes": true
+    },
+    "phase2_fp": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
     }
    },
    "status": "closed"
@@ -16344,6 +17692,12 @@
      "passes": true
     },
     "quote_only_normative": {
+     "verified": 0,
+     "runs": 110,
+     "verified_runs": [],
+     "passes": true
+    },
+    "phase2_fp": {
      "verified": 0,
      "runs": 110,
      "verified_runs": [],
@@ -18412,6 +19766,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "MU-9 closure round 5 (Codex, last): ACC-NRM-51 contained fail-closed (paragraph numbering trusted only as 1, 2, 3 …); not re-reviewed."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 2,
+   "change": "FP-3 (competence predicate restating an authority record) and FP-4 (deferral's embedded question not grounded; deferral without anything an explanation could rest on is free text) fixed: ACC-LEG-COMP-02 and ACC-LEG-DEF-01 promoted. FP-5 kept as a known limitation. Numbers in free text are now grounded."
   }
  ]
 }

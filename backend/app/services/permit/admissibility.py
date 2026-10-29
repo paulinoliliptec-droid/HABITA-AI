@@ -396,6 +396,10 @@ def case_restatement(text: str, cited: list[Evidence]) -> bool:
         return False
     corpus = {_stem(w) for e in cited for w in _tokens(" ".join((e.excerpt, e.source_title, e.source_reference)))}
     corpus |= {_stem(w) for w in _META}
+    if any(e.source_type == "authority_record" for e in cited):
+        # "… is handled by the Câmara" restating the authority's own competence record (FP-3): the neutral competence
+        # predicate is grounded by that record; every other word still has to be.
+        corpus |= {_stem(w) for w in _COMPETENCE_PREDICATES}
     words = _tokens(text)
     return bool(words) and all(_stem(w) in corpus for w in words)
 
@@ -482,6 +486,20 @@ def rendered_text(basis: str, quote: str | None, cited: list[Evidence], matter: 
 #: when it cites HABITA's own location evidence (jurisdiction or property record), and they ground nothing else.
 _LOCATION_PREDICATES = ("located", "situated", "localizado", "localizada", "situado", "situada")
 _LOCATION_RECORDS = ("jurisdiction_record", "property_record")
+#: Neutral competence predicates (EN + PT): usable only when restating a cited authority record.
+_COMPETENCE_PREDICATES = ("handled", "handles", "responsible", "competent", "competence", "trata", "tratado",
+                          "tratada", "competente", "responsavel")
+
+
+_NUMBER = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)?")
+
+
+def _asserted_words(text: str) -> list[str]:
+    """The words a free-text statement asserts: an embedded question ("whether the property is licensed") and the
+    deferral itself ("must be confirmed") are not asserted (FP-4). The object of an instruction to check ("Confirm the
+    full list of … with the Câmara") still is: it presupposes its content ("Confirm the 3 documents …"), so FP-5 stays
+    a known, fail-closed limitation rather than a vocabulary filter."""
+    return [w for sentence in _sentences(fold(text)) for w in _tokens(_UNASSERTED.sub(" ", _DEFERRAL.sub(" ", sentence)))]
 
 
 def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidence]) -> str | None:
@@ -496,7 +514,13 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
         # "The property is located in Cascais …" restating HABITA's own location record: the neutral location verb
         # is grounded by that record; every other word (the place itself) still has to be.
         corpus |= {_stem(w) for w in _LOCATION_PREDICATES}
-    ungrounded = sorted({w for w in words if _stem(w) not in corpus})
+    ungrounded = sorted({w for w in _asserted_words(text) if _stem(w) not in corpus})
+    # Numbers aren't words for ``_tokens``, so they were never grounded ("Confirm the 3 documents …"): every number a
+    # free-text statement asserts must be one of its cited records'.
+    numbers = {n for e in [*cited, *case_facts] if not is_user_declared(e)
+               for n in _NUMBER.findall(" ".join((e.excerpt, e.source_title, e.source_reference)))}
+    ungrounded += sorted({n for sentence in _sentences(fold(text))
+                          for n in _NUMBER.findall(_UNASSERTED.sub(" ", _DEFERRAL.sub(" ", sentence)))} - numbers)
     if len(ungrounded) > UNGROUNDED_ALLOWED:
         return f"is not grounded in its cited evidence (unsupported words: {', '.join(ungrounded)})"
     return None
@@ -622,7 +646,7 @@ def statement_problem(
         return explanation_problem(text[len(EXPLANATION_FRAME):], cited, case_facts)
     if any(is_planning_evidence(e) for e in cited):
         return "cites planning evidence without a structured planning basis"
-    full = " ".join(filter(None, (step, text)))
+    full = ". ".join(filter(None, (step, text)))  # the step name is its own sentence (as claims.assess reads it)
     if has_planning_content(full) and case_restatement(full, cited):
         return case_fact_problem(full, cited, case_facts)
     return grounding_problem(full, cited, case_facts)
@@ -651,6 +675,14 @@ def render_draft(draft, evidence: list[Evidence], matter: PermitMatter):
             if basis == USER_DECLARATION or _restates(" ".join(filter(None, (step, text))), cited_all):
                 return USER_DECLARATION, USER_STEP, render_user_declaration(cited_all)
         full = " ".join(filter(None, (step, text)))
+        cited_now = [by_id[i] for i in entry.evidence_ids if i in by_id]
+        if (basis == EXPLANATION and not has_planning_content(full)
+                and all(_DEFERRAL.search(x) for x in _sentences(fold(full)))
+                and not any(is_official_text(e) or is_planning_evidence(e) for e in cited_now)):
+            # A deferral to the authority labelled a planning explanation, with no planning content and nothing an
+            # explanation could rest on ("Whether the property is licensed must be confirmed with the Câmara", citing
+            # the authority): free text, held to that contract (FP-4).
+            return "none", step, text
         if basis == "none" and has_planning_content(full) and not case_restatement(
                 full, [by_id[i] for i in entry.evidence_ids if i in by_id]):
             basis = EXPLANATION  # planning prose of the model's own (a restated case record stays a fact)
