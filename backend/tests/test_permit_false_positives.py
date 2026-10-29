@@ -65,10 +65,16 @@ async def test_a_clause_coordinated_after_a_deferral_is_asserted(text):
     assert "VERIFIED" not in await outcomes(text)
 
 
-async def test_a_question_before_the_deferral_is_deferred_whole():
-    text = "Whether the property is licensed and its works approved must be confirmed with the Câmara Municipal de " \
-           "Cascais."
-    assert await outcomes(text, bases=("none",)) == {"VERIFIED"}
+async def test_only_the_closed_status_question_is_deferred():
+    """Round 3: a question is left ungrounded only in the closed shape 'whether <the property> <is> <status>'; a compound
+    or subordinate question is grounded as written (fail-closed; cost: legitimate compound questions are rejected)."""
+    for text in ("Whether the property is licensed and its works approved must be confirmed with the Câmara Municipal "
+                 "de Cascais.",
+                 "Whether the property is licensed although it was approved for 3 floors must be confirmed with the "
+                 "Câmara Municipal de Cascais."):  # exact (Codex round 3)
+        assert "VERIFIED" not in await outcomes(text)
+    assert await outcomes("Se o imóvel está licenciado deve ser confirmado com a Câmara Municipal de Cascais.",
+                          bases=("none",)) == {"VERIFIED"}
 
 
 # --- Codex FP review, round 2 (2026-10-29): exact cases ------------------------------------------------------------
@@ -86,3 +92,9 @@ async def test_only_the_records_orientation_and_a_subject_question_are_admitted(
 async def test_the_competence_record_restated_with_the_authority_as_subject_verifies():
     text = "Câmara Municipal de Cascais is responsible for licensing of urban operations, including building permits."
     assert await outcomes(text, bases=("none",)) == {"VERIFIED"}
+
+
+async def test_a_reversed_inclusion_is_not_the_records_competence():
+    """Codex FP review round 3 (exact): the record's activity is restated only as a run of the record, in order."""
+    text = "Câmara Municipal de Cascais handles building permits, including licensing of urban operations."
+    assert "VERIFIED" not in await outcomes(text)

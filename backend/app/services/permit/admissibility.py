@@ -415,18 +415,34 @@ def case_restatement(text: str, cited: list[Evidence]) -> bool:
     corpus |= {_stem(w) for w in _META}
     authorities = [e for e in cited if e.source_type == "authority_record"]
     words = _tokens(text)
-    if authorities and _competence_oriented(words, authorities):
+    if authorities and all(_competence_oriented(_tokens(x), authorities, restating=True) for x in _sentences(text)):
         # "… is handled by the Câmara" restating the authority's own competence record (FP-3): the neutral competence
         # predicate is grounded by that record; every other word still has to be.
         corpus |= {_stem(w) for w in _COMPETENCE_PREDICATES}
     return bool(words) and all(_stem(w) in corpus for w in words)
 
 
-def _competence_oriented(words: list[str], authorities: list[Evidence]) -> bool:
+#: Words a competence restatement may add around the record's own run ("is handled by", "é responsável por").
+_GLUE = {"is", "are", "be", "by", "for", "e", "sao", "por", "pela", "pelo", "the"}
+
+
+def _in_order_run(words: list[str], record: list[str]) -> bool:
+    return bool(words) and any(record[i:i + len(words)] == words for i in range(len(record) - len(words) + 1))
+
+
+def _competence_oriented(words: list[str], authorities: list[Evidence], restating: bool = False) -> bool:
     """Whether a competence predicate keeps the record's orientation: the authority is the agent of "handled"
     ("… is handled by the Câmara", "… tratado pela Câmara") or the subject of "responsible / competent" ("The Câmara is
     responsible for …"). A reversed relation ("The Câmara is handled by licensing") is not the record's (FP-3 review)."""
     names = {w for e in authorities for w in _tokens(e.source_title)}
+    if not any(w in _COMPETENCE_PREDICATES for w in words):
+        return True
+    # ``restating`` (the FP-3 admission path): what the authority handles must be a run of its record, in the
+    # record's order ("building permits, including licensing of urban operations" reverses its inclusion).
+    activity = [w for w in words if w not in names and w not in _COMPETENCE_PREDICATES and w not in _GLUE]
+    if restating and not any(_in_order_run(activity, [w for w in _tokens(e.excerpt) if w not in names])
+                             for e in authorities):
+        return False
     for i, w in enumerate(words):
         if w not in _COMPETENCE_PREDICATES:
             continue
@@ -528,18 +544,23 @@ _COMPETENCE_PREDICATES = ("handled", "handles", "responsible", "competent", "com
 _NUMBER = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)?")
 
 
-_QUESTION = re.compile(r"\b(?:whether|if|se|caso)\b")
+_STATUS = r"(?:licen\w*|approv\w*|aprov\w*|authori[sz]\w*|autoriz\w*|permit\w*|legal\w*|conform\w*|compliant|valid\w*)"
+#: The one question shape a deferral may leave ungrounded: the matter's legal status, nothing else ("Whether the
+#: property is licensed", "Se o imóvel está licenciado ou não"). Any other question is grounded as written (FP-4).
+_STATUS_QUESTION = re.compile(
+    r"^\s*(?:whether|se)\s+(?:the|this|o|a|este|esta)\s+(?:property|site|works|project|building|imovel|predio|obra|"
+    r"projeto|projecto|edificio|casa)\s+(?:is|was|has been|is already|holds|has|esta|e|foi|tem|possui)\s+"
+    r"(?:(?:a|an|the|um|uma)\s+)?" + _STATUS + r"(?:\s+(?:or|ou)\s+(?:not|nao|" + _STATUS + r"))?\s*$")
 
 
 def _subject_question_removed(sentence: str) -> str:
-    """The sentence without a question that is the subject of its deferral ("Whether the property is licensed must be
-    confirmed …"): that question is deferred, not asserted (FP-4). Nothing else is removed, so a question after the
-    deferral or any clause after it is grounded as before, whatever joins it."""
+    """The sentence without a status question that is the subject of its deferral ("Whether the property is licensed
+    must be confirmed …"): deferred, not asserted (FP-4). Only that closed shape is removed; any other question
+    ("… licensed although it was approved for 3 floors") and anything after the deferral is grounded as written."""
     d = _DEFERRAL.search(sentence)
-    q = _QUESTION.search(sentence)
-    if d is None or q is None or q.start() > d.start() or _tokens(sentence[:q.start()]):
+    if d is None or not _STATUS_QUESTION.match(sentence[:d.start()]):
         return sentence
-    return sentence[:q.start()] + " " + sentence[d.start():]
+    return sentence[d.start():]
 
 
 def _asserted_words(text: str) -> list[str]:
@@ -696,7 +717,7 @@ def statement_problem(
         return "cites planning evidence without a structured planning basis"
     full = ". ".join(filter(None, (step, text)))  # the step name is its own sentence (as claims.assess reads it)
     authorities = [e for e in cited if e.source_type == "authority_record"]
-    if authorities and not _competence_oriented(_tokens(full), authorities):
+    if authorities and not all(_competence_oriented(_tokens(x), authorities) for x in _sentences(full)):
         # "Licensing … is responsible for the Câmara": a competence relation the record doesn't state (reversed), even
         # though "responsible" is a generic word (FP-3 review).
         return "states a competence relation its authority record doesn't (the authority is not its agent or subject)"
@@ -727,10 +748,10 @@ def render_draft(draft, evidence: list[Evidence], matter: PermitMatter):
             # claim inside the answer itself is rejected by ``user_claim_problem``.
             if basis == USER_DECLARATION or _restates(" ".join(filter(None, (step, text))), cited_all):
                 return USER_DECLARATION, USER_STEP, render_user_declaration(cited_all)
-        full = " ".join(filter(None, (step, text)))
+        full = ". ".join(filter(None, (step, text)))  # the step name is its own sentence
         cited_now = [by_id[i] for i in entry.evidence_ids if i in by_id]
         if (basis == EXPLANATION and not has_planning_content(full)
-                and all(_DEFERRAL.search(x) for x in _sentences(fold(full)))
+                and all(_DEFERRAL.search(x) for x in _sentences(fold(text)))
                 and not any(is_official_text(e) or is_planning_evidence(e) for e in cited_now)):
             # A deferral to the authority labelled a planning explanation, with no planning content and nothing an
             # explanation could rest on ("Whether the property is licensed must be confirmed with the Câmara", citing
