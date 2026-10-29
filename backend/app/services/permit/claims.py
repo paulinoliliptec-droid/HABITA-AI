@@ -248,7 +248,6 @@ class _Sentence:
     slots: frozenset[tuple]   # every bound slot of the sentence (see ``_slots``)
     required_slots: frozenset[tuple]  # its bound slots outside inclusion lists
     limits: tuple[tuple, ...] = ()  # its numeric limits in order (see ``_limits``)
-    sequence: tuple[frozenset, ...] = ()  # its concepts in order (see ``_aligned``)
 
 
 _UNITS = {"M2", "PCT"}
@@ -298,35 +297,6 @@ def _numbered_slots(concepts: list[tuple[str, set[str]]]) -> list[tuple[int, tup
     return out
 
 
-_STRUCTURAL = _COMPARATORS | _OPERATORS | _UNITS | {"EXC", "INCL", "COND", "NEG", "ONLY", "ALL", "SOME", "TARGET"}
-
-
-def _structural(alts) -> bool:
-    return any(c in _STRUCTURAL or c.startswith("NUM:") for c in alts)
-
-
-def _aligned(concepts: list[tuple[str, set[str]]], sequence: tuple[frozenset, ...]) -> bool:
-    """Whether the atom's concepts appear in the passage sentence's order. Each concept is matched to the next unused
-    occurrence after the last match; the one occurrence just before it is also allowed, so adjacent pairs may swap,
-    as EN and PT order them differently ("construction area" / "área de construção", "single-family houses" /
-    "moradias unifamiliares"). A concept placed where the passage doesn't have it breaks the alignment."""
-    used: set[int] = set()
-    last = -1
-    for _, alts in concepts:
-        # A swap exchanges two content concepts only: it never crosses an exception, inclusion, condition, "or" /
-        # "and", comparator, number or unit, so nothing moves from a limit into an exception or vice versa.
-        if (last - 1 >= 0 and last - 1 not in used and alts & sequence[last - 1]
-                and not _structural(alts) and not _structural(sequence[last]) and not _structural(sequence[last - 1])):
-            used.add(last - 1)
-            continue
-        j = next((j for j in range(last + 1, len(sequence)) if j not in used and alts & sequence[j]), None)
-        if j is None:
-            return False
-        used.add(j)
-        last = j
-    return True
-
-
 def _slot_matches(slot: tuple, others: set[tuple]) -> bool:
     if slot[0] == "OP":
         return any(o[0] == "OP" and o[1] == slot[1] and _same_pair(slot[2], o[2]) for o in others)
@@ -364,26 +334,25 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
             if allowed:
                 out.append(_Sentence(e.evidence_id, frozenset(allowed), frozenset(required),
                                      frozenset(_slots(concepts)), frozenset(_slots(core_concepts)),
-                                     _limits(concepts), tuple(frozenset(alts) for _, alts in concepts)))
+                                     _limits(concepts)))
     return out
 
 
-def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence) -> bool:
+def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence, verbatim: bool = False) -> bool:
+    """Whether one passage sentence supports the atom in the direction stated. ``verbatim``: the atom is a literal
+    quote rendered by HABITA (``general_rule``)."""
+    if len(s.limits) >= 2 and not verbatim:
+        # A rule with several numeric limits (MU-9 V2, owner decision 2026-10-29): which limit binds which quantity,
+        # and in which role, can't be read back reliably from a paraphrase, so only a literal quote is admitted.
+        return False
     # An added "if" only narrows a rule's scope; every other concept must be in the sentence.
     if not all(alts & s.allowed or alts == {"COND"} for _, alts in atom_concepts):
         return False
     present = {c for _, alts in atom_concepts for c in alts}
     if not all(r in present or (_ALTERNATIVES.get(r, set()) & present) for r in s.required):
-        return False
+        return False  # also a partial quote that drops a limit, a condition or an exception
     # Bound slots, both ways: no number, limit, unit or alternative moved to another place or changed, none dropped.
     concepts = [(t, alts) for t, alts in atom_concepts if alts != {"COND"}]
-    if len(s.limits) >= 2:
-        # A rule with several numeric limits (MU-9 V2): which limit binds which quantity can't be read from a window
-        # around each number, so the whole atom must follow the passage sentence in order (``_aligned``): each limit
-        # keeps its comparator, unit and the quantity before it, and nothing is attached to it that the passage
-        # doesn't have there. Any other paraphrase has to be quoted (general_rule).
-        return _limits(concepts) == s.limits and _aligned(concepts, s.sequence)
-    # Bound slots, both ways: no number, limit, unit or alternative moved to another place or changed, none dropped.
     slots = _slots(concepts)
     return (all(_slot_matches(x, set(s.slots)) for x in slots)
             and all(_slot_matches(r, slots) for r in s.required_slots))
@@ -408,7 +377,10 @@ _PERMISSION = re.compile(r"\b(?:permitted|permissible|permitid\w*|permite\w*|all
 _GENERIC_SCOPE = re.compile(
     r"\b(?:each|every|any|cada|qualquer|tod[oa]s?|depending|depend\w*|consoante|conforme|according)\b"
     r"|\b(?:in|em|no|na|nos|nas|within|under|for)\s+(?:\w+\s+){0,3}?(?:land|solo|zones?|zonas?|areas?|categor\w*|"
-    r"espac\w*|operations?|operac\w*|districts?|distritos?|plans?|planos?|spaces?)\b")
+    r"espac\w*|operations?|operac\w*|districts?|distritos?|plans?|planos?|spaces?)\b"
+    # A scope phrase over a class: "in / em" + an unqualified plural ("Em habitações coletivas", "In single-family
+    # houses"). Still enforced as a norm: it needs an official sentence that supports it.
+    r"|(?:^|[,;:]\s*)(?:in|em)\s+(?:[\w-]+\s+){0,2}?[\w-]{3,}s\b")
 
 
 #: "not (yet) confirmed / verified / determined" says that something is unknown, not that a legal act happened.
@@ -552,25 +524,41 @@ def _restates_case_records(tokens: list[str], cited: list[Evidence]) -> tuple[st
     return ()
 
 
-def _directional(atom: str, tokens: list[str], cited: list[Evidence], conditional: bool) -> tuple[str, ...] | None:
+def _directional(tokens: list[str], cited: list[Evidence], verbatim: bool = False) -> tuple[tuple[str, ...], bool]:
+    """(supporting evidence ids, quote_required): the ids are empty when nothing supports the atom;
+    ``quote_required`` says a cited multi-limit sentence would support it as a literal quote."""
     concepts = _concepts_of(tokens)
+    quote_required = False
     for e in cited:
         if is_official_text(e):
-            if any(_supports(concepts, s) for s in _passage_sentences(e)):
-                return (e.evidence_id,)
-    return None
+            for s in _passage_sentences(e):
+                if _supports(concepts, s, verbatim):
+                    return (e.evidence_id,), False
+                quote_required = quote_required or (len(s.limits) >= 2 and _supports(concepts, s, True))
+    return (), quote_required
 
 
 _UNSUPPORTED = ("is not supported, in the direction stated, by any one sentence of the official text it cites (it "
                 "adds or drops a condition, alternative, limit, exception, status, tense or object)")
+_QUOTE_REQUIRED = ("restates a rule with several numeric limits in its own words; such a rule can only be stated as a "
+                   "literal quote of the official passage (planning_basis general_rule)")
 
 
-def _explanation_atom(atom: str, cited: list[Evidence]) -> Atom:
+def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False) -> Atom:
     """A general explanation atom. Enforced when it touches a legal instrument or outcome, or gives the matter a legal
-    position; otherwise the planning contract decides and the directional verdict is recorded in shadow."""
+    position; otherwise the planning contract decides and the directional verdict is recorded in shadow.
+
+    ``verbatim``: a literal quote that HABITA rendered from a cited record (``general_rule``). Its bearer is the
+    source itself, so it is not read for references to the matter; it must still be supported, whole, by one official
+    sentence (a partial quote can't drop a limit, condition or exception)."""
     tokens = _tokens(atom)
     folded = _fold(atom.lower())
     legal = _legal(folded)
+    if verbatim:
+        supported, _ = _directional(tokens, cited, verbatim=True)
+        enforced = legal or _precise(_concepts_of(tokens), tokens, folded)
+        return Atom(atom, "general_rule" if supported else "unsupported", "source", supported,
+                    None if supported else _UNSUPPORTED, enforced=enforced)
     bearer = "matter" if _bare_permission(folded) else _bearer(tokens, atom)
     legal = legal or bearer == "matter" and bool(_PERMISSION.search(folded))
     if (clause := _coordinated_clause(atom)) is not None:
@@ -604,10 +592,11 @@ def _explanation_atom(atom: str, cited: list[Evidence]) -> Atom:
         return Atom(atom, "unsupported", "matter", (),
                     "says something about this matter that its cited case records don't state; a general rule can't "
                     "establish it")
-    supported = _directional(atom, tokens, cited, conditional)
+    supported, quote_required = _directional(tokens, cited, verbatim)
     kind = ("conditional_rule" if conditional else "general_rule") if supported else "unsupported"
     enforced = legal or _precise(_concepts_of(tokens), tokens, folded)
-    return Atom(atom, kind, "general", supported or (), None if supported else _UNSUPPORTED, enforced=enforced)
+    problem = None if supported else _QUOTE_REQUIRED if quote_required else _UNSUPPORTED
+    return Atom(atom, kind, "general", supported, problem, enforced=enforced)
 
 
 def _no_provider(kind: str) -> str | None:
@@ -657,7 +646,7 @@ def assess(text: str, basis: str, step: str | None, cited: list[Evidence]) -> li
     if basis == "general_rule":
         # A verbatim quote is the source's own words, but a partial one can drop the rule's scope, alternatives or
         # exceptions ("deve ser assegurada a dotação de estacionamento"): it is held to the same support check.
-        return [_explanation_atom(a, cited) for a in atoms(text)]
+        return [_explanation_atom(a, cited, verbatim=True) for a in atoms(text)]
     if basis in RENDERED:
         return []
     if basis == EXPLANATION:

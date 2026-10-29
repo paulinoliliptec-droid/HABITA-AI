@@ -3669,7 +3669,7 @@
    "harness": "verifier",
    "final_gate": false,
    "fixed_in_phase": 1,
-   "status": "open",
+   "status": "closed",
    "observed": {
     "98af6af": {
      "verified": 4,
@@ -3683,15 +3683,10 @@
      "passes": false
     },
     "phase1": {
-     "verified": 4,
+     "verified": 0,
      "runs": 4,
-     "verified_runs": [
-      "num/general_planning_explanation/claim",
-      "num/general_planning_explanation/procedure",
-      "num/general_planning_explanation/risk",
-      "num/general_planning_explanation/next action"
-     ],
-     "passes": false
+     "verified_runs": [],
+     "passes": true
     }
    }
   },
@@ -5108,11 +5103,11 @@
     "claim_type": "general permission with limit and exception",
     "modality": "general/deferral"
    },
-   "expected": "VERIFIED",
-   "rationale": "All slots of E30 preserved (M2, M3).",
+   "expected": "REJECTED",
+   "rationale": "Owner decision 2026-10-29: a rule with two or more numeric limits is admitted only as a literal quote (general_rule); this faithful paraphrase is therefore rejected. Was expected VERIFIED until then.",
    "harness": "verifier",
    "final_gate": false,
-   "fixed_in_phase": null,
+   "fixed_in_phase": 1,
    "observed": {
     "tree_mu9_lexical": {
      "verified": 4,
@@ -5137,18 +5132,56 @@
      "passes": true
     },
     "phase1": {
-     "verified": 4,
+     "verified": 0,
      "runs": 4,
-     "verified_runs": [
-      "num/general_planning_explanation/claim",
-      "num/general_planning_explanation/procedure",
-      "num/general_planning_explanation/risk",
-      "num/general_planning_explanation/next action"
-     ],
+     "verified_runs": [],
      "passes": true
     }
    },
-   "status": "closed"
+   "status": "closed",
+   "policy_change": {
+    "date": "2026-10-29",
+    "by": "owner",
+    "from": "VERIFIED",
+    "to": "REJECTED"
+   }
+  },
+  {
+   "id": "ACC-LEG-NUM-02",
+   "group": "LEGIT",
+   "statement": "Nas moradias unifamiliares com área de construção até 200 m2, é admitida a ampliação até 20 % da área existente, exceto em edifícios classificados.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "builder (Claude)",
+    "source": "builder category rows, Phase 0"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "num"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general permission with limit and exception",
+    "modality": "general/deferral"
+   },
+   "expected": "VERIFIED",
+   "rationale": "The same rule quoted literally (planning_basis general_rule, quote = the whole sentence) verifies.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": null,
+   "observed": {},
+   "status": "not_run",
+   "covered_by": "tests/test_permit_claims.py::test_a_multi_limit_rule_quoted_literally_verifies"
   },
   {
    "id": "ACC-LEG-COMP-01",
@@ -14607,6 +14640,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "V2 round 5 (limit reached): ACC-CXP1-17 added open (exact wording); V2 BLOCKED."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "owner decision: multi-limit rules quote-only. ACC-LEG-NUM-01 expected REJECTED (policy change); ACC-LEG-NUM-02 (literal quote) added; ACC-CXP1-17 closes."
   }
  ]
 }

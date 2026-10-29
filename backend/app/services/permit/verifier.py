@@ -73,6 +73,7 @@ PROTOCOL = "atomic-v1"
 REJECTING = {
     "unsupported_claim", "unknown_evidence", "foreign_evidence", "wrong_jurisdiction", "authority_mismatch",
     "definitive_with_conditions", "untrusted_source", "unverified_zoning", "unsupported_legal_claim",
+    "definitive_from_quote",
 }
 #: A required item without currently admissible support is a gap (ESCALATE), not a pass.
 GAPS = {"evidence_gap", "inadmissible_support"}
@@ -198,6 +199,12 @@ def rule_checks(
             issues.append(VerificationIssue(code="authority_mismatch", evidence_id=eid, origin="rule",
                                             message=f"{eid} concerns {e.authority_id}, not the competent authority {matter.authority_id}."))
 
+    if draft.conclusion.answer in DEFINITIVE and draft.conclusion.planning_basis == "general_rule":
+        # MU-9: a literal quotation proves what the source says, not that this property meets it; a conclusion that
+        # is only a quoted rule can't give a definitive answer about the matter.
+        issues.append(VerificationIssue(code="definitive_from_quote", origin="rule",
+                                        message="The conclusion is definitive but consists only of a quoted rule; a "
+                                                "quotation shows what the source says, not that this property meets it."))
     if draft.conditions and draft.conclusion.answer in DEFINITIVE:
         issues.append(VerificationIssue(code="definitive_with_conditions", origin="rule",
                                         message="The conclusion is definitive although conditions remain to be confirmed: "
@@ -218,7 +225,7 @@ def rule_checks(
             and not any(is_user_declared(by_id[i]) for i in st.evidence_ids if i in by_id)
             for st in model_statements(draft) if st.planning_basis == "parcel_determination"),
         "support_admissible": "inadmissible_support" not in codes,
-        "conclusion_proportionate": "definitive_with_conditions" not in codes,
+        "conclusion_proportionate": not codes & {"definitive_with_conditions", "definitive_from_quote"},
         "user_information_complete": "missing_information" not in codes,
         "no_evidence_gaps": not codes & GAPS,
     }

@@ -77,8 +77,6 @@ def test_no_record_type_carries_the_property_legal_status_capability():
      "must be ensured.", ["E13"]),
     ("Nas operações urbanísticas de edificação sujeitas a licenciamento ou comunicação prévia, deve ser assegurada a "
      "dotação de estacionamento.", ["E13"]),
-    ("Single-family houses with a construction area of up to 200 m2 may be enlarged by up to 20 % of the existing "
-     "area, except classified buildings.", ["E30"]),
 ])
 @pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
 async def test_a_rule_restated_with_all_its_conditions_verifies(text, cites, section):
@@ -278,26 +276,62 @@ async def test_a_limit_attached_to_another_quantity_is_rejected(section):
     assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
 
 
+E30_SENTENCE = ("Nas moradias unifamiliares com área de construção até 200 m2, é admitida a ampliação até 20 % da área "
+                "existente, exceto em edifícios classificados.")
+
+
 @pytest.mark.parametrize("text", [
+    # Owner decision (2026-10-29): a rule with several numeric limits is never admitted as a paraphrase, however
+    # faithful: legitimate restatements, reorderings, adjective swaps and the passage's own words outside a quote.
     "Single-family houses with a construction area of up to 200 m2 may be enlarged by up to 20 % of the existing area, "
     "except classified buildings.",
-    pytest.param(
-        "Nas moradias unifamiliares com área de construção até 200 m2, é admitida a ampliação até 20 % da área "
-        "existente, exceto em edifícios classificados.",
-        marks=pytest.mark.xfail(strict=True, reason="known limitation (pre-existing at c6e3be4): a PT definite plural "
-                                "of a place noun ('nas moradias') is read as this matter, not as a generic scope")),
+    "Single-family houses with a construction area of up to 200 m2 may be enlarged by a maximum of 20 % of the "
+    "existing area, except classified buildings.",
+    "Single-family houses may be enlarged by up to 20 % of the existing area if their construction area is up to "
+    "200 m2, except classified buildings.",
+    "Single-family houses with up to 200 m2 of construction area may be enlarged by up to 20 % of the existing area, "
+    "except classified buildings.",
+    E30_SENTENCE,
 ])
-async def test_a_multi_limit_rule_restated_in_the_passage_order_verifies(text):
-    report = await verify(text, ["E30"])
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_a_multi_limit_rule_is_never_admitted_as_a_paraphrase(text, section):
+    report = await verify(text, ["E30"], section)
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
+async def test_a_multi_limit_paraphrase_is_told_to_quote_the_rule():
+    atoms = assess("Single-family houses with a construction area of up to 200 m2 may be enlarged by up to 20 % of "
+                   "the existing area, except classified buildings.", EXPLANATION, None, [E30])
+    assert atoms[0].problem and "literal quote" in atoms[0].problem and "general_rule" in atoms[0].problem
+
+
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_a_multi_limit_rule_quoted_literally_verifies(section):
+    d = render_draft(in_section(section, "x", ["E30"], basis="general_rule", quote=E30_SENTENCE), RECORDS, matter())
+    report = await Verifier(Reviewer(VERIFIED), TRUSTED).verify(matter(), checklist(), d, RECORDS, CHAIN)
     assert report.outcome == "VERIFIED", report.issues
+    assert [(a.kind, a.bearer, a.supported_by) for a in report.claim_atoms if a.verdict == "supported"] == [
+        ("general_rule", "source", ["E30"])]
 
 
-async def test_a_reordered_multi_limit_paraphrase_must_be_quoted_instead():
-    """The known cost of the V2 rule: correct but reordered limits are not read back from a paraphrase."""
-    text = ("Single-family houses may be enlarged by up to 20 % of the existing area if their construction area is up "
-            "to 200 m2, except classified buildings.")
-    report = await verify(text, ["E30"])
-    assert report.outcome == "REJECTED", report.issues
+async def test_a_partial_quote_of_a_multi_limit_rule_does_not_verify():
+    partial = "Nas moradias unifamiliares com área de construção até 200 m2, é admitida a ampliação"
+    d = render_draft(in_section("claim", "x", ["E30"], basis="general_rule", quote=partial), RECORDS, matter())
+    report = await Verifier(Reviewer(VERIFIED), TRUSTED).verify(matter(), checklist(), d, RECORDS, CHAIN)
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
+@pytest.mark.xfail(strict=True, reason="known limitation L-6 (pre-existing at c6e3be4): a PT definite plural of a "
+                                       "place noun ('nas moradias') is read as this matter in a paraphrase")
+async def test_a_pt_generic_definite_plural_is_a_general_scope():
+    record_ = record("E32", "regulatory_source", "Artigo 902.º Ampliação 1 - Nas moradias unifamiliares é admitida a "
+                     "ampliação até 20 % da área existente.", source="cascais-pdm", basis="official_text",
+                     authority_class="municipal_instrument", status="official_text")
+    records = [*RECORDS, record_]
+    d = render_draft(in_section("claim", "Nas moradias unifamiliares é admitida a ampliação até 20 % da área existente.",
+                                ["E32"], basis=EXPLANATION), records, matter())
+    report = await Verifier(Reviewer(VERIFIED), TRUSTED).verify(matter(), checklist(), d, records, CHAIN)
+    assert report.outcome == "VERIFIED"
 
 
 @pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
@@ -318,14 +352,6 @@ async def test_codex_v2_round2_a_limit_on_the_enlarged_area_is_rejected(section)
     assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
 
 
-@pytest.mark.xfail(strict=True, reason="known limitation (Codex V2 round 2, P2): a multi-limit paraphrase that adds a "
-                                       "quantity word ('by an area of') is not aligned with the passage; quote instead")
-async def test_a_multi_limit_paraphrase_with_an_added_quantity_word_verifies():
-    text = ("Single-family houses with a construction area of up to 200 m2 may be enlarged by an area of up to 20 % of "
-            "the existing area, except classified buildings.")
-    assert (await verify(text, ["E30"])).outcome == "VERIFIED"
-
-
 @pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
 async def test_codex_v2_round3_a_modifier_moved_into_the_exception_is_rejected(section):
     """Codex V2 review, round 3: "existing" moved from the 20 % quantity onto the exception."""
@@ -335,12 +361,6 @@ async def test_codex_v2_round3_a_modifier_moved_into_the_exception_is_rejected(s
     assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
 
 
-async def test_adjacent_content_words_may_still_swap_in_a_multi_limit_rule():
-    text = ("Single-family houses with a construction area of up to 200 m2 may be enlarged by up to 20 % of the area "
-            "existing, except buildings classified.")
-    assert (await verify(text, ["E30"])).outcome == "VERIFIED"
-
-
 @pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
 async def test_codex_v2_round4_a_target_limit_is_not_an_amount_limit(section):
     """Codex V2 review, round 4: "enlarged to a maximum of 20 %" (resulting size) vs E30's amount of enlargement."""
@@ -348,18 +368,3 @@ async def test_codex_v2_round4_a_target_limit_is_not_an_amount_limit(section):
             "existing area, except classified buildings.")
     report = await verify(text, ["E30"], section)
     assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
-
-
-async def test_an_amount_limit_worded_by_a_maximum_of_still_verifies():
-    text = ("Single-family houses with a construction area of up to 200 m2 may be enlarged by a maximum of 20 % of the "
-            "existing area, except classified buildings.")
-    assert (await verify(text, ["E30"])).outcome == "VERIFIED"
-
-
-@pytest.mark.xfail(strict=True, reason="known limitation (Codex V2 round 4, P2): a multi-limit paraphrase that puts "
-                                       "the quantity after its limit ('up to 200 m2 of construction area') is not "
-                                       "aligned with the passage; quote instead")
-async def test_a_multi_limit_paraphrase_with_the_quantity_after_its_limit_verifies():
-    text = ("Single-family houses with up to 200 m2 of construction area may be enlarged by up to 20 % of the existing "
-            "area, except classified buildings.")
-    assert (await verify(text, ["E30"])).outcome == "VERIFIED"

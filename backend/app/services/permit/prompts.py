@@ -79,7 +79,8 @@ Role: DRAFTER. Write a structured draft answer from the checklist, the evidence 
   instead ("Whether … must be confirmed with the Câmara", "Confirm with the Câmara whether …"). A legal requirement,
   permission, number, limit or exception in your own words must restate ONE sentence of a cited official_text
   passage with all its conditions, alternatives, limits and exceptions, adding nothing; otherwise quote it
-  ("general_rule"). Curated references never support it. Apply a rule to the works only as a condition: "If the works
+  ("general_rule"). A rule with two or more numeric limits (areas, percentages, heights …) must ALWAYS be quoted
+  literally ("general_rule" with the whole sentence as the quote), never paraphrased. Curated references never support it. Apply a rule to the works only as a condition: "If the works
   are <the rule's own scope>, <the rule's consequence>."
 - The checklist status is computed by HABITA. "conditions" lists what only the authority can settle: if it is not
   empty, the answer must be "conditional" (or "undetermined" if the evidence cannot support a view), and the summary
