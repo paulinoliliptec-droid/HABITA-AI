@@ -406,8 +406,9 @@ _ANAPHORA = {"esta", "este", "estas", "estes", "essa", "esse", "essas", "esses",
              "as mesmas", "em tal", "in this", "in that", "in such"}
 
 
-def _full_sentences(text: str) -> list[str]:
-    """Sentences up to . ! ? (``_sentences`` also stops at ";", which ends a clause, not a sentence)."""
+def _full_sentences(text: str, coreference: bool = True) -> list[str]:
+    """Sentences up to . ! ? (``_sentences`` also stops at ";", which ends a clause, not a sentence). ``coreference``
+    (official passages): a sentence that takes up the previous one is part of it."""
     out, current = [], ""
     for piece in _sentences(text):
         current += piece
@@ -416,6 +417,8 @@ def _full_sentences(text: str) -> list[str]:
             current = ""
     if current:
         out.append(current)
+    if not coreference:
+        return [s for s in out if s.strip()]
     # A sentence that takes up the previous one ("Essa permissão depende de …", "Such use requires …") is part of it:
     # a quote of the first alone would leave out what conditions it.
     merged: list[str] = []
@@ -432,19 +435,38 @@ def _stems(text: str) -> set[str]:
 
 
 def _takes_up(previous: str, sentence: str) -> bool:
-    """Whether a sentence refers back to the previous one: it opens with a determiner (anaphoric or definite) and its
-    head takes up one of the previous sentence's words ("… é permitida. A permissão depende …"); "Esta secção define
+    """Whether a sentence refers back to the previous one: a determiner whose head takes up one of the previous
+    sentence's words ("… é permitida. A permissão depende …", "Para exercer esta permissão, …"); "Esta secção define
     …" opens a new subject."""
     words = _tokens(sentence)
-    if not words or not (words[0] in _ANAPHORA or words[0] in _DEFINITE | {"the"} or " ".join(words[:2]) in _ANAPHORA):
-        return False
-    head = next((w for w in words[1:4] if w not in _FUNCTION and w not in _ANAPHORA), None)
-    return head is not None and head[:5] in _stems(previous)
+    previous_stems = _stems(previous)
+
+    def head_after(i: int) -> bool:
+        head = next((w for w in words[i + 1:i + 4] if w not in _FUNCTION and w not in _ANAPHORA), None)
+        return head is not None and head[:5] in previous_stems
+    # A definite subject that takes up the previous sentence ("A permissão depende …"), or an anaphoric determiner
+    # anywhere ("Para exercer esta permissão, …").
+    if words and words[0] in _DEFINITE | {"the"} and head_after(0):
+        return True
+    return any(w in _ANAPHORA and head_after(i) for i, w in enumerate(words))
 
 
 def _clauses(text: str) -> list[tuple[str, str]]:
     """(the whole sentence, one of its clauses), clause by clause."""
     return [(whole, clause) for whole in _full_sentences(text) for clause in _sentences(whole)]
+
+
+def _statement_clauses(text: str) -> list[tuple[tuple[str, ...], str]]:
+    """(the runs of consecutive sentences that contain it, one clause), clause by clause. A statement's sentences are
+    not merged by coreference (its next sentence may be about the property: "… The property holds that licence."):
+    a quote is literal when one of those runs is a whole official unit."""
+    sentences = [w.strip() for w in _full_sentences(text, coreference=False)]
+    out = []
+    for k, whole in enumerate(sentences):
+        runs = tuple(" ".join(sentences[a:b]) for a in range(max(0, k - 3), k + 1)
+                     for b in range(k + 1, min(len(sentences), a + 4) + 1))
+        out += [(runs, clause.strip()) for clause in _sentences(whole) if _tokens(clause)]
+    return out
 
 
 #: What makes a span restrictive: a condition, exclusivity, negation, modality, exception, limit, tense or quantifier.
@@ -464,12 +486,12 @@ def _without_inclusions(sentence: str, pattern: re.Pattern) -> str:
     return pattern.sub(drop, sentence)
 
 
-def _literal(atom: str, s: _Sentence) -> bool:
+def _literal(atom: str | tuple[str, ...], s: _Sentence) -> bool:
     """Whether the atom is the whole sentence in its own wording (accents, case, spacing, a paragraph number and the
     final stop aside). Never a part of it: what a part leaves out can be a condition in any wording ("desde que …"),
     so a partial quote is not decided by reading what it drops."""
-    a = _norm(re.sub(r"^\s*\d+\s*-\s*", "", atom))
-    return bool(a) and a in s.wordings
+    candidates = (atom,) if isinstance(atom, str) else atom
+    return any((a := _norm(re.sub(r"^\s*\d+\s*-\s*", "", c))) and a in s.wordings for c in candidates)
 
 
 def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence, verbatim: bool = False,
@@ -737,7 +759,8 @@ def _restates(concepts: list[tuple[str, set[str]]], cited: list[Evidence]) -> bo
 
 
 def _directional(tokens: list[str], cited: list[Evidence], verbatim: bool = False,
-                 text: str = "", literal: bool = False, whole: str | None = None) -> tuple[tuple[str, ...], bool]:
+                 text: str = "", literal: bool = False,
+                 whole: str | tuple[str, ...] | None = None) -> tuple[tuple[str, ...], bool]:
     """(supporting evidence ids, quote_required): the ids are empty when nothing supports the atom;
     ``quote_required`` says a cited sentence would support it as a literal quote. ``literal``: only the sentence's
     own wording supports it (a normative statement, see ``_normative``)."""
@@ -762,7 +785,8 @@ _QUOTE_REQUIRED = ("restates a normative rule (a requirement, duty, permission, 
                    "passage (planning_basis general_rule)")
 
 
-def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False, whole: str | None = None) -> Atom:
+def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False,
+                      whole: str | tuple[str, ...] | None = None) -> Atom:
     """A general explanation atom. Enforced when it touches a legal instrument or outcome, or gives the matter a legal
     position; otherwise the planning contract decides and the directional verdict is recorded in shadow.
 
@@ -850,8 +874,7 @@ _CONTENT_CLAUSE = re.compile(r"\b(?:que|that)\b")
 _TOPIC_STEMS = ("zon", "distrit", "district", "categor", "parametr", "parameter", "municip", "plan", "dwelling", "fogo",
                 "habitacion", "residenc", "residential", "which", "segund", "second", "qual", "classif", "rustic",
                 "rural", "espac", "space", "solo", "land", "uso", "use", "rule", "regra", "regime", "lote", "parcel",
-                "terren", "imovel", "propert", "local", "area", "map", "plant", "ordenament", "territor", "admit",
-                "admiss",
+                "terren", "imovel", "propert", "local", "area", "map", "plant", "ordenament", "territor",
                 # dependency and reference words: "consoante a zona", "qualifies it", "as respetivas regras"
                 "consoant", "conform", "depending", "according", "acordo", "it", "its", "they", "their", "respetiv",
                 "respectiv", "cada", "each", "own", "proprio", "propria")
@@ -881,6 +904,10 @@ def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
         # The closed concept table and planning's own topic words name what a structure is about, not a claim; a
         # deontic or restrictive concept ("allowed", "only", "never") is a claim unless the cited sentence has it.
         if t.startswith(_TOPIC_STEMS) or not any(c.startswith("w:") for c in alts) and not alts & _DEONTIC_CONCEPTS:
+            continue
+        # "os usos admissíveis", "which uses each zone admits": admissibility names a category of uses; qualifying
+        # anything else ("a dotação … admissível") is a claim.
+        if t.startswith(("admit", "admiss")) and (hedged or any(w.startswith(("uso", "use")) for w in words)):
             continue
         if alts & {"CONJ", "DISJ", "ALL", "INCL"}:
             continue
@@ -949,10 +976,6 @@ def _free_text_atom(atom: str, cited: list[Evidence]) -> Atom:
 
 def atoms(text: str) -> list[str]:
     return [a.strip() for a in _sentences(text) if _tokens(a)]
-
-
-def _statement_clauses(text: str) -> list[tuple[str, str]]:
-    return [(w.strip(), a.strip()) for w, a in _clauses(text) if _tokens(a)]
 
 
 def assess(text: str, basis: str, step: str | None, cited: list[Evidence]) -> list[Atom]:

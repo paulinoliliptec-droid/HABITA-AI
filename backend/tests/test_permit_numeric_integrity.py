@@ -14,7 +14,8 @@ import pytest
 from app.schemas.permit import Conclusion
 from app.services.permit.admissibility import render_draft
 from app.services.permit.verifier import Verifier
-from tests.mu9_acceptance import RECORDS
+from app.services.permit.claims import assess
+from tests.mu9_acceptance import E13, RECORDS
 from tests.test_permit_admissibility import TRUSTED, claim, draft, in_section, record
 from tests.test_permit_verifier import CHAIN, VERIFIED, Reviewer, checklist, codes, matter
 
@@ -587,3 +588,32 @@ async def test_nrm_task_r3_each_layer_on_its_own():
     assert rejected(await explained("Nas operações urbanísticas, o PDM regula a dotação de estacionamento permitida.", "E13"))
     # A predicative "as" with no deontic word, after a PT source name ("de").
     assert rejected(await explained("The PDM de Cascais defines parking provision as a use.", "E13"))
+
+
+# --- NRM-10/11 task, Codex round 4 (2026-10-29): exact cases --------------------------------------------------------
+
+E301 = official("E301", "TEST FIXTURE Artigo 301.º Multifuncionalidade 1 - A multifuncionalidade do solo é permitida. "
+                        "Para exercer esta permissão, é necessário parecer favorável da Câmara.")
+RECS.append(E301)
+
+
+@pytest.mark.parametrize("text", [
+    "Nas operações urbanísticas, o PDM define a dotação de estacionamento admissível.",  # exact
+    "Nas operações urbanísticas, o PDM regula a dotação de estacionamento admitida.",
+])
+async def test_nrm_task_r4_admissibility_qualifies_only_a_category_of_uses(text):
+    assert rejected(await explained(text, "E13"))
+
+
+async def test_nrm_task_r4_a_later_anaphor_takes_up_the_previous_sentence():
+    assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E301"))  # exact
+    report = await quoted(E301.excerpt.split(" 1 - ", 1)[1], "E301")
+    assert report.outcome == "VERIFIED", report.issues
+
+
+async def test_nrm_task_r4_a_statement_is_not_merged_with_its_next_sentence():
+    """'The property holds that licence.' takes up the rule's words but is the statement's own claim: the quote stays
+    literal and the property claim is judged on its own."""
+    text = (E13.excerpt.split(" 1 - ", 1)[1] + " The property already holds that licence.")
+    atoms = assess(text, EXPLANATION, None, [E13])
+    assert [a.kind for a in atoms] == ["general_rule", "legal_status"]
