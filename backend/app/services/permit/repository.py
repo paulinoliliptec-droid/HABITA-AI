@@ -241,13 +241,15 @@ class MongoPermitRepository:
         await self._evidence.create_index([("matter_id", ASCENDING), ("dedupe_key", ASCENDING)], unique=True)
         await self._verifications.create_index([("matter_id", ASCENDING), ("created_at", DESCENDING)])
         # MU-9 (M8): the server-side VERIFIED rule is installed by every deployment of this code, so a later rollback
-        # to a pre-MU-9 revision can't commit VERIFIED even if nobody ran raise-protocol-floor. A failure (missing
-        # privilege) is logged loudly; commit_verified's own floor check still applies to this code.
+        # to a pre-MU-9 revision can't commit VERIFIED even if nobody ran raise-protocol-floor. Fail closed: without
+        # it, rollback protection would silently be absent, so the service does not start (the database user needs
+        # the collMod privilege on this database).
         try:
             await self.apply_validator(await self.get_floor())
         except StorageUnavailableError:
-            logger.error("MU-9: could not install the permit_verifications validator; a rollback to a pre-MU-9 "
-                         "revision would not be blocked server-side. Run raise-protocol-floor with a privileged user.")
+            logger.error("MU-9: could not install the permit_verifications validator; refusing to start without "
+                         "server-side rollback protection. Grant collMod on the database or run raise-protocol-floor.")
+            raise
 
     async def create_matter(self, matter: PermitMatter, access_hash: str) -> None:
         await self._call(self._matters.insert_one(
@@ -365,11 +367,13 @@ class MongoPermitRepository:
             by_protocol.setdefault(d.get("protocol") or "statement-v1", []).append(d["_id"])
         flagged = 0
         for protocol, ids in by_protocol.items():
-            result = await self._call(self._verifications.update_many(
-                {"_id": {"$in": ids}}, {"$set": {"superseded_protocol": protocol}}))
+            # Matters first: if the report update then fails, a rerun still finds these reports (still unflagged)
+            # and repeats both; the matter update is idempotent.
             await self._call(self._matters.update_many(
                 {"state": MatterState.VERIFIED.value, "latest_verification_id": {"$in": ids}},
                 {"$set": {"superseded_protocol": protocol}}))
+            result = await self._call(self._verifications.update_many(
+                {"_id": {"$in": ids}}, {"$set": {"superseded_protocol": protocol}}))
             flagged += result.modified_count
         return flagged
 

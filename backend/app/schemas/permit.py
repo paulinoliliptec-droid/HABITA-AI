@@ -319,6 +319,8 @@ class PermitMatter(BaseModel):
     @computed_field
     @property
     def assessment_status(self) -> str:
+        if self.state == MatterState.VERIFIED and self.superseded_protocol:
+            return "superseded_assessment"  # MU-9: verified by a protocol no longer admitted; re-verify
         return {
             MatterState.VERIFIED: "verified_assessment",
             MatterState.REJECTED: "assessment_not_verified",
@@ -337,6 +339,10 @@ class PermitMatter(BaseModel):
     def outcome_note(self) -> str | None:
         if self.state != MatterState.VERIFIED:
             return None
+        if self.superseded_protocol:
+            return ("Superseded assessment: it was verified under an earlier verification protocol "
+                    f"({self.superseded_protocol}) that HABITA no longer accepts. It must be verified again before it "
+                    "is relied on. It is not a permit and not an approval by the competent authority.")
         note = ("Verified assessment: HABITA's analysis passed its evidence and verification checks. "
                 "It is not a permit and not an approval by the competent authority.")
         if self.draft and self.draft.conditions:

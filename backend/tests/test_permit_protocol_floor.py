@@ -169,3 +169,34 @@ async def test_superseding_flags_the_reports_and_their_verified_matters_includin
                                                                                      "statement-v1"}}
                            for entry in matters)
     assert {i for entry in matters for i in entry[2]["latest_verification_id"]["$in"]} == {"pv_old", "pv_v1"}
+
+
+async def test_startup_fails_closed_when_the_validator_cannot_be_installed():
+    """R3: without the validator a rollback would not be blocked server-side, so the service does not start."""
+    from pymongo.errors import OperationFailure
+
+    from app.core.errors import StorageUnavailableError
+    repo, log = _recording_repo()
+
+    async def denied(*a, **kw):
+        raise OperationFailure("not authorized on habita_ai to execute command { collMod: ... }")
+    repo._verifications.command = denied
+    with pytest.raises(StorageUnavailableError):
+        await repo.ensure_indexes()
+
+
+def test_a_superseded_verified_matter_is_not_presented_as_verified():
+    """R4: the API's own status and note change, not just a stored flag."""
+    from tests.test_permit_verifier import matter
+    m = matter().model_copy(update={"state": "VERIFIED", "superseded_protocol": "statement-v1"})
+    assert m.assessment_status == "superseded_assessment"
+    assert m.outcome_note.startswith("Superseded assessment") and "verified again" in m.outcome_note
+    assert matter().model_copy(update={"state": "VERIFIED"}).assessment_status == "verified_assessment"
+
+
+async def test_matters_are_flagged_before_their_reports_so_a_failed_run_can_be_repeated():
+    """R5: the reports are what a rerun selects; flagging them last keeps a partial failure repairable."""
+    repo, log = _recording_repo([{"_id": "pv_old"}])
+    await repo.flag_superseded(DEFAULT_FLOOR)
+    order = [entry[0] for entry in log if entry[1] == "update_many"]
+    assert order == ["matters", "verifications"]

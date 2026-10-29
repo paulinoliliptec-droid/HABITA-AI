@@ -225,3 +225,20 @@ def test_attributive_or_epistemic_permission_wording_stays_a_shadow_verdict(text
     from tests.test_permit_admissibility import official
     atoms = assess(text, EXPLANATION, None, [official("E3")])
     assert atoms and not any(a.enforced and a.problem for a in atoms)
+
+
+# --- Codex Phase 1 re-review (2026-10-29, gpt-6-sol): exact cases ---------------------------------------------------
+
+@pytest.mark.parametrize("text, cites", [
+    # R1: a relative clause before the deferral still asserts the licence.
+    ("The property holds a licence, which must be confirmed with the Câmara.", ["E13"]),
+    ("The project lacks a permit, which must be confirmed with the Câmara.", ["E13"]),
+    ("O imóvel tem licença, que deve ser confirmada junto da Câmara.", ["E13"]),
+    # R2: number–unit pairs kept intact but moved to the other limit.
+    ("Single-family houses with a construction area up to 20 % of the existing area may be enlarged up to 200 m2, "
+     "except classified buildings.", ["E30"]),
+])
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_codex_phase1_rereview_bypasses_are_rejected(text, cites, section):
+    report = await verify(text, cites, section)
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues

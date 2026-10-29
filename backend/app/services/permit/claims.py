@@ -245,7 +245,12 @@ def _slots(concepts: list[tuple[str, set[str]]]) -> set[tuple]:
             before = next((next(iter(seq[j])) for j in range(max(0, i - 2), i) if seq[j] & _COMPARATORS), None)
             after = next((next(iter(seq[j] & _UNITS)) for j in range(i + 1, min(len(seq), i + 2)) if seq[j] & _UNITS),
                          None)
-            out.add(("NUM", before, number, after))
+            # What the number limits: the content concepts just before it and its comparator ("construction area
+            # up to 200 m2", "enlarged by up to 20 %"); EN and PT order them differently, so a window, not one word.
+            start = i - (1 if before else 0)
+            head = frozenset(c for j in range(max(0, start - 3), start) for c in seq[j]
+                             if c not in _COMPARATORS and c not in _OPERATORS and not c.startswith("NUM:"))
+            out.add(("NUM", before, number, after, head))
         elif alts & _OPERATORS and 0 < i < len(seq) - 1:
             op = next(iter(alts & _OPERATORS))
             out.add(("OP", op, frozenset({seq[i - 1], seq[i + 1]})))
@@ -255,7 +260,8 @@ def _slots(concepts: list[tuple[str, set[str]]]) -> set[tuple]:
 def _slot_matches(slot: tuple, others: set[tuple]) -> bool:
     if slot[0] == "OP":
         return any(o[0] == "OP" and o[1] == slot[1] and _same_pair(slot[2], o[2]) for o in others)
-    return slot in others
+    # Same comparator, number and unit, limiting the same thing (the heads share a concept).
+    return any(o[0] == "NUM" and o[1:4] == slot[1:4] and (o[4] & slot[4] or not (o[4] or slot[4])) for o in others)
 
 
 def _same_pair(a: frozenset, b: frozenset) -> bool:
@@ -357,19 +363,29 @@ def _deferral_rest(atom: str) -> str | None:
     return _UNASSERTED.sub(" ", folded[:m.start()] + " " + folded[m.end():])
 
 
-_COORDINATED = re.compile(r"^(?P<clause>.*\S)\s*(?:,\s*)?\b(?:and|e|but|mas|yet|porem|contudo)\s*$")
+#: A clause boundary right before the deferral: a comma, colon or bracket, a coordinator or a relative pronoun.
+_COORDINATED = re.compile(r"^(?P<clause>.*?\w.*?)\s*(?:[,;:(]\s*)?(?:\b(?:and|e|but|mas|yet|porem|contudo|which|that|"
+                          r"who|whose|que|o qual|a qual|os quais|as quais|cujo|cuja)\b\s*)?$")
+_BOUNDARY = re.compile(r"(?:[,;:(]|\b(?:and|e|but|mas|yet|porem|contudo|which|that|who|whose|que|o qual|a qual|"
+                       r"os quais|as quais|cujo|cuja))\s*$")
 
 
 def _coordinated_clause(atom: str) -> str | None:
-    """The clause coordinated before a deferral, which is an assertion of its own: "The property remains licensed
-    *and* must be confirmed with the Câmara" asserts "The property remains licensed" (MU-9 P1: no assertion is
-    dropped because it shares a subject with a deferral)."""
+    """The clause before a deferral when a clause boundary separates them; it is an assertion of its own: "The
+    property remains licensed *and* must be confirmed", "The property holds a licence*, which* must be confirmed"
+    assert "The property remains licensed" / "holds a licence" (MU-9 P1: no assertion is dropped because it shares
+    a sentence with a deferral). Only a noun phrase directly followed by the deferral ("The property's licensed use
+    must be confirmed") is the deferral's own object."""
     folded = _fold(atom.lower())
     m = _DEFERRAL.search(folded) or _IMPERATIVE.search(folded)
     if m is None:
         return None
-    c = _COORDINATED.match(atom[:m.start()])
-    return c.group("clause") if c else None
+    # Folding keeps offsets when accented letters are precomposed (the usual case); otherwise use the folded text.
+    prefix = atom[:m.start()] if len(atom) == len(folded) else folded[:m.start()]
+    if not _BOUNDARY.search(_fold(prefix.lower())):
+        return None
+    c = _COORDINATED.match(prefix)
+    return c.group("clause") if c and c.group("clause").strip() else None
 
 
 def _asserts(rest: str) -> bool:

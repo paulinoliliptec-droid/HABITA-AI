@@ -3086,6 +3086,171 @@
    "covered_by": "tests/test_permit_claims.py::test_codex_phase1_false_positive_a_verbatim_pt_rule_with_esta_verifies"
   },
   {
+   "id": "ACC-CXP1-07",
+   "group": "CXP1",
+   "statement": "The property holds a licence, which must be confirmed with the Câmara.",
+   "lang": "en",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex Phase 1 re-review, 2026-10-29 (gpt-6-sol, read-only, via codex exec on cbea856)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "pdm"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "property",
+    "object": "see claim_type",
+    "claim_type": "compound: legal_status + deferral (relative clause)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "A relative clause before a deferral is an assertion of its own (R1).",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "closed",
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    }
+   }
+  },
+  {
+   "id": "ACC-CXP1-08",
+   "group": "CXP1",
+   "statement": "The project lacks a permit, which must be confirmed with the Câmara.",
+   "lang": "en",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex Phase 1 re-review, 2026-10-29 (gpt-6-sol, read-only, via codex exec on cbea856)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "pdm"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "project",
+    "object": "see claim_type",
+    "claim_type": "compound: legal_status + deferral (relative clause)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "As ACC-CXP1-07 (R1).",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "closed",
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    }
+   }
+  },
+  {
+   "id": "ACC-CXP1-09",
+   "group": "CXP1",
+   "statement": "Single-family houses with a construction area up to 20 % of the existing area may be enlarged up to 200 m2, except classified buildings.",
+   "lang": "en",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex Phase 1 re-review, 2026-10-29 (gpt-6-sol, read-only, via codex exec on cbea856)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "num"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general permission (limits reassigned)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "Number–unit pairs moved to the other limit (R2).",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "closed",
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "num/general_planning_explanation/claim",
+      "num/general_planning_explanation/procedure",
+      "num/general_planning_explanation/risk",
+      "num/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    }
+   }
+  },
+  {
    "id": "ACC-COND-N01",
    "group": "COND",
    "statement": "The works must ensure parking provision.",
@@ -13957,6 +14122,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "added ACC-CXP1-01..06 (Codex Phase 1 review, exact wording); fixed in claims.py (coordinated clause before a deferral, deontic permission, bound slots, general_rule quotes, PT 'está')."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "added ACC-CXP1-07..09 (Codex re-review, exact wording); fixed: clause boundary before a deferral, numbers bound to what they limit."
   }
  ]
 }
