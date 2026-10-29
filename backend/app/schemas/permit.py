@@ -267,6 +267,9 @@ class VerificationReport(BaseModel):
     #: The verification protocol that produced the report; reports from before MU-9 carry none and read as
     #: ``statement-v1``.
     protocol: str = "statement-v1"
+    #: Set by ``raise-protocol-floor`` on a VERIFIED report whose protocol the floor no longer admits: history only,
+    #: the matter must be re-verified.
+    superseded_protocol: str | None = None
     #: Every atomic legal claim of the draft and its verdict, recomputed by the final gate.
     claim_atoms: list[ClaimAtom] = Field(default_factory=list)
 

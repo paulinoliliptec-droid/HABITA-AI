@@ -12,6 +12,7 @@ from pymongo import AsyncMongoClient
 
 from app.core.config import Settings
 from app.schemas.permit import MatterState, VerificationReport
+from app.services.permit.protocol import CURRENT
 from app.services.permit.repository import (
     MatterAlreadyVerified, MatterCommitConflict, MongoPermitRepository, hash_token,
 )
@@ -52,7 +53,8 @@ async def _run():
             m = make_matter().model_copy(update={"matter_id": mid, "state": MatterState.VERIFIED, "revision": 0,
                                                  "latest_verification_id": rid})
             r = VerificationReport(verification_id=rid, matter_id=mid, draft_revision=0, outcome="VERIFIED",
-                                   issues=[], checks={"final_gate_passed": True}, created_at=datetime.now(UTC))
+                                   issues=[], checks={"final_gate_passed": True}, created_at=datetime.now(UTC),
+                                   protocol=CURRENT)
             return m, r
 
         async def reports(mid):
@@ -120,3 +122,35 @@ async def _run():
         print(f"ATLAS_CLEANUP tag={tag} remaining_test_documents={left}")
         await client.close()
         assert left == 0
+
+
+def test_the_verification_validator_refuses_a_pre_mu9_verified_report_on_atlas():
+    """MU-9 (M8), server side: in a throwaway database (dropped at the end), the validator that
+    ``raise-protocol-floor`` installs refuses a VERIFIED report shaped like the pre-MU-9 code writes it."""
+    asyncio.run(_validator_run())
+
+
+async def _validator_run():
+    from pymongo.errors import WriteError
+
+    from app.services.permit.protocol import DEFAULT_FLOOR
+    settings = Settings(app_env="test")
+    assert settings.mongodb_uri, "MONGODB_URI missing"
+    client = AsyncMongoClient(settings.mongodb_uri.get_secret_value(), serverSelectionTimeoutMS=10000)
+    name = f"{settings.mongodb_db_name}_mu9test_{secrets.token_hex(4)}"
+    permit = MongoPermitRepository(client, name)
+    base = {"matter_id": "pm_x", "draft_revision": 0, "issues": [], "checks": {}, "created_at": datetime.now(UTC)}
+    try:
+        await permit.apply_validator(DEFAULT_FLOOR)
+        collection = client[name]["permit_verifications"]
+        with pytest.raises(WriteError):
+            await collection.insert_one({"_id": "pv_old", "outcome": "VERIFIED", **base})
+        with pytest.raises(WriteError):
+            await collection.insert_one({"_id": "pv_v1", "outcome": "VERIFIED", "protocol": "statement-v1",
+                                         "claim_atoms": [], **base})
+        await collection.insert_one({"_id": "pv_rejected", "outcome": "REJECTED", **base})
+        await collection.insert_one({"_id": "pv_new", "outcome": "VERIFIED", "protocol": CURRENT, "claim_atoms": [],
+                                     **base})
+    finally:
+        await client.drop_database(name)
+        await client.close()

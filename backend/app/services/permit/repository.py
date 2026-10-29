@@ -26,6 +26,7 @@ from pymongo.errors import DuplicateKeyError, PyMongoError
 
 from app.core.errors import ConflictError, StorageUnavailableError
 from app.schemas.permit import Checklist, Evidence, MatterState, PermitMatter, VerificationReport
+from app.services.permit.protocol import DEFAULT_FLOOR, FLOOR_ID, Floor, validator
 from app.services.sources.registry import TrustPin
 from app.services.sources.repository import InMemorySourceRepository, MongoSourceRepository
 
@@ -78,6 +79,17 @@ class CommitOutcomeUnknown(StorageUnavailableError):
 class MatterCommitConflict(ConflictError):
     """The VERIFIED commit doesn't fit the stored matter (missing, another state or revision, already VERIFIED by
     another report) or the matter/report pair is inconsistent. Nothing was written."""
+
+
+class ProtocolBelowFloor(MatterCommitConflict):
+    """The report's verification protocol is below the persisted floor, or known unsafe (MU-9). Nothing was
+    written: a rolled-back verifier can't commit VERIFIED."""
+
+
+def _check_floor(floor: Floor, report: VerificationReport) -> None:
+    if not floor.admits(report.protocol):
+        raise ProtocolBelowFloor(f"Verification protocol {report.protocol} is not admitted by the floor "
+                                 f"({floor.min_protocol}; known unsafe: {', '.join(floor.known_unsafe) or 'none'}).")
 
 
 class MatterAlreadyVerified(ConflictError):
@@ -133,6 +145,8 @@ class InMemoryPermitRepository:
         self.verifications: dict[str, list[VerificationReport]] = {}
         self.access_hashes: dict[str, str] = {}
         self._leases: dict[str, datetime] = {}
+        #: The persisted protocol floor (MU-9); the Mongo store keeps it in ``verification_policy``.
+        self.floor: Floor = DEFAULT_FLOOR
 
     async def create_matter(self, matter: PermitMatter, access_hash: str) -> None:
         self.matters[matter.matter_id] = matter.model_copy(deep=True)
@@ -193,6 +207,7 @@ class InMemoryPermitRepository:
             stored = self.matters.get(matter.matter_id)
             if _already_committed(stored, report):
                 return True  # idempotent: this exact commit already happened
+            _check_floor(self.floor, report)
             if not sources.pin_holds(pin.versions):
                 return False
             if (stored is None or stored.state != MatterState.VERIFYING or stored.revision != matter.revision
@@ -215,6 +230,7 @@ class MongoPermitRepository:
         self._checklists = db["permit_checklists"]
         self._evidence = db["permit_evidence"]
         self._verifications = db["permit_verifications"]
+        self._policy = db["verification_policy"]
 
     async def ensure_indexes(self) -> None:
         await self._matters.create_index([("property_id", ASCENDING), ("created_at", DESCENDING)])
@@ -294,6 +310,41 @@ class MongoPermitRepository:
             self._verifications.insert_one({"_id": report.verification_id, **report.model_dump(mode="python")})
         )
 
+    async def get_floor(self) -> Floor:
+        return Floor.from_doc(await self._call(self._policy.find_one({"_id": FLOOR_ID})))
+
+    async def store_floor(self, current: Floor, new: Floor) -> bool:
+        """Write ``new`` only if the stored floor is still ``current`` (no concurrent change); True if written."""
+        if current == DEFAULT_FLOOR and not current.history:
+            exists = await self._call(self._policy.find_one({"_id": FLOOR_ID}))
+            if exists is None:
+                await self._call(self._policy.insert_one(new.to_doc()))
+                return True
+        result = await self._call(self._policy.replace_one(
+            {"_id": FLOOR_ID, "min_protocol": current.min_protocol, "known_unsafe": list(current.known_unsafe)},
+            new.to_doc()))
+        return result.matched_count == 1
+
+    async def apply_validator(self, floor: Floor) -> None:
+        """Install the server-side VERIFIED rule (``protocol.validator``); existing documents are not re-checked."""
+        db = self._verifications.database
+        rule = validator(floor)
+        if "permit_verifications" not in await self._call(db.list_collection_names()):
+            await self._call(db.create_collection("permit_verifications", validator=rule,
+                                                  validationLevel="moderate", validationAction="error"))
+            return
+        await self._call(db.command("collMod", "permit_verifications", validator=rule,
+                                    validationLevel="moderate", validationAction="error"))
+
+    async def flag_superseded(self, floor: Floor) -> int:
+        """Mark VERIFIED reports from protocols the floor no longer admits (including pre-MU-9 ones, which have no
+        protocol field) as superseded; they stay as history and must be re-verified."""
+        result = await self._call(self._verifications.update_many(
+            {"outcome": "VERIFIED", "superseded_protocol": {"$exists": False},
+             "$or": [{"protocol": {"$exists": False}}, {"protocol": {"$nin": floor.admitted()}}]},
+            [{"$set": {"superseded_protocol": {"$ifNull": ["$protocol", "statement-v1"]}}}]))
+        return result.modified_count
+
     async def latest_verification(self, matter_id: str) -> VerificationReport | None:
         doc = await self._call(
             self._verifications.find_one({"matter_id": matter_id}, sort=[("created_at", DESCENDING)])
@@ -305,6 +356,8 @@ class MongoPermitRepository:
         """One multi-document transaction (MongoDB core API, with the documented retry pattern):
 
         - idempotent: a matter already VERIFIED by this report is success, with no writes;
+        - the report's protocol must be admitted by the persisted floor (read in the transaction; MU-9), else
+          ``ProtocolBelowFloor``; the collection validator enforces the same server-side;
         - every pinned source is matched on its (status, trust_version) and written, so a concurrent status change
           is a write conflict, never a silent interleaving (CX-2);
         - the matter must match exactly ``{_id, state: VERIFYING, revision, property_id}``; anything else aborts
@@ -326,6 +379,8 @@ class MongoPermitRepository:
                     if _already_committed(stored, report):
                         await _abort(session)
                         return True
+                    _check_floor(Floor.from_doc(await self._policy.find_one({"_id": FLOOR_ID}, session=session)),
+                                 report)
                     for source_id, (status, version) in sorted(pin.versions.items()):
                         result = await sources.collection.update_one(
                             sources.pin_filter(source_id, status, version),

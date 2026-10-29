@@ -16,6 +16,7 @@ from pymongo.errors import DuplicateKeyError, OperationFailure
 
 from app.core.errors import StorageUnavailableError
 from app.schemas.permit import MatterState, VerificationReport
+from app.services.permit.protocol import CURRENT
 from app.services.permit.repository import MongoPermitRepository
 from app.services.sources.registry import TrustPin
 from app.services.sources.repository import MongoSourceRepository
@@ -182,6 +183,7 @@ def stores(commit_plan=(), *, matter_state="VERIFYING", revision=0, with_matter=
     permit._client = client
     permit._matters = client.collection("permit_matters")
     permit._verifications = client.collection("permit_verifications")
+    permit._policy = client.collection("verification_policy")
     src = MongoSourceRepository.__new__(MongoSourceRepository)
     src.client, src._sources = client, client.collection("official_sources")
     src._sources.docs["pt-rjue"] = {"_id": "pt-rjue", "status": "trusted", "trust_version": 2}
@@ -199,7 +201,7 @@ def verified(report_id="pv_1", matter_id="pm_1", revision=0):
                                          "latest_verification_id": report_id})
     r = VerificationReport(verification_id=report_id, matter_id=matter_id, draft_revision=revision,
                            outcome="VERIFIED", issues=[], checks={"final_gate_passed": True},
-                           created_at=datetime.now(UTC))
+                           created_at=datetime.now(UTC), protocol=CURRENT)
     return m, r
 
 

@@ -7,6 +7,8 @@
     python -m app.maintenance ingest-sources [jurisdiction_id]
     python -m app.maintenance list-sources
     python -m app.maintenance set-source-status <source_id> <status> <operator> <reason…>
+    python -m app.maintenance protocol-floor
+    python -m app.maintenance raise-protocol-floor <min_protocol> <operator> <reason…>
 
 purge-expired    removes expired Google-derived fields (the running service also does this).
 list-duplicates  shows properties flagged as possible duplicates at creation.
@@ -20,6 +22,11 @@ ingest-sources   seeds the official source registry, then fetches the trusted ma
 list-sources     shows every registered source with its status and latest snapshot.
 set-source-status  operator lifecycle change (candidate → validated → trusted → retired);
                  validation checks apply and the change is recorded with operator and reason.
+protocol-floor   shows the verification protocol floor (MU-9) and the protocols it admits.
+raise-protocol-floor  raises the floor (never lowers it; statement-v1 stays known unsafe), installs the
+                 permit_verifications validator (a VERIFIED report needs an admitted protocol) and flags
+                 VERIFIED reports from protocols no longer admitted as superseded. Before running it, route
+                 no traffic to (and untag) Cloud Run revisions older than the MU-9 release.
 
 Reads MONGODB_URI from the environment / repo-root .env; prints no credentials.
 """
@@ -31,6 +38,8 @@ from pymongo import AsyncMongoClient
 
 from app.core.config import get_settings
 from app.db.property_repository import MongoPropertyRepository
+from app.services.permit.protocol import FloorError, raise_floor
+from app.services.permit.repository import MongoPermitRepository
 from app.services.sources.catalog import ALL_SOURCES, CASCAIS
 from app.services.sources.fetcher import SafeFetcher
 from app.services.sources.ingest import SourceIngestor
@@ -72,6 +81,23 @@ async def _run(command: str, args: list[str]) -> None:
             for s in sorted(await sources.list_sources(), key=lambda s: (s.jurisdiction_id, s.source_id)):
                 print(f"{s.status:9} {s.jurisdiction_id:20} {s.source_id:34} {s.retrieval_method:18} "
                       f"snapshot={s.latest_snapshot_id or '-'}")
+        elif command == "protocol-floor":
+            floor = await MongoPermitRepository(client, settings.mongodb_db_name).get_floor()
+            print(f"floor={floor.min_protocol} admitted={','.join(floor.admitted())} "
+                  f"known_unsafe={','.join(floor.known_unsafe) or '-'} changes={len(floor.history)}")
+        elif command == "raise-protocol-floor" and len(args) >= 3:
+            permits = MongoPermitRepository(client, settings.mongodb_db_name)
+            current = await permits.get_floor()
+            try:
+                new = raise_floor(current, args[0], operator=args[1], reason=" ".join(args[2:]))
+            except FloorError as exc:
+                raise SystemExit(f"Refused: {exc}") from None
+            if not await permits.store_floor(current, new):
+                raise SystemExit("Refused: the floor changed concurrently; run the command again.")
+            await permits.apply_validator(new)
+            flagged = await permits.flag_superseded(new)
+            print(f"floor={new.min_protocol} admitted={','.join(new.admitted())}; validator installed; "
+                  f"{flagged} VERIFIED reports flagged as superseded.")
         elif command == "set-source-status" and len(args) >= 4:
             try:
                 changed = await registry.change_status(args[0], args[1], operator=args[2], reason=" ".join(args[3:]))
