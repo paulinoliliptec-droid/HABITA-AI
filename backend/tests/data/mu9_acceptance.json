@@ -16669,6 +16669,79 @@
    "status": "not_run",
    "observed": {},
    "covered_by": "tests/test_permit_numeric_integrity.py::test_normative_round4_a_two_concept_definition_reversed_is_a_restatement"
+  },
+  {
+   "id": "ACC-NRM-10",
+   "group": "NRM",
+   "statement": "O PDM define a dotação de estacionamento como facultativa.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex normative review round 5 (final), 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on d7a4baf)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E13 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "unsupported permission as a distant predicative complement",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "OPEN (BLOCKED, round limit): VERIFIED ×4 on d7a4baf; the predicative-complement check looks 4 tokens back only. Candidate fix (tested, not applied): look back to the clause start.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_open_a_distant_predicative_complement_is_content (strict xfail)"
+  },
+  {
+   "id": "ACC-NRM-11",
+   "group": "NRM",
+   "statement": "A multifuncionalidade",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex normative review round 5 (final), 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on d7a4baf)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E201 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_rule"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "source",
+    "object": "see claim_type",
+    "claim_type": "partial quote of a non-normative-looking fragment (P2)",
+    "modality": "quote"
+   },
+   "expected": "REJECTED",
+   "rationale": "OPEN P2 (round limit): VERIFIED on d7a4baf; a partial quote is rejected but unenforced when not normative. Candidate fix (tested, not applied): enforce every general_rule atom.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_open_a_partial_quote_is_never_certified (strict xfail)"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
@@ -16778,6 +16851,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "normative quote-only round 4 (Codex): unsupported statements are shadow verdicts only when they describe structure (allowlist); restatements from two concepts. ACC-NRM-08..09 added."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "normative quote-only round 5 (Codex, last): ACC-NRM-10 (P1) and ACC-NRM-11 (P2) open; BLOCKED; candidate fixes tested, not applied."
   }
  ]
 }
