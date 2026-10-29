@@ -493,13 +493,14 @@ _LEGAL = re.compile(
 #: Permission words. A permission with no explicit general scope ("Two dwellings are permitted", "São permitidos
 #: dois fogos") is about the matter (MU-9 M1); with one ("in urban land", "each category", "depending on …") it is a
 #: general statement.
-#: Prohibitions, and acts that remove or override a duty, whatever their grammar ("é proibida", "interdita", "o PDM
-#: revoga …", "is waived", "deixa de ser exigida").
+#: Prohibitions, acts that remove or override a duty, and the deontic qualifiers that turn one into a faculty, whatever
+#: their grammar ("é proibida", "interdita", "o PDM revoga …", "is waived", "deixa de ser exigida", "… facultativa").
 _DEONTIC_WORDS = re.compile(
     r"\b(?:proib\w*|prohibit\w*|interdit\w*|forbid\w*|forbidden|vedad\w*|impedid\w*|revog\w*|revok\w*|"
     r"revoca\w*|repeal\w*|derrog\w*|suspend\w*|suspens\w*|anul\w*|annul\w*|isen[tc]\w*|exempt\w*|dispens\w*|"
     r"waiv\w*|prevalec\w*|prevail\w*|overrid\w*|substitu\w*|replac\w*|cessa\w*|deixa\w* de|no longer|carec\w*|"
-    r"necessit\w*|sujeit\w*)\b")
+    r"necessit\w*|sujeit\w*|facultativ\w*|opciona\w*|optional\w*|voluntari\w*|voluntary|discricion\w*|"
+    r"discretion\w*)\b")
 _PERMISSION = re.compile(r"\b(?:permitted|permissible|permitid\w*|permite\w*|allow\w*|admit\w*|admiss\w*)\b")
 _GENERIC_SCOPE = re.compile(
     r"\b(?:each|every|any|cada|qualquer|tod[oa]s?|depending|depend\w*|consoante|conforme|according)\b"
@@ -800,6 +801,9 @@ _META = re.compile(
     r"condition\w*|depend\w*|vari\w*|differ\w*|consta\w*|contain\w*|cont[eé]m|identif\w*|delimit\w*|organi[sz]\w*|"
     r"divid\w*|specific|especific\w*|check\w*|verific\w*|segue|seguem|follows?|apply|applies|aplica|aplicam|"
     r"governs?|governed)\b")
+#: Function words only Portuguese uses ("a" and "as" are shared with English).
+_PT_ONLY = {"o", "os", "do", "da", "dos", "das", "de", "em", "no", "na", "nos", "nas", "um", "uma", "e", "é", "ao", "aos",
+            "pelo", "pela", "que", "nao", "se", "para", "com"}
 _NEGATION = {"not", "nao", "never", "nunca", "nenhum", "nenhuma", "none", "nem", "nor", "sem", "without", "doesn",
              "don", "isn", "aren"}
 _APPLICABILITY = re.compile(r"\b(?:segue|seguem|follows?|apply|applies|applied|aplica|aplicam|aplicar|aplicado|"
@@ -824,9 +828,10 @@ def _meta_descriptive(tokens: list[str], folded: str) -> bool:
         if not all(t in _FUNCTION or t in _GENERIC_RULES for t in _tokens(folded[m.end():])):
             return False
     # Anywhere after the verb, however long the object (ACC-NRM-10). EN "as" needs an object between ("classifies land
-    # as"): right after the verb it is the PT article ("segue as regras").
+    # as"), and a Portuguese statement's "as" is the article ("define a dotação e as regras").
+    portuguese = bool(_PT_ONLY & set(tokens))
     return not any((t == "como" and any(_META.match(w) for w in tokens[:i]))
-                   or (t == "as" and any(_META.match(w) for w in tokens[:i - 1]))
+                   or (t == "as" and not portuguese and any(_META.match(w) for w in tokens[:i - 1]))
                    for i, t in enumerate(tokens))
 
 

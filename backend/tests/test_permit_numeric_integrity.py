@@ -507,3 +507,24 @@ async def test_nrm11_a_whole_quote_still_proves_nothing_about_the_property():
                                                       planning_basis="general_rule", quote=whole), conditions=[])
     report = await outcome(d)
     assert report.outcome == "REJECTED" and "definitive_without_property_evidence" in codes(report.issues)
+
+
+# --- NRM-10/11 task, Codex round 1 (2026-10-29): exact cases --------------------------------------------------------
+
+@pytest.mark.parametrize("text", [
+    "O PDM define a dotação de estacionamento facultativa.",  # exact: no "como"
+    "O PDM estabelece uma dotação de estacionamento opcional.",
+    "The PDM sets an optional parking provision.",
+    "O PDM define a dotação de estacionamento como voluntária.",
+])
+async def test_nrm_task_r1_a_deontic_qualifier_turns_no_duty_into_a_faculty(text):
+    assert rejected(await explained(text, "E13"))
+
+
+@pytest.mark.parametrize("text", [
+    "O PDM define a dotação de estacionamento e as regras aplicáveis.",  # exact: PT article "as"
+    "O PDM regula as operações urbanísticas e as respetivas regras.",
+])
+async def test_nrm_task_r1_the_portuguese_article_as_is_not_a_predicative_complement(text):
+    report = await explained(text, "E13")
+    assert report.outcome == "VERIFIED", report.issues
