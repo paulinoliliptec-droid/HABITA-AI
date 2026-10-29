@@ -77,12 +77,16 @@ _TOKEN = re.compile(r"\d+(?:[.,]\d+)?|%|[^\W\d_]+\d*", re.UNICODE)
 
 
 def _tokens(text: str) -> list[str]:
-    """Lower-case, accent-folded tokens. PT "é" (is) becomes ``é`` so it is not read as "e" (and)."""
+    """Lower-case, accent-folded tokens. The PT copulas "é" and "está" keep their accent: folded they would read as
+    "e" (and) and "esta" (this)."""
     out = []
     text = re.sub(r"-(?:se|lhe|lhes)\b", " ", text.lower())  # PT clitics ("destinam-se") are not conditions
     for t in _TOKEN.findall(text):
-        out.append("é" if t == "é" else _fold(t))
+        out.append(t if t in _KEEP_ACCENT else _fold(t))
     return out
+
+
+_KEEP_ACCENT = {"é", "está", "estás"}
 
 
 #: Function words: no legal content of their own (articles, prepositions, copulas in the present, "and"-less glue).
@@ -90,7 +94,7 @@ def _tokens(text: str) -> list[str]:
 _FUNCTION = set("""
 the a an of in on at to for from into as is are be being that which who whom whose with by there
 o a os as um uma uns umas de do da dos das em no na nos nas ao aos por pelo pela pelos pelas com que é sao ser estar
-esta estao se para
+está estao se para
 """.split())
 #: Concept table: (concept, phrases). A phrase of one word matches by prefix of the folded token; a phrase of several
 #: words matches that exact token sequence. The first match wins, so specific entries come first.
@@ -220,6 +224,48 @@ class _Sentence:
     evidence_id: str
     allowed: frozenset[str]   # every concept of the sentence
     required: frozenset[str]  # its restrictive concepts (all but inclusion lists)
+    slots: frozenset[tuple]   # every bound slot of the sentence (see ``_slots``)
+    required_slots: frozenset[tuple]  # its bound slots outside inclusion lists
+
+
+_UNITS = {"M2", "PCT"}
+_COMPARATORS = {"UPTO", "ATLEAST"}
+_OPERATORS = {"DISJ", "CONJ"}
+
+
+def _slots(concepts: list[tuple[str, set[str]]]) -> set[tuple]:
+    """Concepts bound to each other, so that a set comparison can't swap them: each number with the comparator
+    before it and the unit after it ("up to 200 m2", "até 20 %"), and each "or" / "and" with the concepts it joins
+    ("licensing or prior communication"; the order of the two conjuncts doesn't matter)."""
+    seq = [frozenset(alts) for _, alts in concepts]
+    out = set()
+    for i, alts in enumerate(seq):
+        number = next((c for c in alts if c.startswith("NUM:")), None)
+        if number:
+            before = next((next(iter(seq[j])) for j in range(max(0, i - 2), i) if seq[j] & _COMPARATORS), None)
+            after = next((next(iter(seq[j] & _UNITS)) for j in range(i + 1, min(len(seq), i + 2)) if seq[j] & _UNITS),
+                         None)
+            out.add(("NUM", before, number, after))
+        elif alts & _OPERATORS and 0 < i < len(seq) - 1:
+            op = next(iter(alts & _OPERATORS))
+            out.add(("OP", op, frozenset({seq[i - 1], seq[i + 1]})))
+    return out
+
+
+def _slot_matches(slot: tuple, others: set[tuple]) -> bool:
+    if slot[0] == "OP":
+        return any(o[0] == "OP" and o[1] == slot[1] and _same_pair(slot[2], o[2]) for o in others)
+    return slot in others
+
+
+def _same_pair(a: frozenset, b: frozenset) -> bool:
+    """Two conjunct pairs match when each conjunct shares a concept with one of the other pair's."""
+    a, b = list(a), list(b)
+    if len(a) != len(b):
+        return False
+    if len(a) == 1:
+        return bool(a[0] & b[0])
+    return bool((a[0] & b[0] and a[1] & b[1]) or (a[0] & b[1] and a[1] & b[0]))
 
 
 def _passage_sentences(e: Evidence) -> list[_Sentence]:
@@ -227,11 +273,14 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
     out = []
     for paragraph in _PARAGRAPH.split(_HEADER.sub("", text, count=1)):
         for sentence in _sentences(re.sub(r"^\s*\d+\s*-\s*", "", paragraph)):
-            allowed = {c for _, alts in _concepts_of(_tokens(sentence)) for c in alts}
-            core = {frozenset(alts) for _, alts in _concepts_of(_tokens(_INCLUSION.sub(" ", sentence)))}
+            concepts = _concepts_of(_tokens(sentence))
+            core_concepts = _concepts_of(_tokens(_INCLUSION.sub(" ", sentence)))
+            allowed = {c for _, alts in concepts for c in alts}
+            core = {frozenset(alts) for _, alts in core_concepts}
             required = {next(iter(a)) if len(a) == 1 else min(a) for a in core} - {"INCL"}
             if allowed:
-                out.append(_Sentence(e.evidence_id, frozenset(allowed), frozenset(required)))
+                out.append(_Sentence(e.evidence_id, frozenset(allowed), frozenset(required),
+                                     frozenset(_slots(concepts)), frozenset(_slots(core_concepts))))
     return out
 
 
@@ -240,7 +289,12 @@ def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence) -> bool:
     if not all(alts & s.allowed or alts == {"COND"} for _, alts in atom_concepts):
         return False
     present = {c for _, alts in atom_concepts for c in alts}
-    return all(r in present or (_ALTERNATIVES.get(r, set()) & present) for r in s.required)
+    if not all(r in present or (_ALTERNATIVES.get(r, set()) & present) for r in s.required):
+        return False
+    # Bound slots, both ways: no number, limit, unit or alternative moved to another place or changed, none dropped.
+    slots = _slots([(t, alts) for t, alts in atom_concepts if alts != {"COND"}])
+    return (all(_slot_matches(x, set(s.slots)) for x in slots)
+            and all(_slot_matches(r, slots) for r in s.required_slots))
 
 
 # --- classification ----------------------------------------------------------------------------------------------
@@ -303,6 +357,21 @@ def _deferral_rest(atom: str) -> str | None:
     return _UNASSERTED.sub(" ", folded[:m.start()] + " " + folded[m.end():])
 
 
+_COORDINATED = re.compile(r"^(?P<clause>.*\S)\s*(?:,\s*)?\b(?:and|e|but|mas|yet|porem|contudo)\s*$")
+
+
+def _coordinated_clause(atom: str) -> str | None:
+    """The clause coordinated before a deferral, which is an assertion of its own: "The property remains licensed
+    *and* must be confirmed with the Câmara" asserts "The property remains licensed" (MU-9 P1: no assertion is
+    dropped because it shares a subject with a deferral)."""
+    folded = _fold(atom.lower())
+    m = _DEFERRAL.search(folded) or _IMPERATIVE.search(folded)
+    if m is None:
+        return None
+    c = _COORDINATED.match(atom[:m.start()])
+    return c.group("clause") if c else None
+
+
 def _asserts(rest: str) -> bool:
     tokens = _tokens(rest)
     return any(t in _FINITE for t in tokens) or bool(re.search(r"\b\w+(?:ed|ad[oa]s?|id[oa]s?)\s+(?:by|pel[oa]s?)\b",
@@ -331,8 +400,41 @@ _LOCATION_WORDS = {"located", "situated", "lies", "sits", "localizado", "localiz
                    "situa", "encontra", "parish", "freguesia", "municipality", "concelho", "district", "distrito"}
 
 
-def _precise(concepts: list[tuple[str, set[str]]]) -> bool:
-    return any(c in _PRECISE or c.startswith("NUM:") for _, alts in concepts for c in alts)
+_MODAL_AUX = {"may", "can", "might", "could", "pode", "podem", "podera", "poderao", "poderia", "poderiam"}
+_COPULA = {"is", "are", "be", "é", "está", "sao", "estao", "fica", "ficam", "remains", "remain"}
+_SKIP = {"be", "ser", "also", "still", "tambem", "ainda", "then", "entao", "now", "agora"}
+_PERMITTING = re.compile(r"^(?:permitted|permissible|allowed|admissib\w*|admissiv\w*|admitid\w*|permitid\w*)$")
+#: Verbs of dependency or uncertainty after a modal: "may depend on the plan" permits nothing.
+_DEPENDENCY_VERB = re.compile(r"^(?:depend|vary|vari|differ|change|mudar)\w*$")
+#: An explicit dependency clause keeps a permission hedged: "may be admissible, depending on the land category".
+_DEPENDENCY_CLAUSE = re.compile(r"\b(?:depending on|dependendo d\w*|consoante|conforme|according to|subject to the "
+                                r"(?:plan|category|rules))\b")
+
+
+def _deontic_permission(tokens: list[str], folded: str) -> bool:
+    """Whether the atom asserts a permission as its predicate: a modal followed by a main verb ("building operations
+    may proceed", "pode avançar"), or a copula followed by a permission word ("two dwellings are permitted"). A
+    permission named attributively ("the admissible uses", "os usos admitidos") or hedged by an explicit dependency
+    clause asserts nothing here (Phase 1 records it in shadow)."""
+    if _DEPENDENCY_CLAUSE.search(folded):
+        return False
+    for i, t in enumerate(tokens):
+        nxt = [w for w in tokens[i + 1:i + 4] if w not in _SKIP]
+        if not nxt:
+            continue
+        if t in _MODAL_AUX and not _DEPENDENCY_VERB.match(nxt[0]):
+            return True
+        if t in _COPULA and _PERMITTING.match(nxt[0]):
+            return True
+    return False
+
+
+def _precise(concepts: list[tuple[str, set[str]]], tokens: list[str] = (), folded: str = "") -> bool:
+    """A norm that must be proven: a duty, a number, limit, unit, exception or exclusivity, or a permission asserted
+    as the predicate (``_deontic_permission``)."""
+    if any(c in _PRECISE or c.startswith("NUM:") for _, alts in concepts for c in alts):
+        return True
+    return _deontic_permission(list(tokens), folded)
 
 
 def _restates_case_records(tokens: list[str], cited: list[Evidence]) -> tuple[str, ...]:
@@ -367,6 +469,10 @@ def _explanation_atom(atom: str, cited: list[Evidence]) -> Atom:
     legal = _legal(folded)
     bearer = "matter" if _bare_permission(folded) else _bearer(tokens, atom)
     legal = legal or bearer == "matter" and bool(_PERMISSION.search(folded))
+    if (clause := _coordinated_clause(atom)) is not None:
+        inner = _explanation_atom(clause, cited)
+        if inner.problem and inner.enforced:
+            return Atom(atom, inner.kind, inner.bearer, (), inner.problem)
     if (rest := _deferral_rest(atom)) is not None:
         if _asserts(rest) and (legal or _matter_spans(_tokens(rest))):
             return Atom(atom, "legal_status" if legal else "unsupported", bearer, (),
@@ -396,7 +502,7 @@ def _explanation_atom(atom: str, cited: list[Evidence]) -> Atom:
                     "establish it")
     supported = _directional(atom, tokens, cited, conditional)
     kind = ("conditional_rule" if conditional else "general_rule") if supported else "unsupported"
-    enforced = legal or _precise(_concepts_of(tokens))
+    enforced = legal or _precise(_concepts_of(tokens), tokens, folded)
     return Atom(atom, kind, "general", supported or (), None if supported else _UNSUPPORTED, enforced=enforced)
 
 
@@ -413,6 +519,10 @@ def _free_text_atom(atom: str, cited: list[Evidence]) -> Atom:
     bearer = "matter" if _bare_permission(folded) else _bearer(tokens, atom)
     if not (_legal(folded) or bearer == "matter" and _PERMISSION.search(folded)):
         return Atom(atom, "other", bearer, (), None)  # the ordinary grounding rule decides
+    if (clause := _coordinated_clause(atom)) is not None:
+        inner = _free_text_atom(clause, cited)
+        if inner.problem:
+            return Atom(atom, inner.kind, inner.bearer, (), inner.problem)
     if (rest := _deferral_rest(atom)) is not None:
         if _asserts(rest):
             return Atom(atom, "legal_status", bearer, (), "defers to the authority but still asserts a legal status")
@@ -439,9 +549,13 @@ def atoms(text: str) -> list[str]:
 
 def assess(text: str, basis: str, step: str | None, cited: list[Evidence]) -> list[Atom]:
     """The atoms of one model statement, each with its verdict. Rendered statements are HABITA's own text."""
+    cited = [e for e in cited if not is_user_declared(e)]
+    if basis == "general_rule":
+        # A verbatim quote is the source's own words, but a partial one can drop the rule's scope, alternatives or
+        # exceptions ("deve ser assegurada a dotação de estacionamento"): it is held to the same support check.
+        return [_explanation_atom(a, cited) for a in atoms(text)]
     if basis in RENDERED:
         return []
-    cited = [e for e in cited if not is_user_declared(e)]
     if basis == EXPLANATION:
         body = text[len(EXPLANATION_FRAME):] if text.startswith(EXPLANATION_FRAME) else text
         return [_explanation_atom(a, cited) for a in atoms(body)]

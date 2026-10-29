@@ -2790,6 +2790,302 @@
    "status": "closed"
   },
   {
+   "id": "ACC-CXP1-01",
+   "group": "CXP1",
+   "statement": "The property remains licensed and must be confirmed with the Câmara.",
+   "lang": "en",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex Phase 1 review, 2026-10-29 (gpt-6-sol, read-only, via codex exec on a07e3c0)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "pdm"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "property",
+    "object": "see claim_type",
+    "claim_type": "compound: legal_status + deferral",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "A coordinated clause before a deferral is its own assertion (F1).",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "closed",
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    }
+   }
+  },
+  {
+   "id": "ACC-CXP1-02",
+   "group": "CXP1",
+   "statement": "In urban land, building operations may proceed.",
+   "lang": "en",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex Phase 1 review, 2026-10-29 (gpt-6-sol, read-only, via codex exec on a07e3c0)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "pdm"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general permission (deontic)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "E13 permits nothing; a permission asserted as predicate must be supported (F2).",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "closed",
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    }
+   }
+  },
+  {
+   "id": "ACC-CXP1-03",
+   "group": "CXP1",
+   "statement": "Nas operações urbanísticas de edificação, incluindo obras de ampliação ou alteração de uso, sujeitas a licenciamento e comunicação prévia, deve ser assegurada a dotação de estacionamento.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex Phase 1 review, 2026-10-29 (gpt-6-sol, read-only, via codex exec on a07e3c0)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "pdm"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general requirement (alternatives swapped)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "'ou' and 'e' moved between the alternatives and the inclusion list (F3).",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "closed",
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "pdm/general_planning_explanation/claim",
+      "pdm/general_planning_explanation/procedure",
+      "pdm/general_planning_explanation/risk",
+      "pdm/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    }
+   }
+  },
+  {
+   "id": "ACC-CXP1-04",
+   "group": "CXP1",
+   "statement": "Single-family houses with a construction area of up to 20 m2 may be enlarged by up to 200 % of the existing area, except classified buildings.",
+   "lang": "en",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex Phase 1 review, 2026-10-29 (gpt-6-sol, read-only, via codex exec on a07e3c0)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "num"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general permission (limits swapped)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "200 m2 / 20 % swapped (F3).",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "closed",
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "num/general_planning_explanation/claim",
+      "num/general_planning_explanation/procedure",
+      "num/general_planning_explanation/risk",
+      "num/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
+     "verified": 0,
+     "runs": 4,
+     "verified_runs": [],
+     "passes": true
+    }
+   }
+  },
+  {
+   "id": "ACC-CXP1-05",
+   "group": "CXP1",
+   "statement": "deve ser assegurada a dotação de estacionamento.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex Phase 1 review, 2026-10-29 (gpt-6-sol, read-only, via codex exec on a07e3c0)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "pdm"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general_rule partial quote",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "A partial verbatim quote drops scope and alternatives (F4). Needs basis general_rule with a quote.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_claims.py::test_codex_phase1_bypasses_are_rejected"
+  },
+  {
+   "id": "ACC-CXP1-06",
+   "group": "CXP1",
+   "statement": "A ampliação de moradias está sujeita a licenciamento.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex Phase 1 review, 2026-10-29 (gpt-6-sol, read-only, via codex exec on a07e3c0)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E31 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general requirement, verbatim (PT)",
+    "modality": "assertion"
+   },
+   "expected": "VERIFIED",
+   "rationale": "False positive: 'está' folded to 'esta' (this) (F8).",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_claims.py::test_codex_phase1_false_positive_a_verbatim_pt_rule_with_esta_verifies"
+  },
+  {
    "id": "ACC-COND-N01",
    "group": "COND",
    "statement": "The works must ensure parking provision.",
@@ -4758,18 +5054,13 @@
      "passes": false
     },
     "phase1": {
-     "verified": 4,
+     "verified": 0,
      "runs": 4,
-     "verified_runs": [
-      "pdm/general_planning_explanation/claim",
-      "pdm/general_planning_explanation/procedure",
-      "pdm/general_planning_explanation/risk",
-      "pdm/general_planning_explanation/next action"
-     ],
-     "passes": false
+     "verified_runs": [],
+     "passes": true
     }
    },
-   "status": "open"
+   "status": "closed"
   },
   {
    "id": "ACC-RECL-02",
@@ -13661,6 +13952,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "promoted the cases fixed by claims.py (open→closed, verifier and final gate); reopened ACC-LEG-RULE-01 and ACC-LEG-COND-01 as Phase 1 false negatives; added ACC-LEG-RULE-03 and ACC-LEG-COND-02 (same rows keeping 'urban')."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "added ACC-CXP1-01..06 (Codex Phase 1 review, exact wording); fixed in claims.py (coordinated clause before a deferral, deontic permission, bound slots, general_rule quotes, PT 'está')."
   }
  ]
 }

@@ -90,3 +90,82 @@ def test_the_current_verifier_still_reaches_verified_end_to_end():
         state = client.get(f"/api/permit/matters/{mid}", headers=auth(token)).json()["state"]
         report = client.get(f"/api/permit/matters/{mid}/verification", headers=auth(token)).json()
     assert state == "VERIFIED" and report["protocol"] == CURRENT and isinstance(report["claim_atoms"], list)
+
+
+# --- Codex Phase 1 review, F5-F7 (floor installation order, startup validator, superseded matters) -------------------
+
+class _Recorder:
+    """A Mongo stand-in that records calls and answers finds from ``docs``."""
+
+    def __init__(self, log, name, docs=()):
+        self.log, self.name, self.docs = log, name, list(docs)
+        self.database = self
+
+    async def create_index(self, *a, **kw):
+        self.log.append((self.name, "create_index"))
+
+    async def list_collection_names(self):
+        return ["permit_verifications"]
+
+    async def command(self, name, collection, **kw):
+        self.log.append(("db", name, collection, kw["validator"], kw["validationLevel"]))
+
+    async def find_one(self, flt, *a, **kw):
+        self.log.append((self.name, "find_one", flt))
+        return None
+
+    async def insert_one(self, doc, **kw):
+        self.log.append((self.name, "insert_one", doc["_id"]))
+
+    async def replace_one(self, flt, doc, **kw):
+        self.log.append((self.name, "replace_one", flt))
+
+    def find(self, flt, projection=None):
+        self.log.append((self.name, "find", flt))
+
+        async def gen():
+            for d in self.docs:
+                yield d
+        return gen()
+
+    async def update_many(self, flt, update, **kw):
+        self.log.append((self.name, "update_many", flt, update))
+        return type("R", (), {"modified_count": len(flt.get("_id", {}).get("$in", []))})()
+
+
+def _recording_repo(reports=()):
+    from app.services.permit.repository import MongoPermitRepository
+    log = []
+    repo = MongoPermitRepository.__new__(MongoPermitRepository)
+    for attr, name in (("_matters", "matters"), ("_evidence", "evidence"), ("_verifications", "verifications"),
+                       ("_policy", "policy"), ("_checklists", "checklists")):
+        setattr(repo, attr, _Recorder(log, name, reports if name == "verifications" else ()))
+    return repo, log
+
+
+async def test_every_deployment_installs_the_validator_at_startup():
+    repo, log = _recording_repo()
+    await repo.ensure_indexes()
+    installs = [entry for entry in log if entry[0] == "db" and entry[1] == "collMod"]
+    assert installs and installs[0][3] == validator(DEFAULT_FLOOR) and installs[0][4] == "moderate"
+
+
+async def test_raising_the_floor_installs_the_validator_before_storing_the_floor():
+    repo, log = _recording_repo()
+    new = raise_floor(DEFAULT_FLOOR, CURRENT, "ops", "install")
+    assert await repo.raise_floor(DEFAULT_FLOOR, new) is True
+    validator_at = next(i for i, entry in enumerate(log) if entry[0] == "db")
+    stored_at = next(i for i, entry in enumerate(log) if entry[:2] == ("policy", "insert_one"))
+    assert validator_at < stored_at
+
+
+async def test_superseding_flags_the_reports_and_their_verified_matters_including_null_fields():
+    repo, log = _recording_repo([{"_id": "pv_old"}, {"_id": "pv_v1", "protocol": "statement-v1"}])
+    assert await repo.flag_superseded(DEFAULT_FLOOR) == 2
+    find = next(entry for entry in log if entry[:2] == ("verifications", "find"))
+    assert find[2]["superseded_protocol"] is None  # matches a missing field and the null new reports store
+    matters = [entry for entry in log if entry[:2] == ("matters", "update_many")]
+    assert matters and all(entry[2]["state"] == "VERIFIED" and entry[3] == {"$set": {"superseded_protocol":
+                                                                                     "statement-v1"}}
+                           for entry in matters)
+    assert {i for entry in matters for i in entry[2]["latest_verification_id"]["$in"]} == {"pv_old", "pv_v1"}

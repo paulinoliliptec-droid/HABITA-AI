@@ -308,6 +308,9 @@ class PermitMatter(BaseModel):
     progress: list[ProgressEvent] = Field(default_factory=list)
     error: MatterError | None = None
     latest_verification_id: str | None = None
+    #: Set by ``raise-protocol-floor`` when this VERIFIED matter's report came from a protocol the floor no longer
+    #: admits (MU-9): the matter must be re-verified and is not presented as currently verified.
+    superseded_protocol: str | None = None
     created_at: datetime
     updated_at: datetime
 

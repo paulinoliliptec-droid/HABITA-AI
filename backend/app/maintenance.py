@@ -92,9 +92,8 @@ async def _run(command: str, args: list[str]) -> None:
                 new = raise_floor(current, args[0], operator=args[1], reason=" ".join(args[2:]))
             except FloorError as exc:
                 raise SystemExit(f"Refused: {exc}") from None
-            if not await permits.store_floor(current, new):
+            if not await permits.raise_floor(current, new):
                 raise SystemExit("Refused: the floor changed concurrently; run the command again.")
-            await permits.apply_validator(new)
             flagged = await permits.flag_superseded(new)
             print(f"floor={new.min_protocol} admitted={','.join(new.admitted())}; validator installed; "
                   f"{flagged} VERIFIED reports flagged as superseded.")

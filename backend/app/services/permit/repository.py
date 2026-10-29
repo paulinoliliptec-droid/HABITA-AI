@@ -17,6 +17,7 @@ is 256 bits of randomness, so an unsalted hash is not guessable.
 
 import hashlib
 import hmac
+import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
@@ -29,6 +30,8 @@ from app.schemas.permit import Checklist, Evidence, MatterState, PermitMatter, V
 from app.services.permit.protocol import DEFAULT_FLOOR, FLOOR_ID, Floor, validator
 from app.services.sources.registry import TrustPin
 from app.services.sources.repository import InMemorySourceRepository, MongoSourceRepository
+
+logger = logging.getLogger(__name__)
 
 LEASE = timedelta(minutes=5)
 _UNAVAILABLE = "HABITA can't reach its permit store right now. Please try again shortly."
@@ -237,6 +240,14 @@ class MongoPermitRepository:
         await self._evidence.create_index([("matter_id", ASCENDING), ("seq", ASCENDING)])
         await self._evidence.create_index([("matter_id", ASCENDING), ("dedupe_key", ASCENDING)], unique=True)
         await self._verifications.create_index([("matter_id", ASCENDING), ("created_at", DESCENDING)])
+        # MU-9 (M8): the server-side VERIFIED rule is installed by every deployment of this code, so a later rollback
+        # to a pre-MU-9 revision can't commit VERIFIED even if nobody ran raise-protocol-floor. A failure (missing
+        # privilege) is logged loudly; commit_verified's own floor check still applies to this code.
+        try:
+            await self.apply_validator(await self.get_floor())
+        except StorageUnavailableError:
+            logger.error("MU-9: could not install the permit_verifications validator; a rollback to a pre-MU-9 "
+                         "revision would not be blocked server-side. Run raise-protocol-floor with a privileged user.")
 
     async def create_matter(self, matter: PermitMatter, access_hash: str) -> None:
         await self._call(self._matters.insert_one(
@@ -336,14 +347,31 @@ class MongoPermitRepository:
         await self._call(db.command("collMod", "permit_verifications", validator=rule,
                                     validationLevel="moderate", validationAction="error"))
 
+    async def raise_floor(self, current: Floor, new: Floor) -> bool:
+        """Install the stricter validator first, then store the floor: if storing fails, the server is already at
+        least as strict as the stored floor (never the other way round). True if the floor was stored."""
+        await self.apply_validator(new)
+        return await self.store_floor(current, new)
+
     async def flag_superseded(self, floor: Floor) -> int:
         """Mark VERIFIED reports from protocols the floor no longer admits (including pre-MU-9 ones, which have no
-        protocol field) as superseded; they stay as history and must be re-verified."""
-        result = await self._call(self._verifications.update_many(
-            {"outcome": "VERIFIED", "superseded_protocol": {"$exists": False},
-             "$or": [{"protocol": {"$exists": False}}, {"protocol": {"$nin": floor.admitted()}}]},
-            [{"$set": {"superseded_protocol": {"$ifNull": ["$protocol", "statement-v1"]}}}]))
-        return result.modified_count
+        protocol field) as superseded, and their matters with them: both stay as history, flagged for
+        re-verification, so no client reads them as currently verified. ``superseded_protocol: None`` matches both
+        a missing field (pre-MU-9) and the ``null`` that current reports store."""
+        stale = {"outcome": "VERIFIED", "superseded_protocol": None,
+                 "$or": [{"protocol": {"$exists": False}}, {"protocol": {"$nin": floor.admitted()}}]}
+        by_protocol: dict[str, list[str]] = {}
+        async for d in self._verifications.find(stale, {"_id": 1, "protocol": 1}):
+            by_protocol.setdefault(d.get("protocol") or "statement-v1", []).append(d["_id"])
+        flagged = 0
+        for protocol, ids in by_protocol.items():
+            result = await self._call(self._verifications.update_many(
+                {"_id": {"$in": ids}}, {"$set": {"superseded_protocol": protocol}}))
+            await self._call(self._matters.update_many(
+                {"state": MatterState.VERIFIED.value, "latest_verification_id": {"$in": ids}},
+                {"$set": {"superseded_protocol": protocol}}))
+            flagged += result.modified_count
+        return flagged
 
     async def latest_verification(self, matter_id: str) -> VerificationReport | None:
         doc = await self._call(

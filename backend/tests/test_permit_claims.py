@@ -174,3 +174,54 @@ async def test_a_curated_summary_copied_verbatim_is_not_support_even_beside_offi
     report = await verify(RJUE_TEXT, ["E1", "E13"])
     assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
     assert all(a.supported_by != ["E1"] for a in report.claim_atoms)
+
+
+# --- Codex Phase 1 review (2026-10-29, gpt-6-sol): exact cases, reproduced before the fix -----------------------------
+
+PT_RULE = record("E31", "regulatory_source", "Artigo 901.º Regime 1 - A ampliação de moradias está sujeita a "
+                 "licenciamento.", source="cascais-pdm", basis="official_text", authority_class="municipal_instrument",
+                 status="official_text")
+
+
+@pytest.mark.parametrize("text, cites, basis, quote", [
+    # F1: a deferral carried a licence assertion in a coordinated clause.
+    ("The property remains licensed and must be confirmed with the Câmara.", ["E13"], EXPLANATION, None),
+    # F2: an unsupported general permission was only a shadow verdict.
+    ("In urban land, building operations may proceed.", ["E13"], EXPLANATION, None),
+    # F3: concepts compared as a set: "ou" ↔ "e" swapped between the alternatives and the inclusion list…
+    ("Nas operações urbanísticas de edificação, incluindo obras de ampliação ou alteração de uso, sujeitas a "
+     "licenciamento e comunicação prévia, deve ser assegurada a dotação de estacionamento.", ["E13"], EXPLANATION,
+     None),
+    # …and the two limits swapped between their units.
+    ("Single-family houses with a construction area of up to 20 m2 may be enlarged by up to 200 % of the existing "
+     "area, except classified buildings.", ["E30"], EXPLANATION, None),
+    # F4: a partial verbatim quote dropped the rule's scope and alternatives.
+    ("x", ["E13"], "general_rule", "deve ser assegurada a dotação de estacionamento."),
+])
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_codex_phase1_bypasses_are_rejected(text, cites, basis, quote, section):
+    d = render_draft(in_section(section, text, cites, basis=basis, quote=quote), RECORDS, matter())
+    report = await Verifier(Reviewer(VERIFIED), TRUSTED).verify(matter(), checklist(), d, RECORDS, CHAIN)
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
+@pytest.mark.parametrize("section", ["claim", "procedure", "risk", "next action"])
+async def test_codex_phase1_false_positive_a_verbatim_pt_rule_with_esta_verifies(section):
+    """F8: accent folding read "está" (is) as "esta" (this), so a verbatim rule looked like a claim about the matter."""
+    records = [*RECORDS, PT_RULE]
+    d = render_draft(in_section(section, "A ampliação de moradias está sujeita a licenciamento.", ["E31"],
+                                basis=EXPLANATION), records, matter())
+    report = await Verifier(Reviewer(VERIFIED), TRUSTED).verify(matter(), checklist(), d, records, CHAIN)
+    assert report.outcome == "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("text", [
+    "The PDM classifies and qualifies municipal land.",
+    "Each land-use category sets the admissible uses and the urban parameters for building.",
+    "Housing use may depend on the applicable plan.",
+])
+def test_attributive_or_epistemic_permission_wording_stays_a_shadow_verdict(text):
+    """F2's fix enforces permissions asserted as the predicate; naming or hedging one is not asserting it."""
+    from tests.test_permit_admissibility import official
+    atoms = assess(text, EXPLANATION, None, [official("E3")])
+    assert atoms and not any(a.enforced and a.problem for a in atoms)
