@@ -17197,6 +17197,146 @@
    "status": "not_run",
    "observed": {},
    "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm24_a_condition_in_the_next_numbered_paragraph"
+  },
+  {
+   "id": "ACC-NRM-25",
+   "group": "NRM",
+   "statement": "Nas operações urbanísticas, o PDM regula a dotação de estacionamento permitida.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex NRM-22..24 task round 1, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 58b91e1)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E991 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "permission of the works lent to parking within one sentence (P1)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "VERIFIED on 58b91e1. Fixed: a structural description that takes a duty, permission or limit from the cited text is its content and is held to the wording.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r1_a_description_carrying_a_deontic_concept_is_content"
+  },
+  {
+   "id": "ACC-NRM-26",
+   "group": "NRM",
+   "statement": "Nas operações urbanísticas, o PDM regula a dotação de estacionamento admissível para o uso habitacional.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex NRM-22..24 task round 1, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 58b91e1)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E994 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "admissibility qualifying parking, \"uso\" elsewhere (P1)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "VERIFIED on 58b91e1. Fixed: admissibility is structural only next to \"usos\" or in \"(which) uses … admits\".",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r1_a_description_carrying_a_deontic_concept_is_content"
+  },
+  {
+   "id": "ACC-NRM-27",
+   "group": "NRM",
+   "statement": "A multifuncionalidade do solo é permitida.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex NRM-22..24 task round 1, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 58b91e1)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E997 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_rule"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "source",
+    "object": "see claim_type",
+    "claim_type": "quote leaving out \"O exercício dessa faculdade depende …\" in paragraph 2 (P2)",
+    "modality": "quote"
+   },
+   "expected": "REJECTED",
+   "rationale": "VERIFIED on 58b91e1. Fixed structurally: with more than one normative unit in the excerpt, a quote is the whole excerpt.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r1_with_several_normative_units_a_quote_is_the_whole_excerpt"
+  },
+  {
+   "id": "ACC-NRM-28",
+   "group": "NRM",
+   "statement": "A multifuncionalidade do solo é permitida. Ela depende de parecer favorável da Câmara. Esse parecer exige fundamentação técnica. Essa fundamentação deve descrever impactos urbanísticos. Ela deve integrar o processo.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex NRM-22..24 task round 1, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 58b91e1)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E990 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_rule"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "source",
+    "object": "see claim_type",
+    "claim_type": "complete five-sentence quote rejected (P3)",
+    "modality": "quote"
+   },
+   "expected": "VERIFIED",
+   "rationale": "REJECTED on 58b91e1 (runs capped at four sentences). Fixed: runs of any length.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm_r1_a_long_linked_quote_verifies"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
@@ -17346,6 +17486,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "authorised NRM-22..24 task: ACC-NRM-22 (one sentence must hold a description with a borrowed deontic concept), ACC-NRM-23 (subject pronouns), ACC-NRM-24 (coreference across numbered paragraphs) fixed."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "NRM-22..24 task round 1 (Codex): deontic content in descriptions is held to the wording; admissibility next to uses only; several normative units → whole excerpt; uncapped runs. ACC-NRM-25..28 added."
   }
  ]
 }

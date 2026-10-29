@@ -656,10 +656,52 @@ async def test_nrm23_a_demonstrative_standing_alone_takes_up_the_previous_senten
     assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E906"))
 
 
-async def test_nrm22_a_description_held_by_one_sentence_keeps_its_contract():
-    """The same words, with the permission in the parking sentence itself, are the cited text's own."""
+async def test_nrm22_a_description_carrying_a_deontic_concept_is_quote_only():
+    """Even when the permission sits in the parking sentence itself: a description that carries a duty, permission or
+    limit is its content, held to the wording (Codex NRM-22..24 round 1)."""
     e = official("E907", "TEST FIXTURE Artigo 907.º Estacionamento 1 - Nas operações urbanísticas, a dotação de "
                          "estacionamento é permitida. As obras devem ser comunicadas.")
     RECS.append(e)
-    report = await explained("Nas operações urbanísticas, o PDM regula a dotação de estacionamento permitida.", "E907")
+    assert rejected(await explained("Nas operações urbanísticas, o PDM regula a dotação de estacionamento permitida.",
+                                    "E907"))
+
+
+# --- NRM-22..24 task, Codex round 1 (2026-10-29): exact cases -------------------------------------------------------
+
+W990 = ("A multifuncionalidade do solo é permitida. Ela depende de parecer favorável da Câmara. Esse parecer exige "
+        "fundamentação técnica. Essa fundamentação deve descrever impactos urbanísticos. Ela deve integrar o processo.")
+E991 = official("E991", "TEST FIXTURE Artigo 991.º Estacionamento 1 - Nas operações urbanísticas, a dotação de "
+                        "estacionamento deve ser assegurada e as obras são permitidas.")
+E994 = official("E994", "TEST FIXTURE Artigo 994.º Estacionamento 1 - Nas operações urbanísticas de uso habitacional, a "
+                        "dotação de estacionamento deve ser assegurada.")
+E997 = official("E997", "TEST FIXTURE Artigo 997.º Multifuncionalidade 1 - A multifuncionalidade do solo é permitida. 2 - "
+                        "O exercício dessa faculdade depende de parecer favorável da Câmara.")
+E990 = official("E990", f"TEST FIXTURE Artigo 990.º Multifuncionalidade 1 - {W990}")
+E989 = official("E989", "TEST FIXTURE Artigo 989.º Solo urbano 1 - A dotação de estacionamento deve ser assegurada. 2 - A "
+                        "qualificação do solo urbano consta da Planta de Ordenamento.")
+RECS.extend([E991, E994, E997, E990, E989])
+
+
+@pytest.mark.parametrize("text, eid", [
+    ("Nas operações urbanísticas, o PDM regula a dotação de estacionamento permitida.", "E991"),  # exact
+    ("Nas operações urbanísticas, o PDM regula a dotação de estacionamento admissível para o uso habitacional.",
+     "E994"),  # exact
+])
+async def test_nrm_r1_a_description_carrying_a_deontic_concept_is_content(text, eid):
+    assert rejected(await explained(text, eid))
+
+
+async def test_nrm_r1_with_several_normative_units_a_quote_is_the_whole_excerpt():
+    assert rejected(await quoted("A multifuncionalidade do solo é permitida.", "E997"))  # exact: "dessa faculdade"
+    report = await quoted(E997.excerpt.split(" 1 - ", 1)[1], "E997")
+    assert report.outcome == "VERIFIED", report.issues
+
+
+async def test_nrm_r1_a_long_linked_quote_verifies():
+    report = await quoted(W990, "E990")  # exact: five linked sentences
+    assert report.outcome == "VERIFIED", report.issues
+
+
+async def test_nrm_r1_one_normative_unit_beside_a_descriptive_one_is_quoted_alone():
+    report = await quoted("A dotação de estacionamento deve ser assegurada.", "E989")
     assert report.outcome == "VERIFIED", report.issues

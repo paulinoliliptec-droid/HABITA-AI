@@ -380,13 +380,25 @@ def _same_pair(a: frozenset, b: frozenset) -> bool:
     return bool((a[0] & b[0] and a[1] & b[1]) or (a[0] & b[1] and a[1] & b[0]))
 
 
+def _normative_text(text: str) -> bool:
+    tokens, folded = _tokens(text), _fold(text.lower())
+    return _normative(_concepts_of(tokens), tokens, folded, _legal(folded))
+
+
 def _passage_sentences(e: Evidence) -> list[_Sentence]:
     text = e.excerpt.lower()  # folded by _tokens, which keeps PT "é" apart from "e"
     out = []
     # Coreference runs across numbered paragraphs: "1 - … é permitida. 2 - Essa permissão depende …" is one unit.
     paragraphs = [re.sub(r"^\s*\d+\s*-\s*", "", p) for p in _PARAGRAPH.split(_HEADER.sub("", text, count=1))]
     units = _merge_coreferent([s for p in paragraphs for s in _full_sentences(p, coreference=False)])
-    for whole, sentence in ((u, c) for u in units for c in _sentences(u)):
+    # With more than one normative unit, a condition may sit in any of them, however it refers back ("O exercício
+    # dessa faculdade depende de …"): a quote is then the whole excerpt.
+    if sum(_normative_text(u) for u in units) > 1:
+        body = " ".join(u.strip() for u in units)
+        units_whole = [(body, u) for u in units]
+    else:
+        units_whole = [(u, u) for u in units]
+    for whole, sentence in ((w, c) for w, u in units_whole for c in _sentences(u)):
         concepts = _concepts_of(_tokens(sentence))
         core_concepts = _concepts_of(_tokens(_without_inclusions(sentence, _INCLUSION)))
         allowed = {c for _, alts in concepts for c in alts}
@@ -479,8 +491,7 @@ def _statement_clauses(text: str) -> list[tuple[tuple[str, ...], str]]:
     sentences = [w.strip() for w in _full_sentences(text, coreference=False)]
     out = []
     for k, whole in enumerate(sentences):
-        runs = tuple(" ".join(sentences[a:b]) for a in range(max(0, k - 3), k + 1)
-                     for b in range(k + 1, min(len(sentences), a + 4) + 1))
+        runs = tuple(" ".join(sentences[a:b]) for a in range(k + 1) for b in range(k + 1, len(sentences) + 1))
         # A paragraph number opening a sentence ("2 - Essa …") is a reference, not a number of the rule.
         out += [(runs, c) for clause in _sentences(whole)
                 if _tokens(c := re.sub(r"^\s*\d+\s*-\s+", "", clause.strip()))]
@@ -906,17 +917,32 @@ _DEONTIC_CONCEPTS = (_RESTRICTIVE - {"ALL", "SOME", "COND"}) | {"LICENSED_STATE"
                                                                  "LEGAL_CONDITIONS"}
 
 
+def _qualifies_uses(words: list[str], i: int) -> bool:
+    """Whether admissibility qualifies a category of uses: next to it ("os usos admissíveis", "the admissible uses") or
+    as the verb of "(which) uses each zone admits" / "que usos … admite", with only topic words between; not "uso"
+    elsewhere ("a dotação … admissível para o uso …")."""
+    after = [w for w in words[i + 1:i + 3] if w not in _ARTICLES]
+    if after and after[0].startswith(("uso", "use")):  # adjacent: a preposition ("para o uso") breaks it
+        return True
+    content = [(j, w) for j, w in enumerate(words) if w not in _FUNCTION]
+    k = next(n for n, (j, _) in enumerate(content) if j == i)
+    for _, w in reversed(content[max(0, k - 5):k]):
+        if w.startswith(("uso", "use")):
+            return True
+        if not (w.startswith(_TOPIC_STEMS) or w in {"each", "cada", "which", "quais", "or", "ou", "and", "e"}):
+            return False
+    return False
+
+
 def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
     """Whether every content word of a structural description is a structural or generic word, the attribution to a
     cited source, or a concept of a cited official sentence: it describes the cited text and adds no claim of its own
     ("… ao critério do promotor", "… as an option" add one, whatever their wording)."""
     official = [e for e in cited if is_official_text(e)]
-    sentences = [s.allowed for e in official for s in _passage_sentences(e)]
-    allowed = {c for a in sentences for c in a}
+    allowed = {c for e in official for s in _passage_sentences(e) for c in s.allowed}
     framing = {c for e in official for _, alts in _concepts_of(_tokens(f"{e.source_title} {_ATTRIBUTION}")) for c in alts}
     words = list(tokens)
     hedged = bool(_DEPENDENCY_CLAUSE.search(" ".join(words)))
-    borrowed, content = False, []  # a deontic concept taken from the cited text; the concepts it qualifies
     for t, alts in _concepts_of(tokens):
         if _META.fullmatch(t) or t in _GENERIC_RULES or alts <= framing or t == "no" or t.startswith(_TOPIC_STEMS) \
                 or alts & {"CONJ", "DISJ", "ALL", "INCL"}:
@@ -927,21 +953,19 @@ def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
             continue
         # "os usos admissíveis", "which uses each zone admits": admissibility names a category of uses; qualifying
         # anything else ("a dotação … admissível") is a claim.
-        if t.startswith(("admit", "admiss")) and (hedged or any(w.startswith(("uso", "use")) for w in words)):
+        if t.startswith(("admit", "admiss")) and (hedged or _qualifies_uses(words, words.index(t))):
             continue
-        content.append(alts)
         deontic = bool(alts & _DEONTIC_CONCEPTS)
         if alts & allowed:
-            borrowed = borrowed or deontic
+            if deontic:
+                return False  # a duty, permission or limit taken from the cited text is its content, not structure
             continue
         # The closed concept table names what a structure is about, not a claim; a deontic or restrictive concept
         # ("allowed", "only", "never") is a claim unless the cited text has it.
         if not any(c.startswith("w:") for c in alts) and not deontic:
             continue
         return False
-    # A deontic concept is the cited text's only together with what it qualifies: one sentence must hold the whole
-    # description ("As obras são permitidas." lends nothing to the parking duty of another sentence; ACC-NRM-22).
-    return not borrowed or any(all(alts & a for alts in content) for a in sentences)
+    return True
 
 
 def _meta_descriptive(tokens: list[str], folded: str, cited: list[Evidence] = ()) -> bool:
