@@ -385,20 +385,34 @@ def _heading(text: str) -> bool:
     return not re.search(r"[.!?;]\s*$", text.strip())  # "Obras:" is a title
 
 
+def _title_only(header: str) -> bool:
+    """Whether the text of an "Artigo N.º … 1 - " header (or before "1 - ") is a title only: it may name things
+    ("Licença", "Dispensa") but says nothing about them: no sentence or bracketed aside, no verb or participle, no
+    condition, subjection, negation, limit or dependency ("Obras (A permissão depende de …)", "Obras sujeitas a
+    vistoria")."""
+    title = re.sub(r"\d+\s*-\s*$", "", re.sub(r"\d+\.\s*[oº]", "", header))
+    tokens = _tokens(title)
+    says = (set(tokens) & (_FINITE | _MODAL_AUX | _COPULA)
+            or any(_DEPENDENCY_VERB.match(t) or _STATE_FORM.match(t) for t in tokens)
+            or any(alts & (_PRECISE | {"COND", "NEG", "PERM", "SUBJECT"}) or any(c.startswith("NUM:") for c in alts)
+                   for _, alts in _concepts_of(tokens)))
+    return not re.search(r"[.!?;()\[\]]", title) and not says
+
+
 def _passage_sentences(e: Evidence) -> list[_Sentence]:
     text = e.excerpt.lower()  # folded by _tokens, which keeps PT "é" apart from "e"
     out = []
     header = _HEADER.match(text)
     # "Artigo 997.º Obras 1 - …" is a header; "Artigo 997.º Obras. A permissão depende de … 1 - …" carries a sentence
     # before paragraph 1, so nothing is stripped and that sentence counts.
-    headed = bool(header) and not re.search(r"[.!?;]\s+\w", re.sub(r"\d+\.\s*[oº]", "", header.group(0)))
+    headed = bool(header) and _title_only(header.group(0))
     stripped = text[header.end():] if headed else text
     raw = _PARAGRAPH.split(stripped)
     paragraphs = [re.sub(r"^\s*\d+\s*-\s*", "", p) for p in raw]
     # A heading is only an unnumbered title before "1 - " ("Princípios gerais do solo urbano 1 - …"). When "Artigo …
     # 1 - " was stripped, the first paragraph is paragraph 1, punctuated or not.
     title = (paragraphs[0] if not headed and len(raw) > 1 and not re.match(r"\s*\d+\s*-", raw[0])
-             and _heading(paragraphs[0]) else None)
+             and _heading(paragraphs[0]) and _title_only(paragraphs[0]) else None)
     units = ([title] if title else []) + [s for p in paragraphs[1 if title else 0:] for s in _full_sentences(p)]
     # Owner rule (after ACC-NRM-36): an excerpt with more than one unit besides its title is quoted whole. Which other
     # unit conditions, excepts or merely describes can't be read reliably from its words, so none is left out.

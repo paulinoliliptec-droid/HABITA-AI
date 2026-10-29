@@ -855,3 +855,15 @@ async def test_owner_rules_r2_a_source_title_frames_no_deontic_word():
 async def test_owner_rules_r2_a_title_ending_in_a_colon_is_a_title():
     report = await quoted("Em solo urbano, as obras são permitidas.", "SYN-TITLE")
     assert report.outcome == "VERIFIED", report.issues
+
+
+# --- owner-rules task, Codex round 3 (2026-10-29): exact case -------------------------------------------------------
+
+@pytest.mark.parametrize("eid, text", [
+    ("H-PAREN", "TEST FIXTURE Artigo 997.º Obras (A permissão depende de vistoria municipal.) 1 - Em solo urbano, as "
+                "obras são permitidas."),  # exact
+    ("H-PAREN2", "TEST FIXTURE Artigo 996.º Obras sujeitas a vistoria 1 - Em solo urbano, as obras são permitidas."),
+])
+async def test_owner_rules_r3_a_header_that_says_anything_is_not_stripped(eid, text):
+    RECS.append(official(eid, text))
+    assert rejected(await quoted("Em solo urbano, as obras são permitidas.", eid))
