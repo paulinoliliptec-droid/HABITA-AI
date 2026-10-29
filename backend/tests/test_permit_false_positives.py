@@ -146,7 +146,8 @@ async def test_the_reviews_exact_negation_against_an_affirmative_record():
     from tests.test_permit_admissibility import CASE_RECORDS, codes, draft, in_section, record, rendered_verify
     rec = record("E50", "authority_record", "Câmara Municipal de Cascais handles applications.", status="system_record",
                  title="Câmara Municipal de Cascais")
-    records = [*CASE_RECORDS, rec]
+    address = record("E51", "property_record", "Rua no Centro, Cascais", status="system_record", title="Address")
+    records = [*CASE_RECORDS, rec, address]  # an uncited PT "no" can't state the negation (round 2)
     negated = await rendered_verify(in_section("claim", "Câmara Municipal de Cascais handles no applications.",
                                                ["E50"]), records)
     assert negated.outcome != "VERIFIED" and "unverified_zoning" in codes(negated.issues)

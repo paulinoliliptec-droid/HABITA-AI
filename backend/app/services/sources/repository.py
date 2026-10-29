@@ -202,10 +202,14 @@ class MongoSourceRepository:
                 raise StorageUnavailableError(_UNAVAILABLE) from None
             return winner
         except PyMongoError:
+            # The snapshot insert may have been applied with its acknowledgement lost: its chunks are then in use.
+            # Remove them only once the snapshot is known to be absent; if that can't be known, keep them.
             try:
+                if await self._snapshots.find_one({"_id": snapshot.snapshot_id}) is not None:
+                    return snapshot
                 await self._chunks.delete_many({"snapshot_id": snapshot.snapshot_id})
             except PyMongoError:
-                pass  # best effort; the snapshot document was never written, so nothing references them
+                pass
             raise StorageUnavailableError(_UNAVAILABLE) from None
 
     async def list_chunks(self, snapshot_id: str) -> list[RegulatoryChunk]:

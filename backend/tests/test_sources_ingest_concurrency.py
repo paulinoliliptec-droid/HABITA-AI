@@ -16,12 +16,14 @@ from app.services.sources.repository import MongoSourceRepository
 
 class Collection:
     def __init__(self, unique=None):
-        self.docs, self.unique, self.fail_insert_many = {}, unique, None
+        self.docs, self.unique, self.fail_insert_many, self.lost_ack = {}, unique, None, False
 
     async def insert_one(self, doc):
         if self.unique and any(all(d.get(k) == doc.get(k) for k in self.unique) for d in self.docs.values()):
             raise DuplicateKeyError("E11000")
         self.docs[doc["_id"]] = dict(doc)
+        if self.lost_ack:  # applied, but the acknowledgement is lost
+            raise AutoReconnect("connection closed")
 
     async def insert_many(self, docs):
         for n, doc in enumerate(docs):
@@ -69,3 +71,11 @@ async def test_a_chunk_write_failing_part_way_leaves_nothing_behind():
     with pytest.raises(StorageUnavailableError):
         await r.save_snapshot(*snapshot("ss_partial"))
     assert r._chunks.docs == {} and r._snapshots.docs == {}
+
+
+async def test_a_lost_acknowledgement_keeps_a_published_snapshot_whole():
+    """Codex backlog review round 2: the snapshot was written; its chunks must not be deleted."""
+    r = repo()
+    r._snapshots.lost_ack = True
+    assert (await r.save_snapshot(*snapshot("ss_acked"))).snapshot_id == "ss_acked"
+    assert len([d for d in r._chunks.docs.values() if d["snapshot_id"] == "ss_acked"]) == 3
