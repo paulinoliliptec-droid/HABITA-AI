@@ -5647,8 +5647,8 @@
     "claim_type": "general requirement (T3, PT)",
     "modality": "general/deferral"
    },
-   "expected": "VERIFIED",
-   "rationale": "E13 in its own wording, its inclusion list left out (a literal transcription; verifies).",
+   "expected": "REJECTED",
+   "rationale": "E13 abridged (its inclusion list left out). Owner decision 2026-10-29 (ACC-QO-09 / ACC-ROLE-01) as applied in normative round 2: a normative statement verifies only as the whole official sentence; a part can drop a condition in any wording. Was expected VERIFIED until then.",
    "harness": "verifier",
    "final_gate": false,
    "fixed_in_phase": null,
@@ -5698,7 +5698,13 @@
      "passes": true
     }
    },
-   "status": "closed"
+   "status": "closed",
+   "policy_change": {
+    "date": "2026-10-29",
+    "by": "owner",
+    "from": "VERIFIED",
+    "to": "REJECTED"
+   }
   },
   {
    "id": "ACC-LEG-COND-01",
@@ -16416,6 +16422,77 @@
    "status": "not_run",
    "observed": {},
    "covered_by": "tests/test_permit_numeric_integrity.py::test_normative_round1_an_inclusion_that_restricts_is_not_an_omissible_list"
+  },
+  {
+   "id": "ACC-NRM-03",
+   "group": "NRM",
+   "statement": "As operações urbanísticas de edificação até 200 m2 são dispensadas de licenciamento.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex normative review round 2, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 09e305b)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E80 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_planning_explanation",
+    "general_rule"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "partial quote dropping a condition (desde que)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "A condition worded \"desde que\" inside an inclusion span was dropped; VERIFIED on 09e305b. Fixed structurally: a quote or normative transcription must be the whole sentence (and \"desde que\" is a condition in the concept table).",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_normative_round2_a_quote_is_the_whole_sentence"
+  },
+  {
+   "id": "ACC-NRM-04",
+   "group": "NRM",
+   "statement": "Nas operações urbanísticas de estacionamento, a edificação carece de parecer favorável da Câmara.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex normative review round 2, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 09e305b)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "E86 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "duty with roles swapped (carece de)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "Duty worded \"carece de\" not recognised as normative, roles swapped; VERIFIED on 09e305b. Fixed structurally: a statement whose every concept comes from one cited official sentence restates it and is held to its wording, whatever its verbs.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_normative_round2_a_restatement_is_held_to_the_wording_whatever_its_verbs"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
@@ -16510,6 +16587,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "normative quote-only round 1 (Codex): acts that remove a duty are normative; an inclusion span that restricts is not omissible. ACC-NRM-01..02 added."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "normative quote-only round 2 (Codex): quotes and normative transcriptions are whole sentences; restatements of a cited official sentence are held to its wording whatever their vocabulary; use designations are normative. ACC-NRM-03..04 added; ACC-LEG-RULE-02 expected REJECTED (policy change)."
   }
  ]
 }

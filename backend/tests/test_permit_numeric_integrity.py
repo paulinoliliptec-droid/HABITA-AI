@@ -306,3 +306,76 @@ async def test_normative_round1_an_inclusion_that_restricts_is_not_an_omissible_
     short = "As operações urbanísticas de edificação até 200 m2 são dispensadas de licenciamento."
     assert rejected(await explained(short, "E78"))
     assert rejected(await quoted(short[:-1], "E78"))
+
+
+# --- Codex normative round 2 (2026-10-29): exact cases, and the same mechanisms with other wording -----------------
+
+E80 = official("E80", "TEST FIXTURE Artigo 980.º Dispensa 1 - As operações urbanísticas de edificação até 200 m2 são "
+                      "dispensadas de licenciamento, incluindo aquelas que envolvam edifícios classificados desde que "
+                      "tenham parecer favorável da Câmara.")
+E86 = official("E86", "TEST FIXTURE Artigo 986.º Pareceres 1 - Nas operações urbanísticas de edificação, o "
+                      "estacionamento carece de parecer favorável da Câmara.")
+RECS.extend([E80, E86])
+SWAPPED_E86 = "Nas operações urbanísticas de estacionamento, a edificação carece de parecer favorável da Câmara."
+
+
+async def test_normative_round2_a_quote_is_the_whole_sentence():
+    """'desde que …' (or any other wording of a condition) can't be left out: a part of the sentence never verifies."""
+    short = "As operações urbanísticas de edificação até 200 m2 são dispensadas de licenciamento."
+    assert rejected(await explained(short, "E80"))
+    assert rejected(await quoted(short[:-1], "E80"))
+
+
+@pytest.mark.parametrize("text", [
+    SWAPPED_E86,  # exact
+    "Segundo o PDM, nas operações urbanísticas de estacionamento, a edificação carece de parecer favorável da Câmara.",
+    "Nas operações urbanísticas de estacionamento, a edificação necessita de parecer favorável da Câmara.",
+    "In urban building operations, parking needs a favourable opinion of the Câmara.",  # translated, roles kept
+])
+async def test_normative_round2_a_restatement_is_held_to_the_wording_whatever_its_verbs(text):
+    assert rejected(await explained(text, "E86"))
+
+
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_normative_round2_the_sentence_itself_verifies(section):
+    report = await explained(E86.excerpt.split(" 1 - ", 1)[1], "E86", section)
+    assert report.outcome == "VERIFIED", report.issues
+    report = await quoted(E80.excerpt.split(" 1 - ", 1)[1], "E80", section)
+    assert report.outcome == "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("text", [
+    "Em solo urbano os espaços destinam-se predominantemente à habitação e edificação, designadamente de urbanização, "
+    "comércio e serviços.",  # roles swapped, every word kept
+    "Em solo urbano os espaços destinam-se sempre à habitação.",  # a word added
+])
+async def test_normative_round2_a_use_designation_is_normative(text):
+    from tests.test_permit_admissibility import rendered_verify
+    report = await rendered_verify(in_section("claim", text, ["E3"], basis=EXPLANATION))
+    assert report.outcome != "VERIFIED" and "unsupported_legal_claim" in codes(report.issues)
+
+
+E87 = official("E87", "TEST FIXTURE Artigo 987.º Qualificação 1 - A qualificação do solo urbano consta da Planta de "
+                      "Ordenamento.")
+RECS.append(E87)
+
+
+async def test_normative_round2_a_role_swap_in_neutral_words_is_a_restatement():
+    """No deontic word at all: the swap is caught because every concept comes from the cited sentence."""
+    assert rejected(await explained("A qualificação da Planta de Ordenamento consta do solo urbano.", "E87"))
+    report = await explained("A qualificação do solo urbano consta da Planta de Ordenamento.", "E87")
+    assert report.outcome == "VERIFIED", report.issues
+
+
+E88 = official("E88", "TEST FIXTURE Artigo 988.º Licença 1 - As operações urbanísticas de edificação carecem de "
+                      "licença, incluindo obras de ampliação.")
+RECS.append(E88)
+
+
+async def test_normative_round2_a_prefix_of_the_sentence_is_not_a_quote():
+    """Even when what it leaves out is only a list of covered cases ("incluindo …")."""
+    prefix = "As operações urbanísticas de edificação carecem de licença"
+    assert rejected(await explained(prefix + ".", "E88"))
+    assert rejected(await quoted(prefix, "E88"))
+    report = await quoted(prefix + ", incluindo obras de ampliação", "E88")
+    assert report.outcome == "VERIFIED", report.issues

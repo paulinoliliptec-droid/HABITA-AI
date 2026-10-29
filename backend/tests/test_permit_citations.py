@@ -9,17 +9,14 @@ from app.services.permit.citations import reconcile_citations
 from app.services.permit.verifier import Verifier, model_statements
 from tests.permit_fakes import ScriptedModel, default_draft, make_client
 from tests.test_permit_admissibility import (
-    ADDRESS, CASE_RECORDS, JURISDICTION, LABELS, PDM_TEXT, SECTIONS, TRUSTED, MutableTrust, authority, in_section,
+    ADDRESS, CASE_RECORDS, JURISDICTION, LABELS, PDM_SENTENCE, PDM_TEXT, SECTIONS, TRUSTED, MutableTrust, authority, in_section,
     planning, record, rjue, user,
 )
 from tests.test_permit_official_sources import auth, ingest_regulamento, run_matter
 from tests.test_permit_verifier import CHAIN, VERIFIED, Reviewer, checklist, codes, matter
 
 # The model forgot the citation (or cited a curated summary / no evidence); E3 is the PDM's own passage (Art. 61.º).
-GENERAL = [
-    "Urban land is intended mainly for building and housing, commerce and services.",
-    "Em solo urbano, os espaços destinam-se sobretudo à edificação e à habitação, comércio e serviços.",
-]
+GENERAL = [PDM_SENTENCE, PDM_SENTENCE.rstrip(".")]  # E3's rule in its own wording (a restatement is quote-only)
 UNRELATED = [
     "Heritage protection rules limit façade alterations.",
     "As regras de proteção do património limitam alterações de fachada.",
@@ -132,7 +129,7 @@ async def test_only_official_regulatory_records_are_ever_linked():
 def test_cascais_workflow_reconciles_the_forgotten_citation_without_resolving_zoning():
     """End to end: the model cites only the curated PDM summary for a general explanation and words the parcel's
     category as a deferral → HABITA links the PDM passage, renders the condition, VERIFIED conditional, manual."""
-    general = "Urban land is intended mainly for urbanisation and building, including housing, commerce and services."
+    general = "Em solo urbano os espaços destinam-se predominantemente à urbanização e edificação, designadamente de habitação, comércio e serviços."
 
     def drafting(parcel_risk):
         def draft_(payload):

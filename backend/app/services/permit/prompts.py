@@ -78,8 +78,9 @@ Role: DRAFTER. Write a structured draft answer from the checklist, the evidence 
   any tense or wording, and never as a fragment ("Approved by the Câmara."). Say it must be confirmed with the Câmara
   instead ("Whether … must be confirmed with the Câmara", "Confirm with the Câmara whether …"). A legal requirement,
   duty, permission, prohibition, number, limit or exception must ALWAYS be quoted literally ("general_rule" with the
-  whole sentence of a cited official_text passage as the quote), never restated, reordered or translated in your
-  own words: a paraphrase is never verified. Curated references never support it. A quoted rule says what the
+  whole sentence of a cited official_text passage as the quote, never a part of it), never restated, reordered,
+  abridged or translated in your own words: a paraphrase is never verified. The same holds for any sentence that
+  restates an official sentence, and for a use designation ("destina-se a …"). Curated references never support it. A quoted rule says what the
   source says, not that this property meets it: never apply it to the property or the works, not even as an "if"
   condition; say instead which facts must be confirmed with the Câmara.
 - The checklist status is computed by HABITA. "conditions" lists what only the authority can settle: if it is not

@@ -131,7 +131,8 @@ _CONCEPT_TABLE: list[tuple[str, tuple[str, ...]]] = [
     ("EXC", ("com excecao de", "com excecao do", "com excecao da", "com excecao dos", "com excecao das",
              "with the exception of", "except for", "except", "excepto", "exceto", "salvo", "unless", "excluding")),
     ("INCL", ("including", "incluindo", "nomeadamente", "designadamente", "namely")),
-    ("COND", ("if", "se", "caso", "where", "when", "quando")),
+    ("COND", ("if", "se", "caso", "where", "when", "quando", "desde que", "contanto que", "provided that",
+              "providing that", "as long as", "on condition that", "sempre que")),
     ("OPERATION", ("operac", "operat")),
     ("URBAN", ("urban",)),
     ("BUILD", ("edificac", "edificar", "build")),
@@ -259,7 +260,7 @@ class _Sentence:
     exceptions: frozenset = frozenset()  # what each exception covers (see ``_exceptions``)
     main: frozenset = frozenset()  # the concepts outside the exceptions (see ``_main_concepts``)
     main_required: frozenset = frozenset()  # the restrictive ones among them (all but inclusion lists)
-    #: The sentence's own wording, normalised (``_norm``), whole and without its inclusion lists, for ``_literal``.
+    #: The sentence's own wording, normalised (``_norm``), for ``_literal``.
     wordings: tuple[str, ...] = ()
 
 
@@ -395,14 +396,8 @@ def _passage_sentences(e: Evidence) -> list[_Sentence]:
                                      _limits(concepts), _exceptions(sentence),
                                      frozenset(c for _, alts in _main_concepts(sentence) for c in alts),
                                      _representatives(_main_concepts(_without_inclusions(sentence, _INCLUSION))),
-                                     (_norm(sentence), _norm(_without_inclusions(sentence, _INCLUSION_CLAUSE)))))
+                                     (_norm(sentence),)))
     return out
-
-
-#: An inclusion list with its commas ("…de edificação, incluindo obras de ampliação …, sujeitas a …"): a literal
-#: quote may leave it out, since it names cases the scope already covers (it restricts nothing, see ``required``).
-_INCLUSION_CLAUSE = re.compile(r",?\s*\b(?:incluindo|including|nomeadamente|designadamente|namely)\b[^,;:]*,?",
-                               re.IGNORECASE)
 
 
 #: What makes a span restrictive: a condition, exclusivity, negation, modality, exception, limit, tense or quantifier.
@@ -423,10 +418,11 @@ def _without_inclusions(sentence: str, pattern: re.Pattern) -> str:
 
 
 def _literal(atom: str, s: _Sentence) -> bool:
-    """Whether the atom is the sentence's own wording, in its own order (accents, case and spacing aside), whole words
-    only; the sentence's inclusion lists may be left out."""
-    a = _norm(atom)
-    return bool(a) and any(re.search(rf"(?<!\w){re.escape(a)}(?!\w)", w) for w in s.wordings)
+    """Whether the atom is the whole sentence in its own wording (accents, case, spacing, a paragraph number and the
+    final stop aside). Never a part of it: what a part leaves out can be a condition in any wording ("desde que …"),
+    so a partial quote is not decided by reading what it drops."""
+    a = _norm(re.sub(r"^\s*\d+\s*-\s*", "", atom))
+    return bool(a) and a in s.wordings
 
 
 def _supports(atom_concepts: list[tuple[str, set[str]]], s: _Sentence, verbatim: bool = False,
@@ -475,7 +471,7 @@ _LEGAL = re.compile(
     r"in force|deferid\w*|deferiment\w*|legal\w*|ilegal\w*|regulariz\w*|conform\w*|complian\w*|compliant|"
     r"complet\w*|conclu\w*|done|finish\w*|luz verde|green light|exempt\w*|isent\w*|isenc\w*|dispens\w*|"
     r"accept\w*|aceit\w*|communicat\w*|comunicad\w*|submit\w*|submet\w*|apresentad\w*|entitle\w*|direito|"
-    r"covered|abrangid\w*)")
+    r"covered|abrangid\w*|parecer\w*)")
 #: Permission words. A permission with no explicit general scope ("Two dwellings are permitted", "São permitidos
 #: dois fogos") is about the matter (MU-9 M1); with one ("in urban land", "each category", "depending on …") it is a
 #: general statement.
@@ -484,7 +480,8 @@ _LEGAL = re.compile(
 _DEONTIC_WORDS = re.compile(
     r"\b(?:proib\w*|prohibit\w*|interdit\w*|forbid\w*|forbidden|vedad\w*|impedid\w*|revog\w*|revok\w*|"
     r"revoca\w*|repeal\w*|derrog\w*|suspend\w*|suspens\w*|anul\w*|annul\w*|isen[tc]\w*|exempt\w*|dispens\w*|"
-    r"waiv\w*|prevalec\w*|prevail\w*|overrid\w*|substitu\w*|replac\w*|cessa\w*|deixa\w* de|no longer)\b")
+    r"waiv\w*|prevalec\w*|prevail\w*|overrid\w*|substitu\w*|replac\w*|cessa\w*|deixa\w* de|no longer|carec\w*|"
+    r"necessit\w*|sujeit\w*)\b")
 _PERMISSION = re.compile(r"\b(?:permitted|permissible|permitid\w*|permite\w*|allow\w*|admit\w*|admiss\w*)\b")
 _GENERIC_SCOPE = re.compile(
     r"\b(?:each|every|any|cada|qualquer|tod[oa]s?|depending|depend\w*|consoante|conforme|according)\b"
@@ -633,8 +630,10 @@ def _normative(concepts: list[tuple[str, set[str]]], tokens: list[str], folded: 
     checked against the passage, but not their grammatical roles (which noun is the object, which the scope), so it
     is supported only as the passage's own wording. A permission named as an object ("defines the admissible uses")
     or hedged by a dependency ("may depend on the plan") grants nothing and stays descriptive. A prohibition, or an
-    act that removes or overrides a duty (revokes, repeals, suspends, waives, exempts), is normative too."""
-    return legal or _precise(concepts, tokens, folded) or bool(_DEONTIC_WORDS.search(folded))
+    act that removes or overrides a duty (revokes, repeals, suspends, waives, exempts), is normative too, and so is a
+    use designation ("os espaços destinam-se a …", "intended for …"): it says which uses the land admits."""
+    return (legal or _precise(concepts, tokens, folded) or bool(_DEONTIC_WORDS.search(folded))
+            or any("INTENDED" in alts for _, alts in concepts))
 
 
 def _restates_case_records(tokens: list[str], cited: list[Evidence]) -> tuple[str, ...]:
@@ -646,6 +645,28 @@ def _restates_case_records(tokens: list[str], cited: list[Evidence]) -> tuple[st
     if records and all(t in corpus or t in _LOCATION_WORDS for t in content):
         return tuple(e.evidence_id for e in records)
     return ()
+
+
+_ATTRIBUTION = "segundo under according acordo termos per pdm plano plan regulamento regulation municipal director"
+
+
+def _restates(concepts: list[tuple[str, set[str]]], cited: list[Evidence]) -> bool:
+    """Whether the atom restates one sentence of a cited official passage: every concept it uses is that sentence's
+    (a role swap keeps them all: "Nas operações de estacionamento, a edificação carece de …"). Its content is then
+    the sentence's, whatever its vocabulary, so it is held to the sentence's own wording like a normative statement.
+    Decided by the passage, not by spotting deontic words."""
+    for e in cited:
+        if is_official_text(e):
+            # Attribution to the cited source ("Segundo o PDM, …", "Under the PDM-Cascais regulation, …") frames the
+            # restatement; it doesn't make it say something else.
+            framing = {c for _, alts in _concepts_of(_tokens(f"{e.source_title} {_ATTRIBUTION}")) for c in alts}
+            content = [alts for _, alts in concepts if alts != {"COND"} and not alts <= framing]
+            if len(content) < 3:
+                continue
+            for s in _passage_sentences(e):
+                if all(alts & s.allowed for alts in content):
+                    return True
+    return False
 
 
 def _directional(tokens: list[str], cited: list[Evidence], verbatim: bool = False,
@@ -679,14 +700,15 @@ def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False) 
     position; otherwise the planning contract decides and the directional verdict is recorded in shadow.
 
     ``verbatim``: a literal quote that HABITA rendered from a cited record (``general_rule``). Its bearer is the
-    source itself, so it is not read for references to the matter; it must still be supported, whole, by one official
-    sentence (a partial quote can't drop a limit, condition or exception)."""
+    source itself, so it is not read for references to the matter; it must be one whole official sentence, still
+    supported by it (a partial quote can't drop a limit, condition or exception)."""
     tokens = _tokens(atom)
     folded = _fold(atom.lower())
     legal = _legal(folded)
     if verbatim:
-        supported, _ = _directional(tokens, cited, verbatim=True, text=atom)
-        enforced = legal or _precise(_concepts_of(tokens), tokens, folded)
+        # A quote is held to the whole sentence: a part can leave out a condition in any wording.
+        supported, _ = _directional(tokens, cited, verbatim=True, text=atom, literal=True)
+        enforced = _normative(_concepts_of(tokens), tokens, folded, legal) or _restates(_concepts_of(tokens), cited)
         return Atom(atom, "general_rule" if supported else "unsupported", "source", supported,
                     None if supported else _UNSUPPORTED, enforced=enforced)
     bearer = "matter" if _bare_permission(folded) else _bearer(tokens, atom)
@@ -722,7 +744,7 @@ def _explanation_atom(atom: str, cited: list[Evidence], verbatim: bool = False) 
         return Atom(atom, "unsupported", "matter", (),
                     "says something about this matter that its cited case records don't state; a general rule can't "
                     "establish it")
-    normative = _normative(_concepts_of(tokens), tokens, folded, legal)
+    normative = _normative(_concepts_of(tokens), tokens, folded, legal) or _restates(_concepts_of(tokens), cited)
     supported, quote_required = _directional(tokens, cited, verbatim, text=atom, literal=normative)
     kind = ("conditional_rule" if conditional else "general_rule") if supported else "unsupported"
     enforced = normative

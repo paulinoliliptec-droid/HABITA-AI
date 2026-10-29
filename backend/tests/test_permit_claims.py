@@ -71,8 +71,6 @@ def test_no_record_type_carries_the_property_legal_status_capability():
 # --- directional support -------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("text, cites", [
-    ("Nas operações urbanísticas de edificação sujeitas a licenciamento ou comunicação prévia, deve ser assegurada a "
-     "dotação de estacionamento.", ["E13"]),  # E13's own wording, its inclusion list left out
     ("Nas operações urbanísticas de edificação, incluindo obras de ampliação e alteração de uso, sujeitas a "
      "licenciamento ou comunicação prévia, deve ser assegurada a dotação de estacionamento.", ["E13"]),  # whole
 ])
@@ -88,6 +86,8 @@ async def test_a_rule_in_its_own_wording_verifies(text, cites, section):
     "communication, parking provision must be ensured.",  # translated
     "If the works are an urban building operation subject to licensing or prior communication, parking provision "
     "must be ensured.",  # applied as a condition
+    "Nas operações urbanísticas de edificação sujeitas a licenciamento ou comunicação prévia, deve ser assegurada a "
+    "dotação de estacionamento.",  # abridged: its inclusion list left out (a whole sentence or nothing)
     "Nas operações urbanísticas de estacionamento sujeitas a licenciamento ou comunicação prévia, deve ser assegurada "
     "a dotação de edificação.",  # ACC-ROLE-01: objects swapped
     "Nas operações urbanísticas de edificação sujeitas a licenciamento ou comunicação prévia, a dotação de "
@@ -156,7 +156,8 @@ def test_atoms_follow_sentences_and_keep_each_verdict():
     assert atoms[1].bearer == "matter" and atoms[1].problem
 
 
-EXPLANATION_TEXT = ("Nas operações urbanísticas de edificação sujeitas a licenciamento ou comunicação prévia, deve ser "
+EXPLANATION_TEXT = ("Nas operações urbanísticas de edificação, incluindo obras de ampliação e alteração de uso, "
+                    "sujeitas a licenciamento ou comunicação prévia, deve ser "
                     "assegurada a dotação de estacionamento. The property already holds that licence.")
 
 

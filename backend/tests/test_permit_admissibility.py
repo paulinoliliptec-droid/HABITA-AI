@@ -29,7 +29,10 @@ CIVIL_TEXT = ("Only autonomous units can be the object of horizontal property: u
               "isolated from each other, with their own exit to a common part of the building or to the public way.")
 PDM_TEXT = ("Princípios gerais do solo urbano 1 - Em solo urbano os espaços destinam-se predominantemente à "
             "urbanização e edificação, designadamente de habitação, comércio e serviços.")
-PDM_QUOTE = "Em solo urbano os espaços destinam-se predominantemente à urbanização e edificação"
+#: PDM_TEXT's rule in its own wording: the only form in which a restatement of it verifies, and the whole sentence a
+#: quote must be (owner decision after ACC-QO-09 / ACC-ROLE-01).
+PDM_SENTENCE = PDM_TEXT.split(" 1 - ", 1)[1]
+PDM_QUOTE = PDM_SENTENCE.rstrip(".")
 FAQ_TEXT = ("Q: Que entidades é necessário registar no MyCascais para iniciar um pedido de licenciamento ou "
             "comunicação prévia? R: Todas as entidades do pedido deverão estar registadas e validadas no MyCascais.")
 PLANNING_TEXT = "Planning classification requires confirmation against the official map(s)."
@@ -538,7 +541,7 @@ GENERAL_EXPLANATIONS = [
     "Urban parameters must be checked against the applicable plan.",
     "Housing use may depend on the applicable plan.",
     "Each zone or district defined by a municipal plan has specific land-use rules.",
-    "Urban land is intended mainly for building, including housing, commerce and services.",
+    PDM_SENTENCE,
     "O PDM classifica e qualifica o solo do município.",
     "Os parâmetros urbanísticos têm de ser verificados no plano aplicável.",
     "O uso habitacional pode depender da categoria de espaço definida no plano.",
@@ -713,17 +716,35 @@ async def test_reclassification_opens_no_path_for_the_earlier_paraphrases(text, 
 
 # A. General explanation + official source; E. the same vocabulary is not, by itself, a reason to reject.
 GENERAL_A_E = [
-    "Under the PDM, urban land is intended mainly for building, including housing, commerce and services.",
+    PDM_SENTENCE,
     "Zoning in a municipal plan sets which uses each district or zone admits.",
     "Housing use in urban land may depend on the urban parameters of the applicable plan.",
-    "Segundo o PDM, em solo urbano os espaços destinam-se sobretudo à urbanização e à habitação.",
+    PDM_SENTENCE.rstrip("."),
     "O zonamento do plano municipal define os usos admitidos em cada distrito ou zona urbanística.",
     "A habitação em solo urbano depende dos parâmetros urbanísticos do plano aplicável.",
 ]
+# A restatement of PDM_TEXT in other words (translated, reordered, abridged, attributed) is quote-only: its words can
+# be checked, not their roles (owner decision after ACC-QO-09 / ACC-ROLE-01).
+RESTATEMENTS = [
+    "Urban land is intended mainly for building, including housing, commerce and services.",
+    "Under the PDM, urban land is intended mainly for building, including housing, commerce and services.",
+    "Segundo o PDM, em solo urbano os espaços destinam-se sobretudo à urbanização e à habitação.",
+    "Under the PDM, urban land is intended mainly for housing.",
+    "Under the PDM, urban land is intended mainly for urbanisation and building, including housing.",
+    "Segundo o PDM, o solo urbano destina-se predominantemente à urbanização e edificação.",
+]
+
+
+@pytest.mark.parametrize("section", SECTIONS)
+@pytest.mark.parametrize("text", RESTATEMENTS)
+async def test_a_restatement_of_an_official_sentence_is_quote_only(text, section):
+    report = await rendered_verify(in_section(section, text, ["E3"], basis="general_planning_explanation"))
+    assert report.outcome != "VERIFIED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
 # B. General explanation + the property's facts (as context) + official source: (text, cited ids).
 GENERAL_WITH_FACTS_B = [
-    ("The property is at Praça 5 de Outubro, Cascais. Under the PDM, urban land is intended mainly for housing.",
-     ["E6", "E3"]),
+    ("The property is at Praça 5 de Outubro, Cascais. " + PDM_SENTENCE, ["E6", "E3"]),
     # The user's answer may accompany the rule as context (HR-003 MU-3: never restated in HABITA's voice).
     ("Housing use may depend on the urban parameters of the plan.", ["E8", "E3"]),
     ("The parcel's planning classification must be confirmed; zoning rules set the uses each district admits.",
@@ -825,10 +846,10 @@ async def test_g_a_valid_official_parcel_determination_supports_the_category(tex
 K_GENERAL = [
     "The PDM classifies municipal land as urban or rustic and qualifies it into categories of space.",
     "Each land-use category sets the admissible uses and the urban parameters for building.",
-    "Under the PDM, urban land is intended mainly for urbanisation and building, including housing.",
+    PDM_SENTENCE,
     "O PDM classifica o solo como urbano ou rústico e qualifica-o em categorias de espaço.",
     "Cada categoria de uso do solo define os usos admissíveis e os parâmetros urbanísticos.",
-    "Segundo o PDM, o solo urbano destina-se predominantemente à urbanização e edificação.",
+    PDM_SENTENCE.rstrip("."),
 ]
 K_PARCEL = [
     "The land-use category of the parcel conditions the admissible uses and urban parameters.",
