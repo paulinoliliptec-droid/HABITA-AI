@@ -3361,6 +3361,66 @@
    }
   },
   {
+   "id": "ACC-CXP1-12",
+   "group": "CXP1",
+   "statement": "Single-family houses with a construction area for enlargement up to 20 % of the existing area may be enlarged to a construction area of up to 200 m2, except classified buildings.",
+   "lang": "en",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex V1/V2 confirmation pass, 2026-10-29 (gpt-6-sol, read-only, via codex exec on c6e3be4)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "num"
+   ],
+   "bases": [
+    "general_planning_explanation"
+   ],
+   "sections": [
+    "claim",
+    "procedure",
+    "risk",
+    "next action"
+   ],
+   "classification": {
+    "subject": "general",
+    "object": "see claim_type",
+    "claim_type": "general permission (limit attached to another quantity)",
+    "modality": "assertion"
+   },
+   "expected": "REJECTED",
+   "rationale": "OPEN (Codex V2 confirmation, NOT FIXED): 200 m2 is bound to the resulting area instead of the existing area; the two-concept head window still matches. Reproduced VERIFIED ×4 on c6e3be4.",
+   "harness": "verifier",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "open",
+   "observed": {
+    "98af6af": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "num/general_planning_explanation/claim",
+      "num/general_planning_explanation/procedure",
+      "num/general_planning_explanation/risk",
+      "num/general_planning_explanation/next action"
+     ],
+     "passes": false
+    },
+    "phase1": {
+     "verified": 4,
+     "runs": 4,
+     "verified_runs": [
+      "num/general_planning_explanation/claim",
+      "num/general_planning_explanation/procedure",
+      "num/general_planning_explanation/risk",
+      "num/general_planning_explanation/next action"
+     ],
+     "passes": false
+    }
+   }
+  },
+  {
    "id": "ACC-COND-N01",
    "group": "COND",
    "statement": "The works must ensure parking provision.",
@@ -14242,6 +14302,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "added ACC-CXP1-10..11 (Codex bounded pass, exact wording); fixed: last clause boundary anywhere before a deferral, number heads compared as subsets."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "added ACC-CXP1-12 (Codex confirmation pass, exact wording), open: V2 not fixed."
   }
  ]
 }

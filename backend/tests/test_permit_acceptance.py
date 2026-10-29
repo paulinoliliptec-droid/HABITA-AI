@@ -25,7 +25,7 @@ def open_at_freeze(case) -> bool:
 
 def marks(case):
     if case["harness"] == "verifier" and open_at_freeze(case):
-        return [pytest.mark.xfail(strict=True, reason=f"open at Phase 0; to close in phase {case['fixed_in_phase']}")]
+        return [pytest.mark.xfail(strict=True, reason=f"open; to close in phase {case['fixed_in_phase']}")]
     return []
 
 
