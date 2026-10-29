@@ -934,3 +934,13 @@ async def test_nrm44_a_header_that_only_repeats_the_body_is_not_added():
 
 async def test_nrm45_admissibility_paraphrased_under_a_title_that_names_it():
     assert rejected(await explained("Nas operações urbanísticas, o PDM define usos permitidos.", "ADM-FRAME"))
+
+
+# --- closure, Codex final review round 1 (2026-10-29): exact case ---------------------------------------------------
+
+async def test_closure_r1_header_words_scattered_over_the_body_stay_bound():
+    e = official("SYN-SCOPE-01", "TEST FIXTURE Artigo 997.º Obras mediante vistoria municipal 1 - Em solo urbano, as obras "
+                                 "são permitidas mediante pedido de vistoria municipal.")
+    RECS.append(e)
+    quote = "Em solo urbano, as obras são permitidas mediante pedido de vistoria municipal."
+    assert "Obras mediante vistoria municipal" in shown(quote, "SYN-SCOPE-01")

@@ -381,15 +381,18 @@ def _same_pair(a: frozenset, b: frozenset) -> bool:
 
 def _title_only(header: str, body: str) -> bool:
     """Whether the text of an "Artigo N.º … 1 - " header (or before "1 - ") is a label that adds nothing to the
-    excerpt: no sentence or bracketed aside, and every concept it uses is in the body ("Dotação de estacionamento").
+    excerpt: no sentence or bracketed aside, and its words are a phrase of the body ("Dotação de estacionamento").
     Anything else ("Obras necessitam de vistoria municipal", "Princípios gerais …") stays bound to the quote: what a
     header adds is decided by content, not by which words it uses (owner principle, ACC-NRM-44)."""
     title = re.sub(r"^.*?\bartigo\s+", "", re.sub(r"\d+\.\s*[oº]", "", header), flags=re.IGNORECASE)
     if re.search(r"[.!?;()\[\]]", title):
         return False
-    known = {c for _, alts in _concepts_of(_tokens(body)) for c in alts}
-    stems = {_root(t) for t in _tokens(body)}
-    return all(alts & known or _root(t) in stems for t, alts in _concepts_of(_tokens(title)))
+    # The title's content words must occur in the body as one contiguous run ("Dotação de estacionamento" in "… a
+    # dotação de estacionamento"): words scattered over the body relate differently ("Obras mediante vistoria" vs
+    # "obras … mediante pedido de vistoria").
+    head = [_root(t) for t in _tokens(title) if t not in _FUNCTION]
+    roots = [_root(t) for t in _tokens(body) if t not in _FUNCTION]
+    return bool(head) and any(roots[i:i + len(head)] == head for i in range(len(roots) - len(head) + 1))
 
 
 def _root(word: str) -> str:

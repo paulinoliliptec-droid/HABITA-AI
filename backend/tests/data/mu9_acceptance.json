@@ -17968,6 +17968,41 @@
    "status": "not_run",
    "observed": {},
    "covered_by": "tests/test_permit_numeric_integrity.py::test_nrm45_admissibility_paraphrased_under_a_title_that_names_it"
+  },
+  {
+   "id": "ACC-NRM-46",
+   "group": "NRM",
+   "statement": "Em solo urbano, as obras são permitidas mediante pedido de vistoria municipal.",
+   "lang": "pt",
+   "provenance": {
+    "reviewer": "Codex",
+    "source": "Codex MU-9 closure final review round 1, 2026-10-29 (gpt-6-sol, read-only, via gstack codex exec on 8fc466a)",
+    "wording": "exact"
+   },
+   "wording": "exact",
+   "evidence_sets": [
+    "SYN-SCOPE-01 (unit-test fixture)"
+   ],
+   "bases": [
+    "general_rule"
+   ],
+   "sections": [
+    "claim"
+   ],
+   "classification": {
+    "subject": "source",
+    "object": "see claim_type",
+    "claim_type": "header words scattered over the body (P1)",
+    "modality": "quote"
+   },
+   "expected": "VERIFIED",
+   "rationale": "Shown without its header on 8fc466a (the header counted as redundant word by word). Fixed: a header is redundant only as a contiguous phrase of the body; otherwise it is shown with the quote.",
+   "harness": "unit_test",
+   "final_gate": false,
+   "fixed_in_phase": 1,
+   "status": "not_run",
+   "observed": {},
+   "covered_by": "tests/test_permit_numeric_integrity.py::test_closure_r1_header_words_scattered_over_the_body_stay_bound"
   }
  ],
  "final_gate_harness": "workflow end to end (make_client, PDM Regulamento ingested, manual planning, passing reviewer); the claim cites every payload record of the type for its basis: general_planning_explanation→regulatory_source, none→authority_record",
@@ -18177,6 +18212,11 @@
    "date": "2026-10-29",
    "phase": 1,
    "change": "structural closure (ACC-NRM-44/45): headers are bound to the rule unless they add nothing (content test, no verb lists) and rendered with the quote; deontic words are never framing. ACC-NRM-39/42/43/44 now VERIFIED with the header bound (policy change, condition shown); ACC-NRM-45 closed."
+  },
+  {
+   "date": "2026-10-29",
+   "phase": 1,
+   "change": "MU-9 closure round 1 (Codex): a header is redundant only as a contiguous phrase of the body. ACC-NRM-46 added."
   }
  ]
 }
