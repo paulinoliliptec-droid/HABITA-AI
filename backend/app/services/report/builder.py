@@ -28,16 +28,25 @@ _REASONS = {
 }
 
 
+def _is_current(matter: PermitMatter, verification: VerificationReport | None) -> bool:
+    """The report decided the matter's current draft: it is the matter's latest one, for the same draft revision."""
+    return (verification is not None and matter.draft is not None
+            and verification.verification_id == matter.latest_verification_id
+            and verification.draft_revision == matter.draft.revision)
+
+
 def assessment_status(matter: PermitMatter, verification: VerificationReport | None) -> tuple[ReportStatus, str]:
-    """VERIFIED only when the matter is VERIFIED and its latest verification report is VERIFIED for the same draft
-    revision; REJECTED when the matter or that report is REJECTED; anything else is pending."""
-    draft = matter.draft
-    if (matter.state == MatterState.VERIFIED and verification is not None and verification.outcome == "VERIFIED"
-            and draft is not None and verification.draft_revision == draft.revision
-            and verification.verification_id == matter.latest_verification_id):
+    """VERIFIED only when the matter itself presents a verified assessment (VERIFIED and not superseded by a raised
+    protocol floor) and its latest verification report is VERIFIED, not superseded, for the same draft revision;
+    REJECTED when the matter is, or that current report is; anything else is pending."""
+    current = _is_current(matter, verification)
+    if (matter.assessment_status == "verified_assessment" and current and verification.outcome == "VERIFIED"
+            and not verification.superseded_protocol):
         return "VERIFIED", "The assessment passed HABITA's evidence and verification checks."
-    if matter.state == MatterState.REJECTED or (verification is not None and verification.outcome == "REJECTED"):
+    if matter.state == MatterState.REJECTED or (current and verification.outcome == "REJECTED"):
         return "REJECTED", "The draft did not pass verification against its evidence."
+    if matter.state == MatterState.VERIFIED:  # superseded or inconsistent: never presented as verified
+        return "PENDING_CONFIRMATION", "Verified under an earlier protocol that HABITA no longer accepts; it must be verified again."
     reasons = {
         MatterState.NEEDS_INPUT: "HABITA needs answers from you before it can verify the assessment.",
         MatterState.ESCALATE: "The available sources don't settle this question; it needs the authority.",
@@ -81,6 +90,12 @@ def _evidence(e: Evidence) -> ReportEvidence:
     )
 
 
+def _evidence_order(e: Evidence) -> tuple[int, int | str]:
+    """E1, E2, … E10 in numeric order; any other id after them, alphabetically."""
+    n = e.evidence_id[1:]
+    return (0, int(n)) if e.evidence_id.startswith("E") and n.isdigit() else (1, e.evidence_id)
+
+
 def _assessment(matter: PermitMatter, evidence: list[Evidence],
                 verification: VerificationReport | None) -> ReportAssessment:
     status, reason = assessment_status(matter, verification)
@@ -111,12 +126,14 @@ def _assessment(matter: PermitMatter, evidence: list[Evidence],
         conclusion_evidence_ids=list(draft.conclusion.evidence_ids) if draft else [],
         statements=statements, conditions=[c.text for c in draft.conditions] if draft else [],
         issues=[i.message for i in verification.issues] if rejected and verification else [],
+        # The record is shown as current only when it is what decided the status shown; otherwise it is history.
         verification=ReportVerification(
             verification_id=verification.verification_id, outcome=verification.outcome,
             draft_revision=verification.draft_revision, created_at=verification.created_at,
             protocol=verification.protocol, trust_pin=dict(verification.trust_pin),
+            current=status != "PENDING_CONFIRMATION" and _is_current(matter, verification),
         ) if verification is not None else None,
-        evidence=[_evidence(e) for e in sorted(shown, key=lambda e: int(e.evidence_id[1:] or 0))],
+        evidence=[_evidence(e) for e in sorted(shown, key=_evidence_order)],
     )
 
 

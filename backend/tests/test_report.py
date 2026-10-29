@@ -106,6 +106,37 @@ def test_ac6_2_verified_appears_only_under_the_status_rule(matter_state, report,
     assert assessment_status(_matter(matter_state), report)[0] == expected
 
 
+def test_ac6_2_a_protocol_superseded_assessment_is_never_verified():
+    """Codex R1 P1: after raise-protocol-floor the stored values stay VERIFIED but the matter needs re-verification."""
+    superseded_matter = _matter(MatterState.VERIFIED).model_copy(update={"superseded_protocol": "statement-v1"})
+    assert assessment_status(superseded_matter, _report())[0] == "PENDING_CONFIRMATION"
+    superseded_report = _report().model_copy(update={"superseded_protocol": "statement-v1"})
+    assert assessment_status(_matter(MatterState.VERIFIED), superseded_report)[0] == "PENDING_CONFIRMATION"
+
+
+def test_ac6_2_an_older_verified_record_is_shown_as_history_not_as_the_status():
+    """Codex R1 P1: re-verifying a new draft while the previous report said VERIFIED."""
+    report = build_report(_property(), _context("requires_manual_confirmation"), [],
+                          _matter(MatterState.VERIFYING, revision=1), [], _report(revision=0))
+    assert report.assessment.status == "PENDING_CONFIRMATION" and not report.assessment.verification.current
+    text = pdf_text(render_pdf(report))
+    assert "Earlier verification (not current)" in text and "history only" in text and "Verification record" not in text
+
+
+def test_a_rejected_report_of_an_older_draft_does_not_reject_the_current_one():
+    assert assessment_status(_matter(MatterState.DRAFT_READY, revision=1), _report("REJECTED", revision=0))[0] \
+        == "PENDING_CONFIRMATION"
+
+
+def test_evidence_ids_outside_the_e_n_form_do_not_break_the_report():
+    from tests.test_permit_verifier import ev
+    items = [ev(i) for i in ("E10", "legacy-1", "E2")]
+    m = _matter(MatterState.DRAFT_READY).model_copy(update={"draft": None})
+    ids = [e.evidence_id for e in build_report(_property(), _context("requires_manual_confirmation"), [], m,
+                                               items).assessment.evidence]
+    assert ids == ["E2", "E10", "legacy-1"]
+
+
 def _context(status, classification=None):
     from app.schemas.property import Coordinates
     return PlanningContext(property_id="prp_0000000000000000", jurisdiction_id="pt/lisboa/cascais", status=status,

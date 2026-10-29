@@ -21,7 +21,15 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    getReport(propertyId, recallMatter(propertyId), controller.signal)
+    const own = recallMatter(propertyId);
+    // A capability the server no longer accepts still leaves the public property report.
+    getReport(propertyId, own, controller.signal)
+      .catch((err: unknown) => {
+        if (own && err instanceof ApiError && [401, 403, 404].includes(err.status)) {
+          return getReport(propertyId, null, controller.signal);
+        }
+        throw err;
+      })
       .then(setReport)
       .catch(() => !controller.signal.aborted && setReport(null));
     return () => controller.abort();

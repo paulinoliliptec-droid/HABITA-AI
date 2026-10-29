@@ -10,7 +10,7 @@ export interface PostItLink {
 }
 
 export interface PostIt {
-  id: "property" | "planning" | "assessment" | "risks" | "sources";
+  id: "property" | "planning" | "assessment" | "risks" | "evidence" | "sources";
   title: string;
   tone: PostItTone;
   badge?: string;
@@ -84,22 +84,23 @@ export function buildPostIts(report: PermitReport): PostIt[] {
         links: [],
       });
     }
-    notes.push({
-      id: "sources",
-      title: "Legal sources",
-      tone: "neutral",
-      lines: assessment.evidence.map((e) => `${e.evidence_id} · ${e.title} — ${e.reference}`),
-      // One link per official document, however many passages of it are cited.
-      links: [...new Map(assessment.evidence.filter((e) => e.url).map((e) => [e.url, { label: e.title, url: e.url! }])).values()],
-    });
-  } else {
-    notes.push({
-      id: "sources",
-      title: "Official sources",
-      tone: "neutral",
-      lines: report.sources.map((s) => s.title),
-      links: report.sources.flatMap((s) => link(s.title, s.url)),
-    });
+    if (assessment.evidence.length) {
+      notes.push({
+        id: "evidence",
+        title: "Evidence cited",
+        tone: "neutral",
+        lines: assessment.evidence.map((e) => `${e.evidence_id} · ${e.title} — ${e.reference}`),
+        // One link per cited document, however many of its passages are cited.
+        links: [...new Map(assessment.evidence.filter((e) => e.url).map((e) => [e.url, { label: e.title, url: e.url! }])).values()],
+      });
+    }
   }
+  notes.push({
+    id: "sources",
+    title: "Official sources",
+    tone: "neutral",
+    lines: report.sources.map((s) => s.title),
+    links: report.sources.flatMap((s) => link(s.title, s.url)),
+  });
   return notes;
 }

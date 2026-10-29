@@ -19,11 +19,15 @@ describe("map post-its (HR-004)", () => {
     }
   });
 
-  it("lists the same evidence ids as the report, and links each official document", () => {
-    const sources = note(report, "sources");
-    expect(sources.lines.map((l) => l.split(" · ")[0])).toEqual(report.assessment!.evidence.map((e) => e.evidence_id));
-    expect(sources.links.length).toBeGreaterThan(0);
-    for (const l of sources.links) expect(l.url).toMatch(/^https:\/\//);
+  it("lists the same evidence ids as the report, and links each cited document", () => {
+    const cited = note(report, "evidence");
+    expect(cited.lines.map((l) => l.split(" · ")[0])).toEqual(report.assessment!.evidence.map((e) => e.evidence_id));
+    expect(cited.links.length).toBeGreaterThan(0);
+    for (const l of cited.links) expect(l.url).toMatch(/^https:\/\//);
+  });
+
+  it("keeps the jurisdiction's official sources visible next to the evidence", () => {
+    expect(note(report, "sources").lines.length).toBe(report.sources.length);
   });
 
   it("states the absence of a verified zoning layer and never shows a classification without one", () => {
@@ -40,6 +44,7 @@ describe("map post-its (HR-004)", () => {
   it("without an assessment, shows the jurisdiction's official sources", () => {
     const propertyOnly = { ...report, assessment: null };
     expect(buildPostIts(propertyOnly).map((n) => n.id)).toEqual(["property", "planning", "sources"]);
+    expect(buildPostIts(report).map((n) => n.id)).toEqual(["property", "planning", "assessment", "risks", "evidence", "sources"]);
     expect(note(propertyOnly, "sources").lines.length).toBe(report.sources.length);
   });
 });

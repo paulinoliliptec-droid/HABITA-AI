@@ -132,9 +132,11 @@ def render_pdf(report: PermitReport) -> bytes:
             flow += [Paragraph(f"• {_t(i)}", s["body"]) for i in a.issues]
         if a.verification:
             v = a.verification
-            flow.append(Paragraph("Verification record", s["h2"]))
+            flow.append(Paragraph("Verification record" if v.current else "Earlier verification (not current)",
+                                  s["h2"]))
             flow.append(_table([
-                ("Outcome", _t(v.outcome)), ("Report", _t(v.verification_id)),
+                ("Outcome", _t(v.outcome) if v.current else
+                 f"{_t(v.outcome)} for draft revision {v.draft_revision}: history only, not the current status"), ("Report", _t(v.verification_id)),
                 ("Draft revision", str(v.draft_revision)), ("Verified at", f"{v.created_at:%Y-%m-%d %H:%M} UTC"),
                 ("Protocol", _t(v.protocol)),
                 ("Trust pin", "<br/>".join(f"{_t(k)}: {_t(val)}" for k, val in sorted(v.trust_pin.items())) or "—"),

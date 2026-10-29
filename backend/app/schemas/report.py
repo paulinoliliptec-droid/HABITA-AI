@@ -84,6 +84,8 @@ class ReportVerification(BaseModel):
     created_at: datetime
     protocol: str
     trust_pin: dict[str, str] = Field(default_factory=dict)
+    #: False: an earlier or superseded record, shown as history, never as the assessment's status.
+    current: bool
 
 
 class ReportAssessment(BaseModel):

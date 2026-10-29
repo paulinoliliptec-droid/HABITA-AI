@@ -34,7 +34,10 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
     const restore = own
       ? getMatter(own.matterId, own.token).catch((err: unknown) => {
           // Rejected or gone: forget it rather than retrying with a dead capability.
-          if (err instanceof ApiError && [401, 403, 404].includes(err.status)) forgetMatter(propertyId);
+          if (err instanceof ApiError && [401, 403, 404].includes(err.status)) {
+            forgetMatter(propertyId);
+            reportChanged();
+          }
           return null;
         })
       : Promise.resolve(null);
@@ -94,6 +97,7 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
     try {
       const created = await createMatter(propertyId, question);
       rememberMatter(propertyId, { matterId: created.matter.matter_id, token: created.access_token });
+      reportChanged(); // the map and the PDF now follow the new matter
       setToken(created.access_token);
       setMatter(created.matter);
       setEvidence([]);
