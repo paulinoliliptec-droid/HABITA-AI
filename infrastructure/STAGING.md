@@ -23,7 +23,25 @@ HR-004 and HR-006).
   it at `habita_ai`, or deploy it against a new database (`habita_ai_staging`) and re-run
   `python -m app.maintenance ingest-sources` there.
 
-## Procedure (do not run without authorisation)
+## Staging for HR-004 / HR-006 (prepared, not run)
+`infrastructure/deploy-staging.sh` deploys the pushed branch head to two **new** services,
+`habita-backend-staging` and `habita-frontend-staging`, on database `habita_ai_staging`:
+- isolated: nothing is copied from `habita_ai`; the database starts empty, so it holds no property anyone searched
+  on the preview. Properties appear only when someone resolves an address (use public demo addresses, e.g.
+  "Praça 5 de Outubro, Cascais");
+- `SOURCE_INGEST_ON_STARTUP=true` seeds the official-source registry and ingests the public official sources
+  (cascais.pt) at startup;
+- MU-9: with no stored floor the application applies `DEFAULT_FLOOR` (fail closed). The server-side validator is
+  installed by `python -m app.maintenance raise-protocol-floor …` run against `habita_ai_staging` (optional,
+  needs the URI);
+- it refuses to run on a dirty tree or when HEAD is not the pushed branch head.
+
+Authorisations it needs: creating the two Cloud Run services (new resources), pushing two images to
+`habita-preview`, granting the default compute service account access to the three secrets (already the case for
+the preview), public invocation (`--allow-unauthenticated`), and the Atlas user being allowed to create
+`habita_ai_staging` (check its role: `readWrite` on `habita_ai` only would make the first write fail).
+
+## Procedure for the existing preview (do not run without authorisation)
 ```bash
 P=habita-ai-512916; R=us-central1-docker.pkg.dev/$P/habita-preview; T=staging-$(git rev-parse --short HEAD)
 git status --porcelain            # must be empty: images are built from committed code only
