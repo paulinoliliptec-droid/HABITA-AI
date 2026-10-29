@@ -381,14 +381,18 @@ def _same_pair(a: frozenset, b: frozenset) -> bool:
 
 
 def _heading(text: str) -> bool:
-    """A heading ("Princípios gerais do solo urbano"), not a statement: no closing punctuation."""
-    return not re.search(r"[.!?;:]\s*$", text.strip())
+    """A heading ("Princípios gerais do solo urbano", "Obras:"), not a statement: no closing stop."""
+    return not re.search(r"[.!?;]\s*$", text.strip())  # "Obras:" is a title
 
 
 def _passage_sentences(e: Evidence) -> list[_Sentence]:
     text = e.excerpt.lower()  # folded by _tokens, which keeps PT "é" apart from "e"
     out = []
-    stripped, headed = _HEADER.subn("", text, count=1)
+    header = _HEADER.match(text)
+    # "Artigo 997.º Obras 1 - …" is a header; "Artigo 997.º Obras. A permissão depende de … 1 - …" carries a sentence
+    # before paragraph 1, so nothing is stripped and that sentence counts.
+    headed = bool(header) and not re.search(r"[.!?;]\s+\w", re.sub(r"\d+\.\s*[oº]", "", header.group(0)))
+    stripped = text[header.end():] if headed else text
     raw = _PARAGRAPH.split(stripped)
     paragraphs = [re.sub(r"^\s*\d+\s*-\s*", "", p) for p in raw]
     # A heading is only an unnumbered title before "1 - " ("Princípios gerais do solo urbano 1 - …"). When "Artigo …
@@ -877,9 +881,12 @@ def _adds_nothing(tokens: list[str], cited: list[Evidence]) -> bool:
     words = list(tokens)
     hedged = bool(_DEPENDENCY_CLAUSE.search(" ".join(words)))
     for t, alts in _concepts_of(tokens):
-        if _META.fullmatch(t) or t in _GENERIC_RULES or alts <= framing or t == "no" or t.startswith(_TOPIC_STEMS) \
+        # Structure, generic rules, attribution (never for a deontic word: a title "Usos Admissíveis" frames nothing),
+        # PT "no" ("in the"), planning topics, connectives.
+        attribution = alts <= framing and not alts & _DEONTIC_CONCEPTS
+        if _META.fullmatch(t) or t in _GENERIC_RULES or attribution or t == "no" or t.startswith(_TOPIC_STEMS) \
                 or alts & {"CONJ", "DISJ", "ALL", "INCL"}:
-            continue  # structure, generic rules, attribution, PT "no" ("in the"), planning topics, connectives
+            continue
         # "may depend on …", "pode ser admissível consoante …": a hedged possibility, not a permission.
         if alts == {"PERM"} and t in _MODAL_AUX and (hedged or (
                 (i := words.index(t)) + 1 < len(words) and _DEPENDENCY_VERB.match(words[i + 1]))):

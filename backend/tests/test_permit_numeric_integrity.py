@@ -829,3 +829,29 @@ async def test_owner_rules_r1_an_unpunctuated_paragraph_1_after_the_article_head
                              "condiciona a permissão à vistoria municipal.")
     RECS.append(e)
     assert rejected(await quoted("Em solo urbano, as obras são permitidas", "R-NOSTOP"))
+
+
+# --- owner-rules task, Codex round 2 (2026-10-29): exact cases ------------------------------------------------------
+
+SYN_HDR = official("SYN-HDR", "TEST FIXTURE Artigo 997.º Obras. A permissão depende de vistoria municipal. 1 - Em solo "
+                              "urbano, as obras são permitidas.")
+SYN_ADM = record("SYN-ADM", "regulatory_source", "TEST FIXTURE Artigo 995.º Residência 1 - Nas operações urbanísticas, o "
+                 "uso residencial é obrigatório.", source="cascais-pdm", basis="official_text",
+                 authority_class="municipal_instrument", title="PDM-Cascais — Usos Admissíveis (TEST FIXTURE)",
+                 status="official_text")
+SYN_TITLE = official("SYN-TITLE", "TEST FIXTURE Obras: 1 - Em solo urbano, as obras são permitidas.")
+RECS.extend([SYN_HDR, SYN_ADM, SYN_TITLE])
+
+
+async def test_owner_rules_r2_a_sentence_before_paragraph_1_is_not_a_header():
+    assert rejected(await quoted("Em solo urbano, as obras são permitidas.", "SYN-HDR"))
+
+
+async def test_owner_rules_r2_a_source_title_frames_no_deontic_word():
+    text = "Nas operações urbanísticas, o PDM define os usos admissíveis residenciais."
+    assert rejected(await explained(text, "SYN-ADM"))
+
+
+async def test_owner_rules_r2_a_title_ending_in_a_colon_is_a_title():
+    report = await quoted("Em solo urbano, as obras são permitidas.", "SYN-TITLE")
+    assert report.outcome == "VERIFIED", report.issues
