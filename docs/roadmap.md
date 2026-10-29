@@ -14,7 +14,10 @@ are not global milestones.
 | HR-001 | Property Location & Jurisdiction Foundation | address → Google Maps → geocoding → jurisdiction resolution → property workspace: design system and app shell; Places autocomplete; `POST /api/property/resolve-location`, `GET /api/property/{id}`; jurisdiction abstraction (Portugal adapter + generic fallback); property persistence (MongoDB + in-memory); workspace with map, jurisdiction hierarchy and competent authority (`reviews/HR-001-…`) | review HR-001: Codex ACCEPTED, Muse ACCEPTED, round 5 | **DONE** (RESOLVED, 2026-10-27) |
 | HR-002 | Meta-powered Permit Intelligence Foundation | first agentic workflow GOAL → CHECKLIST → TOOLS → EVIDENCE → DRAFT → INDEPENDENT VERIFICATION → FINAL STATE on Muse Spark: persisted states and resume, structured tools, evidence model, regulatory-source abstraction (curated PT/Cascais), independent verifier, MongoDB, API, Permit section (`reviews/HR-002-…`) | review HR-002: Codex ACCEPTED, Muse ACCEPTED | **DONE** (RESOLVED / CLOSED, `main` @ `c556334`) |
 | HR-003 | Official Sources, Zoning & Regulatory Retrieval Foundation | coordinates → jurisdiction → official source registry → planning context → provenance-bearing evidence → Permit workflow, **Cascais only**; owner decisions of 2026-10-28 (manual confirmation without a validated connector; `pypdf`, no OCR; initial trusted corpus) (`reviews/HR-003-…`, `plans/HR-003-official-sources-plan.md`); MU-9 structural verification as its follow-up (`plans/HR-003-MU9-final-candidate.md`) | see below | **IN PROGRESS** |
-| HR-004 … HR-015 | — | **PENDING DEFINITION** (no approved scope in the repository) | **PENDING** | not started |
+| HR-004 | Intelligent Map Experience | interactive map, highlighted property, informative post-its, planning conditions, risks and consultable legal sources; zoning layers only as verified official data, otherwise the absence is stated (owner, 2026-10-29) | AC4.1–AC4.7 below | **IN PROGRESS** |
+| HR-005 | — | **PENDING DEFINITION** | **PENDING** | not started |
+| HR-006 | Premium PDF Report | professional export: property identification, analysis summary, conditions, risks, official sources, verifiable references and conclusion status; VERIFIED / REJECTED / pending clearly distinct; evidence provenance and version preserved (owner, 2026-10-29) | AC6.1–AC6.7 below | **IN PROGRESS** |
+| HR-007 … HR-015 | — | **PENDING DEFINITION** (no approved scope in the repository) | **PENDING** | not started |
 
 ### HR-003 acceptance status
 
@@ -28,6 +31,38 @@ are not global milestones.
 | Shadow measurement on live drafter output | **PENDING** (needs live runs) | TD-031 |
 | Pre-demo live gate, preview redeploy and visual QA (MU-1/4/5) | **PENDING** (needs authorisation) | TD-033 |
 | CX-3, CX-4, CX-5 backlog | met offline (Codex backlog review, final NO P1) | TD-016…018; `test_sources_concurrency.py`, `test_sources_ingest_concurrency.py`, `test_planning_context.py` |
+
+## HR-004 and HR-006 acceptance criteria (proposed by the builder from the owner's scope, 2026-10-29)
+
+Common architecture (owner): one shared structure of legal results feeds the map and the PDF; no duplication of the
+RAG, the MU-9 verifier or the legal decision logic; HR-003 and its safeguards preserved; map, post-its and PDF tested for
+consistency; demo data only when clearly labelled.
+
+**Shared report model.** Built only from what HABITA already stored: the property, its planning context, the official
+sources of its jurisdiction chain and, for an assessment, the matter's draft, evidence and latest verification report.
+It never calls the model, the retriever or the verifier. Status vocabulary: **VERIFIED** (the matter is VERIFIED and its
+verification report is VERIFIED for the same draft revision), **REJECTED** (the matter or its latest report is
+REJECTED), **PENDING CONFIRMATION** (anything else; unverified draft content is labelled "not verified").
+
+| ID | HR-004 Intelligent Map Experience |
+|---|---|
+| AC4.1 | The resolved property is highlighted on the interactive map (marker + label) at its stored coordinates. |
+| AC4.2 | Post-its show: the property and its competent authority; the planning context; the assessment status when an assessment is open; the official sources — all read from the shared report model. |
+| AC4.3 | Zoning: a classification appears only when the planning context is `resolved` by a trusted machine-readable connector; otherwise the post-it states that no verified zoning layer exists and lists the official maps to consult. No polygon, class or parcel limit is ever drawn without one. |
+| AC4.4 | Every legal source in a post-it opens its official URL; evidence ids match the report model's. |
+| AC4.5 | The status shown is exactly the report model's (same vocabulary as the PDF). |
+| AC4.6 | Tests: post-it model unit tests; consistency with the report model; frontend lint, typecheck, build; no backend regression. |
+| AC4.7 | Demo data, if used, is visibly labelled as such. |
+
+| ID | HR-006 Premium PDF Report |
+|---|---|
+| AC6.1 | A server-generated PDF from the shared report model: property identification (address, coordinates, precision, jurisdiction chain, authority), planning context, analysis summary, conditions, risks, procedure and next actions, official sources and evidence references, generation time. |
+| AC6.2 | The status is unmistakable: VERIFIED only under the rule above (with verification date, protocol and trust pin); REJECTED with its issues; otherwise PENDING CONFIRMATION, with unverified content marked "not verified"; the planning manual-confirmation reasons shown as pending. |
+| AC6.3 | Provenance of every evidence item: source id, version, snapshot id, sha256, locator, retrieval date, verification status, official URL. |
+| AC6.4 | No new legal content: the PDF renders only stored statements; no model, retriever or verifier call. |
+| AC6.5 | Access: an assessment report needs the matter's capability token; a property-only report is public, like the property. A decision-support disclaimer (not legal advice, not a permit) is always present. |
+| AC6.6 | Tests: report model per status (VERIFIED / REJECTED / pending / no assessment); adversarial: an unverified or rejected draft is never labelled VERIFIED; the PDF's extracted text carries the same status, evidence ids and provenance as the JSON and the map post-its. |
+| AC6.7 | A download action in the workspace. |
 
 ## Candidate modules named in the approved architecture (not yet assigned to HR numbers)
 
