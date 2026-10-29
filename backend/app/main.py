@@ -47,6 +47,40 @@ class ConfigurationError(RuntimeError):
     pass
 
 
+# What dbAdmin/dbOwner add to readWrite (MongoDB 7), except collMod, which MU-9 needs to install its validator.
+# bypassDocumentValidation would skip that validator; the rest administers users, roles or the database.
+_STAGING_FORBIDDEN_ACTIONS = frozenset({
+    "analyze", "bypassDocumentValidation", "changeCustomData", "changePassword", "compact", "configureQueryAnalyzer",
+    "createRole", "createUser", "dropDatabase", "dropRole", "dropUser", "enableProfiler", "grantRole",
+    "planCacheIndexFilter", "planCacheWrite", "reIndex", "revokeRole", "setAuthenticationRestriction", "storageDetails",
+    "validate", "viewRole", "viewUser",
+})  # fmt: skip
+
+
+async def _require_confined_user(mongo: AsyncMongoClient, db_name: str) -> None:
+    """Staging only: the MongoDB user must hold application privileges on ``db_name`` and nothing else.
+
+    A separate secret does not prove separate credentials; this refuses to start if the URI's user could also
+    reach another database (e.g. the preview's ``habita_ai``), a whole cluster or any resource, or holds
+    administrative actions (as with dbOwner).
+    """
+    status = await mongo.admin.command({"connectionStatus": 1, "showPrivileges": True})
+    auth = status.get("authInfo", {})
+    if not auth.get("authenticatedUsers"):
+        raise ConfigurationError(f"Staging needs an authenticated MongoDB user limited to {db_name}.")
+    # A privilege without a "db" is a cluster or anyResource grant; "" means every database.
+    reach = {
+        str(privilege.get("resource", {}).get("db", "<cluster or any resource>"))
+        for privilege in auth.get("authenticatedUserPrivileges", [])
+    }
+    if reach != {db_name}:
+        raise ConfigurationError(f"Staging MongoDB user must be limited to {db_name}; it reaches {sorted(reach)}.")
+    admin = {a for privilege in auth["authenticatedUserPrivileges"] for a in privilege.get("actions", [])}
+    admin &= _STAGING_FORBIDDEN_ACTIONS
+    if admin:
+        raise ConfigurationError(f"Staging MongoDB user on {db_name} must not hold administrative actions: {sorted(admin)}.")
+
+
 def _configure_logging() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     # httpx logs full request URLs at INFO; Google API keys are query parameters.
@@ -101,6 +135,8 @@ def create_app(
                 timeoutMS=settings.mongodb_timeout_ms,
                 tz_aware=True,
             )
+            if settings.app_env == "staging":
+                await _require_confined_user(mongo, settings.mongodb_db_name)
             mongo_repo = MongoPropertyRepository(mongo, settings.mongodb_db_name)
             await mongo_repo.ensure_indexes()
             repository = mongo_repo

@@ -1,12 +1,15 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Local development reads the repo-root .env (git-ignored). On Cloud Run the
 # same names are injected as environment variables from Secret Manager.
 REPO_ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
+
+# The only database an APP_ENV=staging process may use (see infrastructure/STAGING.md).
+STAGING_DB_NAME = "habita_ai_staging"
 
 
 class Settings(BaseSettings):
@@ -14,6 +17,8 @@ class Settings(BaseSettings):
         env_file=REPO_ROOT_ENV,
         env_file_encoding="utf-8",
         extra="ignore",
+        # Validation errors must not echo inputs: they include MONGODB_URI and the API keys.
+        hide_input_in_errors=True,
     )
 
     app_env: str = "development"
@@ -61,6 +66,17 @@ class Settings(BaseSettings):
     # Explicit opt-in for a process-local store when MONGODB_URI is unset (local dev, tests).
     # Never inferred from APP_ENV, so a deployment missing its bindings fails instead.
     allow_ephemeral_storage: bool = False
+
+    @model_validator(mode="after")
+    def _staging_is_isolated(self) -> "Settings":
+        # Fail closed: a staging deployment missing MONGODB_DB_NAME or MONGODB_URI must not start on the
+        # preview database (the default name) or on a process-local store.
+        if self.app_env == "staging":
+            if self.mongodb_db_name != STAGING_DB_NAME:
+                raise ValueError(f"APP_ENV=staging requires MONGODB_DB_NAME={STAGING_DB_NAME}.")
+            if self.mongodb_uri is None or self.allow_ephemeral_storage:
+                raise ValueError("APP_ENV=staging requires MONGODB_URI and no ALLOW_EPHEMERAL_STORAGE.")
+        return self
 
     @property
     def cors_origins(self) -> list[str]:
