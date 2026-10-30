@@ -226,7 +226,7 @@
   transition: opacity 500ms var(--ease-standard), filter 500ms var(--ease-standard);
   /* Neurons light up column after column, then the wave keeps travelling through them. */
   animation:
-    ignite 1100ms var(--ease-standard) calc(var(--column) * 220ms) both,
+    ignite 1100ms var(--ease-standard) calc(var(--column) * 220ms) backwards,
     thought 6s ease-in-out calc(var(--column) * 500ms + 1.4s) infinite;
 }
 
@@ -237,12 +237,13 @@
 .node[data-flow] {
   border-color: var(--current);
   animation:
-    ignite 1100ms var(--ease-standard) calc(var(--column) * 220ms) both,
+    ignite 1100ms var(--ease-standard) calc(var(--column) * 220ms) backwards,
     hum 3.2s ease-in-out infinite;
 }
 
+/* The entrance fills backwards only: a filled end state would override this. */
 .node[data-out] {
-  opacity: 0.32;
+  opacity: 0.5;
   filter: saturate(0.4);
 }
 
@@ -258,7 +259,7 @@
   outline: 2px solid var(--forest);
   outline-offset: 1px;
   animation:
-    ignite 1100ms var(--ease-standard) calc(var(--column) * 220ms) both,
+    ignite 1100ms var(--ease-standard) calc(var(--column) * 220ms) backwards,
     charged 2.6s ease-in-out infinite;
 }
 
