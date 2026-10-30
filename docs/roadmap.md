@@ -14,9 +14,9 @@ are not global milestones.
 | HR-001 | Property Location & Jurisdiction Foundation | address → Google Maps → geocoding → jurisdiction resolution → property workspace: design system and app shell; Places autocomplete; `POST /api/property/resolve-location`, `GET /api/property/{id}`; jurisdiction abstraction (Portugal adapter + generic fallback); property persistence (MongoDB + in-memory); workspace with map, jurisdiction hierarchy and competent authority (`reviews/HR-001-…`) | review HR-001: Codex ACCEPTED, Muse ACCEPTED, round 5 | **DONE** (RESOLVED, 2026-10-27) |
 | HR-002 | Meta-powered Permit Intelligence Foundation | first agentic workflow GOAL → CHECKLIST → TOOLS → EVIDENCE → DRAFT → INDEPENDENT VERIFICATION → FINAL STATE on Muse Spark: persisted states and resume, structured tools, evidence model, regulatory-source abstraction (curated PT/Cascais), independent verifier, MongoDB, API, Permit section (`reviews/HR-002-…`) | review HR-002: Codex ACCEPTED, Muse ACCEPTED | **DONE** (RESOLVED / CLOSED, `main` @ `c556334`) |
 | HR-003 | Official Sources, Zoning & Regulatory Retrieval Foundation | coordinates → jurisdiction → official source registry → planning context → provenance-bearing evidence → Permit workflow, **Cascais only**; owner decisions of 2026-10-28 (manual confirmation without a validated connector; `pypdf`, no OCR; initial trusted corpus) (`reviews/HR-003-…`, `plans/HR-003-official-sources-plan.md`); MU-9 structural verification as its follow-up (`plans/HR-003-MU9-final-candidate.md`) | see below | **IN PROGRESS** |
-| HR-004 | Intelligent Map Experience | interactive map, highlighted property, informative post-its, planning conditions, risks and consultable legal sources; zoning layers only as verified official data, otherwise the absence is stated (owner, 2026-10-29) | AC4.1–AC4.7 below | **IN PROGRESS** |
+| HR-004 | Intelligent Map Experience | interactive map, highlighted property, informative post-its, planning conditions, risks and consultable legal sources; zoning layers only as verified official data, otherwise the absence is stated (owner, 2026-10-29) | AC4.1–AC4.8 below | **MVP COMPLETE** — tested headless on staging; owner's real-browser check pending (TD-049) |
 | HR-005 | — | **PENDING DEFINITION** | **PENDING** | not started |
-| HR-006 | Premium PDF Report | professional export: property identification, analysis summary, conditions, risks, official sources, verifiable references and conclusion status; VERIFIED / REJECTED / pending clearly distinct; evidence provenance and version preserved (owner, 2026-10-29) | AC6.1–AC6.7 below | **IN PROGRESS** |
+| HR-006 | Premium PDF Report | professional export: property identification, analysis summary, conditions, risks, official sources, verifiable references and conclusion status; VERIFIED / REJECTED / pending clearly distinct; evidence provenance and version preserved (owner, 2026-10-29) | AC6.1–AC6.9 below | **IN PROGRESS** — all criteria met in tests; AC6.8 real map images pending the Maps Static API (TD-047) |
 | HR-007 … HR-015 | — | **PENDING DEFINITION** (no approved scope in the repository) | **PENDING** | not started |
 
 ### HR-003 acceptance status
@@ -53,6 +53,7 @@ REJECTED), **PENDING CONFIRMATION** (anything else; unverified draft content is 
 | AC4.5 | The status shown is exactly the report model's (same vocabulary as the PDF). |
 | AC4.6 | Tests: post-it model unit tests; consistency with the report model; frontend lint, typecheck, build; no backend regression. |
 | AC4.7 | Demo data, if used, is visibly labelled as such. |
+| AC4.8 | (owner, 2026-10-30) The property post-it shows location (coordinates, never as a parcel boundary) and municipality; an analysis-status post-it appears also without an assessment; unverified zoning reads "Zoning not verified". |
 
 | ID | HR-006 Premium PDF Report |
 |---|---|
@@ -63,6 +64,8 @@ REJECTED), **PENDING CONFIRMATION** (anything else; unverified draft content is 
 | AC6.5 | Access: an assessment report needs the matter's capability token; a property-only report is public, like the property. A decision-support disclaimer (not legal advice, not a permit) is always present. |
 | AC6.6 | Tests: report model per status (VERIFIED / REJECTED / pending / no assessment); adversarial: an unverified or rejected draft is never labelled VERIFIED; the PDF's extracted text carries the same status, evidence ids and provenance as the JSON and the map post-its. |
 | AC6.7 | A download action in the workspace. |
+| AC6.8 | (owner, 2026-10-30) Two embedded location images — road map and satellite — with the same centre, zoom and size, highlighting the analysed area; a real polygon only from verified official parcel geometry, otherwise a marker and a circle labelled approximate, never a cadastral boundary; legend and map attribution; when the map service is unavailable or unconfigured, an explicit notice and no substitute image; no key or token in the PDF. |
+| AC6.9 | (owner, 2026-10-30) A professional cover: property, status, municipality, authority, zoning state, and a permanent warning that there is no municipal confirmation. |
 
 ### HR-004 / HR-006 implementation status (2026-10-29, offline-tested; not deployed)
 | Criteria | State | Evidence |
@@ -75,6 +78,17 @@ REJECTED), **PENDING CONFIRMATION** (anything else; unverified draft content is 
 | Visual QA in a browser | **pending** | headless Chromium lacks libxkbcommon here; needs the redeployed preview or a local browser |
 | Non-Latin characters in the PDF | TD-021 (P2) | Portugal scope covered by the standard fonts |
 | Map polygons / zoning layers | not drawn by design | no validated GIS connector; the absence is stated |
+
+### HR-004 / HR-006 status update (2026-10-30)
+| Criteria | State | Evidence |
+|---|---|---|
+| AC4.1–AC4.5, AC4.7 | met; **tested on staging** | headless Chromium through the authenticated proxies: map rendered, post-its, no console errors (`infrastructure/STAGING.md` Setup log) |
+| AC4.8 | met; tested | `postits.test.ts`; screenshot of the local frontend against the staging backend (not yet deployed to staging, TD-050) |
+| AC6.1–AC6.7 | met; **tested on staging** | real property PDF and a real VERIFIED matter PDF from staging (text, TrustPin, evidence ids, disclaimer on every page) |
+| AC6.8 | met with a simulated map service | `tests/test_report_maps.py` (16): two embedded JPEGs, same framing, approximate legend, failures → notice, no key leak, daily cap; **real images pending** the Maps Static API (TD-047) |
+| AC6.9 | met | cover rendered and checked (pdftoppm); warning always present |
+| Visual QA in the owner's browser | **pending** | TD-049 |
+| Open items | central register | `.ai-review/HABITA-AI-TECHNICAL-DEBT.md` (local, git-ignored): TD-044 … TD-052 |
 
 ## Candidate modules named in the approved architecture (not yet assigned to HR numbers)
 

@@ -137,6 +137,18 @@ infrastructure/deploy-staging.sh --preflight
 | 2026-10-30 | Owner re-authenticated gcloud (`--force`, CLI client) | owner | identity token `aud` 32555940559 (gcloud CLI), `email` paulinoliliptec@gmail.com; authenticated `/health/ready` 200 — the script's last check (it had stopped there on the first run) passes when run by hand; all other post-deploy checks had passed |
 | 2026-10-30 | Demo through `gcloud run services proxy` on the workstation (localhost:8081 / :3000), headless Chromium (libxkbcommon0 installed) | Claude | Backend and frontend 200 via proxies; CORS allows `http://localhost:3000`. Resolve "Praça 5 de Outubro, Cascais" → `prp_96bb6597b61c5c6b`, jurisdiction pt/lisboa/cascais, Câmara Municipal de Cascais. **HR-004**: property page renders the Google map (marker, no map error) and the post-its Property / Zoning "NO VERIFIED LAYER" (official plantas linked) / Official sources (26). **HR-006**: property PDF 4 pages and the UI "PDF report" button download the same file (8906 B): pending-confirmation state, zoning not verified with reasons, official cascais.pt maps, disclaimer on every page. Permit matter `pm_6c61911b229bf32c` (one Meta call): PLANNING → VERIFIED (`pv_466d22a3d5c31fff`, protocol atomic-v1, TrustPin listed in the 7-page PDF, every statement cites existing evidence, "not a permit" note, conditions to confirm). Quality finding: 6 of 9 statements repeat the planning condition and no RJUE procedural evidence is cited (TD-044) |
 
+### PDF location maps (HR-006) — needs owner authorisation
+The PDF embeds a road map and a satellite image from the Google Maps Static API, or states that they are unavailable.
+Today the API is not enabled on the project and the server key allows Geocoding only (TD-047). To enable:
+```bash
+P=habita-ai-512916
+gcloud services enable static-maps-backend.googleapis.com --project $P
+# then either add "static-maps-backend.googleapis.com" to the API restrictions of habita-server-geocoding,
+# or create a dedicated key restricted to it and store it as secret MAPS_STATIC_API_KEY (backend env MAPS_STATIC_API_KEY)
+# and set a daily request quota for the Maps Static API in the console (hard cap; the code caps 200 PDFs/day/process).
+```
+Each PDF costs two Static API loads. Attribution is printed under the images; images are not stored.
+
 ### Troubleshooting
 - **Authenticated requests get 401 "access token could not be verified"** (seen 2026-10-30): the stored gcloud
   credential of the account was issued by another OAuth client (identity token `aud` `681255809395-….apps.googleusercontent.com`
