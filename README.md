@@ -94,16 +94,21 @@ Code: `backend/app/services/report/`, `backend/app/integrations/maps/static_maps
 | PDF report with verification record and provenance (HR-006) | Done; tested on staging |
 | PDF road map + satellite (+ Street View) images (HR-006) | Validated with real Google data locally and on the private staging |
 | Private staging on Cloud Run | Done (IAM-authenticated, isolated database) |
+| Original (public demo) updated with HR-004/HR-006 and MU-9 | Done (2026-10-30), tested in the browser |
 | SAM 3.1 segmentation, Muse Voice Transcribe, Muse Image | Planned (integration points only) |
 | HR-005, HR-007 … HR-015 | Pending definition |
 
 ## Private staging demo (authenticated)
 A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-staging`) on an isolated database
 (`habita_ai_staging`, its own least-privilege MongoDB user): no anonymous access, no public URL to open. It runs
-commit `5734adc` (deployed and tested end to end on 2026-10-30: address search in Cascais, map and satellite view,
-post-its, PDF with road map, satellite and Street View). The original (public) services still run the earlier slice:
-updating them first needs the MU-9 data migration of their database, now prepared and rehearsed on a copy and awaiting
-authorisation (see `infrastructure/STAGING.md`). Historical results verified under the old protocol are never shown
+commit `5734adc` (deployed and tested end to end on 2026-10-30).
+
+## Live demo (original)
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-30 to commit `0d3290f` (backend
+revision `00017`, frontend `00012`) after the MU-9 migration of its database (verified backup, audit, nothing deleted).
+Tested there: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
+current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
+command (`infrastructure/STAGING.md`). Historical results verified under the old protocol are never shown
 as current VERIFIED: they read as superseded (legacy, not revalidated), with their original provenance.
 
 Access requires an authorised Google account and the official proxy, on the computer where the browser runs:

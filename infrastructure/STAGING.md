@@ -157,7 +157,19 @@ states that they are unavailable. Each PDF costs two or three paid image loads (
 - Spend bounds in code: 6 PDFs with maps per minute, 200 per day and 6 per location per hour, per process; set a daily
   quota for both APIs in the Google Cloud console as the hard cap. Attribution is printed; images are not stored.
 
-### Updating the ORIGINAL services (`habita-*-preview`, database `habita_ai`) — prepared, each step needs authorisation
+### Original services updated (2026-10-30, owner-authorised)
+| Step | Result (verified) |
+|---|---|
+| Code and images | branch pushed at `0d3290f` (+ `38081b2`, `28f3c04` for the owner script); images `original-0d3290f` |
+| Migration of `habita_ai` (owner ran `infrastructure/migrate_original.py`) | Atlas role `habitaPreviewMigrate` (readWrite + collMod on habita_ai); temporary user created in the Atlas UI and deleted after use (verified absent); verified backup `~/habita-backups/habita_ai-20261030T065944Z` (466 docs, manifest sha256 `4414921252e3…`); validator `moderate`/`error`; floor `atomic-v1` stored; legacy `pv_cad3f1c1…`, `pv_9bc4e790…` and matters `pm_8f008fee…`, `pm_5a5b5c3b…` flagged `statement-v1`; audit `mig_e40ab9b66eb34792`; same document counts |
+| Maps key | `secretAccessor` on `maps-static-api-key` for `988261836110-compute@` only |
+| No-traffic revisions | backend `habita-backend-preview-00017-vel` (started on Atlas with MU-9 guards), frontend `habita-frontend-preview-00012-xex`; candidate checks: health, Cascais resolve, report (26 sources, zoning not verified), PDF 7 pages with road map + satellite + Street View, no key |
+| Traffic | backend then frontend switched to 100 % on the new revisions; IAM unchanged (public, as before) |
+| Tests on https://habita-frontend-preview-jcyiz2arua-uc.a.run.app | browser: search Cascais → map + Satellite toggle, post-its (Property, "Zoning not verified", Analysis status, Official sources), no console errors, PDF button → 7 pages with the 3 images, PENDING CONFIRMATION, no key; real permit question → VERIFIED under `atomic-v1` (accepted by the validator), 8 statements citing E2–E4, matter PDF 10 pages with the images |
+| Rollback | `gcloud run services update-traffic habita-backend-preview --to-revisions habita-backend-preview-00016-bz8=100` and `habita-frontend-preview … habita-frontend-preview-00011-f77=100` (old code verified compatible with the migrated data) |
+| Staging | unchanged (backend `00002-npj`, frontend `00002-n7p`) |
+
+### Updating the ORIGINAL services — procedure (executed 2026-10-30, kept for reference)
 Inventory (read-only, 2026-10-30): backend `00016-bz8` / frontend `00011-f77` (image `hr003-98af6af`), public
 (`allUsers`), runtime `988261836110-compute@`, `MONGODB_DB_NAME=habita_ai` with user `habita_app` (readWrite only).
 `habita_ai` (replica set): 8 collections, no validator, no stored floor; 6 verifications (2 VERIFIED, 4 REJECTED), none
