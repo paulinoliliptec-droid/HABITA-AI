@@ -178,6 +178,13 @@ states that they are unavailable. Each PDF costs two or three paid image loads (
 - **`gcloud run services proxy` asks to install `cloud-run-proxy`** (installed on this workstation 2026-10-30): the SDK here comes from apt, so install the
   component as a package: `sudo apt-get install google-cloud-cli-cloud-run-proxy`.
 
+### Setup log (continued)
+| Date | Step | Done by | Result (verified read-only) |
+|---|---|---|---|
+| 2026-10-30 | `secretAccessor` on `maps-static-api-key` for `habita-staging-api` only (owner-authorised) | Claude | the account reads exactly mongodb-uri-staging, GOOGLE_MAPS_API_KEY, meta-api-key, maps-static-api-key; no project roles |
+| 2026-10-30 | Deploy `staging-5734adc` (full preflight passed) | Claude | backend `00002-npj`, frontend `00002-n7p`, label commit=5734adc; no IAM bindings, anonymous 403; `MAPS_STATIC_API_KEY` by reference; startup on Atlas with guards passing; preview unchanged (00016/00011). Browser test through the proxies: search Cascais → map, Satellite toggle, post-its (Property with location/municipality, "Zoning not verified", Analysis status, Official sources), no console errors; PDF via the button: 7 pages, roadmap + hybrid (1280×800, centre 38.697236,-9.420598) + Street View, legend, PENDING CONFIRMATION, no key; usage log "report maps: roadmap+hybrid+streetview at zoom 16 (1/200 today)" |
+| 2026-10-30 | Remote desktop on the workstation (Xvfb + noVNC, Chromium in guest mode at localhost:3000) | Claude | every listener on 127.0.0.1; viewer at `https://6080-$WEB_HOST/vnc.html` (Workstations sign-in) |
+
 ### Migrations (only when needed)
 Needed when the backend logs `MU-9: could not install the permit_verifications validator` after a release, or to raise
 the protocol floor. Not needed for the first deploy.

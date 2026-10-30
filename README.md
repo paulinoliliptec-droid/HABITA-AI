@@ -61,7 +61,7 @@ assessment exists); zoning — a classification only from a verified layer, othe
 official plans to consult; risks and conditions; evidence and official sources with links. Tested with headless
 Chromium on the private staging. Code: `frontend/src/features/report/`.
 
-### HR-006 · PDF report — Done; real Google images validated locally, not yet on staging
+### HR-006 · PDF report — Done; real Google images validated on the private staging
 A server-generated PDF from the same model: cover (status, municipality, authority, zoning state, and a permanent
 warning that there is **no municipal confirmation**), property identification, a location page, planning context,
 analysis, conditions, risks, verification record (protocol, TrustPin), evidence provenance (source, version,
@@ -77,8 +77,9 @@ ownership, parcel limits, zoning nor a municipal licence.
 Street View image (panorama 6 m away, July 2024) were returned by Google for the geocoded centre and embedded in the
 PDF, pixel-identical to Google's responses; no key appears in the PDF or the logs. A dedicated server key restricted to
 Maps Static and Street View Static is kept in Secret Manager. Spend is capped (a daily limit shared by all instances,
-per-minute and per-property limits). **Not yet on staging:** it needs an access grant for the staging backend and a
-new deploy. If the map service is unavailable or unconfigured, the PDF says so and shows no substitute image.
+per-minute and per-property limits). **On the private staging** (commit `5734adc`, 2026-10-30) the PDF downloaded from
+the workspace contains the three images. If the map service is unavailable or unconfigured, the PDF says so and shows
+no substitute image.
 Code: `backend/app/services/report/`, `backend/app/integrations/maps/static_maps.py`.
 
 ### Feature summary
@@ -91,17 +92,17 @@ Code: `backend/app/services/report/`, `backend/app/integrations/maps/static_maps
 | Zoning classification from official GIS | Planned (no validated connector; absence stated) |
 | Map with post-its (HR-004) | Done (MVP); owner browser check pending |
 | PDF report with verification record and provenance (HR-006) | Done; tested on staging |
-| PDF road map + satellite (+ Street View) images (HR-006) | Validated with real Google data locally; **staging pending** (access grant + deploy) |
+| PDF road map + satellite (+ Street View) images (HR-006) | Validated with real Google data locally and on the private staging |
 | Private staging on Cloud Run | Done (IAM-authenticated, isolated database) |
 | SAM 3.1 segmentation, Muse Voice Transcribe, Muse Image | Planned (integration points only) |
 | HR-005, HR-007 … HR-015 | Pending definition |
 
 ## Private staging demo (authenticated)
 A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-staging`) on an isolated database
-(`habita_ai_staging`, its own least-privilege MongoDB user): no anonymous access, no public URL to open. It was
-deployed from commit `1182201` and tested end to end on 2026-10-30 (address search in Cascais, map with post-its,
-property and permit PDFs, a real VERIFIED matter). The HR-004/HR-006 changes after that commit are **not yet
-deployed** there.
+(`habita_ai_staging`, its own least-privilege MongoDB user): no anonymous access, no public URL to open. It runs
+commit `5734adc` (deployed and tested end to end on 2026-10-30: address search in Cascais, map and satellite view,
+post-its, PDF with road map, satellite and Street View). The original (public) services still run the earlier slice:
+updating them first needs the MU-9 data migration of their database (see `docs/roadmap.md`).
 
 Access requires an authorised Google account and the official proxy, on the computer where the browser runs:
 ```bash
