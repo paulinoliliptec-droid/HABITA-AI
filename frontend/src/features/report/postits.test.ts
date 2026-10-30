@@ -33,18 +33,38 @@ describe("map post-its (HR-004)", () => {
   it("states the absence of a verified zoning layer and never shows a classification without one", () => {
     expect(report.planning.verified_zoning).toBe(false);
     const zoning = note(report, "planning");
-    expect(zoning.badge).toBe("No verified layer");
-    expect(zoning.lines[0]).toContain("No verified zoning layer");
+    expect(zoning.badge).toBe("Zoning not verified");
+    expect(zoning.lines[0]).toContain("Zoning not verified");
     const sneaky = { ...report, planning: { ...report.planning, classification: "Espaços centrais" } };
     expect(note(sneaky, "planning").lines.join(" ")).not.toContain("Espaços centrais");
     const verifiedLayer = { ...report, planning: { ...report.planning, verified_zoning: true, classification: "Espaços centrais" } };
     expect(note(verifiedLayer, "planning").lines[0]).toBe("Espaços centrais");
   });
 
-  it("without an assessment, shows the jurisdiction's official sources", () => {
-    const propertyOnly = { ...report, assessment: null };
-    expect(buildPostIts(propertyOnly).map((n) => n.id)).toEqual(["property", "planning", "sources"]);
+  it("without an assessment, states the pending analysis and shows the jurisdiction's official sources", () => {
+    const propertyOnly = { ...report, assessment: null, pending: ["Planning classification: confirm on the official maps."] };
+    expect(buildPostIts(propertyOnly).map((n) => n.id)).toEqual(["property", "planning", "assessment", "sources"]);
+    const status = note(propertyOnly, "assessment");
+    expect(status.title).toBe("Analysis status");
+    expect(status.badge).toBe("Pending confirmation");
+    expect(status.lines.join(" ")).toContain("No permit assessment yet");
+    expect(status.lines).toContain("Planning classification: confirm on the official maps.");
     expect(buildPostIts(report).map((n) => n.id)).toEqual(["property", "planning", "assessment", "risks", "evidence", "sources"]);
     expect(note(propertyOnly, "sources").lines.length).toBe(report.sources.length);
+  });
+});
+
+describe("property post-it (HR-004)", () => {
+  it("identifies and locates the property, with municipality and authority, never as a parcel", () => {
+    const lines = note(report, "property").lines;
+    expect(lines[0]).toBe(report.property.address);
+    expect(lines.join(" ")).toContain(`${report.property.lat.toFixed(6)}, ${report.property.lng.toFixed(6)}`);
+    expect(lines.join(" ")).toContain("not a parcel boundary");
+    expect(lines.some((l) => l.startsWith("Municipality:"))).toBe(true);
+    expect(lines.join(" ")).toContain(`Competent authority: ${report.property.authority}`);
+    const coarse = { ...report, property: { ...report.property, precision: "area_center" } };
+    expect(note(coarse, "property").lines.join(" ")).toContain("approximate, area center");
+    const unmodelled = { ...report, property: { ...report.property, jurisdiction: ["Country: United States"] } };
+    expect(note(unmodelled, "property").lines).toContain("Municipality: not modelled for this jurisdiction");
   });
 });

@@ -26,6 +26,10 @@ export const STATUS_LABEL: Record<ReportStatus, { label: string; tone: PostItTon
 
 const link = (label: string, url: string | null): PostItLink[] => (url ? [{ label, url }] : []);
 
+// A geocoded point is never a parcel: anything but rooftop precision is an area, and even rooftop is not a boundary.
+const location = (lat: number, lng: number, precision: string) =>
+  `Location: ${lat.toFixed(6)}, ${lng.toFixed(6)} (${precision === "rooftop" ? "rooftop point" : `approximate, ${precision.replace("_", " ")}`}; not a parcel boundary)`;
+
 export function buildPostIts(report: PermitReport): PostIt[] {
   const { property, planning, assessment } = report;
   const notes: PostIt[] = [
@@ -33,7 +37,14 @@ export function buildPostIts(report: PermitReport): PostIt[] {
       id: "property",
       title: "Property",
       tone: "neutral",
-      lines: [property.address, property.authority ? `Competent authority: ${property.authority}` : "Competent authority not modelled"],
+      lines: [
+        property.address,
+        location(property.lat, property.lng, property.precision),
+        ...(property.jurisdiction.some((j) => j.startsWith("Municipality:"))
+          ? property.jurisdiction.filter((j) => j.startsWith("Municipality:"))
+          : ["Municipality: not modelled for this jurisdiction"]),
+        property.authority ? `Competent authority: ${property.authority}` : "Competent authority not modelled",
+      ],
       links: [],
     },
     planning.verified_zoning && planning.classification
@@ -49,12 +60,25 @@ export function buildPostIts(report: PermitReport): PostIt[] {
           id: "planning",
           title: "Zoning",
           tone: "warning",
-          badge: "No verified layer",
+          badge: "Zoning not verified",
           // The absence is stated; nothing is drawn or classified without a validated connector.
-          lines: ["No verified zoning layer for this location. Confirm on the official maps.", ...planning.reasons],
+          lines: [
+            "Zoning not verified: no classification or boundary is shown. Confirm on the official maps or with the competent authority.",
+            ...planning.reasons,
+          ],
           links: planning.documents_to_consult.flatMap((d) => link(d.designation ?? d.title, d.url)),
         },
   ];
+  if (!assessment) {
+    notes.push({
+      id: "assessment",
+      title: "Analysis status",
+      tone: "warning",
+      badge: STATUS_LABEL.PENDING_CONFIRMATION.label,
+      lines: ["No permit assessment yet: no permit question has been verified for this property.", ...report.pending],
+      links: [],
+    });
+  }
   if (assessment) {
     const status = STATUS_LABEL[assessment.status];
     notes.push({
