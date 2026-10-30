@@ -100,14 +100,21 @@ atlas customDbRoles create habitaStagingMigrate --privilege COLL_MOD@habita_ai_s
   --inheritedRole readWrite@habita_ai_staging --projectId 6adfdf61d52b2b35f1de0cf3 -P habita
 atlas customDbRoles describe habitaStagingMigrate --projectId 6adfdf61d52b2b35f1de0cf3 -P habita -o json   # verify
 atlas dbusers describe habita-staging-app --projectId 6adfdf61d52b2b35f1de0cf3 -P habita -o json   # after a): roles, scopes
-# 2. The application user's URI (mongodb+srv://habita-staging-app:<password>@<cluster host>/?retryWrites=true&w=majority)
-#    as a new secret, typed at a hidden prompt: never on a command line, in the shell history, a file or Git.
-#    Percent-encode any reserved character in the password (@ : / ? # [ ] %) before typing it.
-read -rsp 'staging application MongoDB URI: ' URI; echo
-printf '%s' "$URI" | gcloud secrets create mongodb-uri-staging --project $P --replication-policy=automatic \
-  --labels=env=staging --data-file=-
-unset URI
-gcloud secrets versions list mongodb-uri-staging --project $P   # metadata only; never `versions access`
+# 2. Secret mongodb-uri-staging, built from the password typed at a hidden prompt (percent-encoded automatically):
+#    the password and URI never reach a command line, the shell history, a file, a log or Git. Run it in an
+#    interactive terminal. The host is not secret (atlas clusters connectionStrings describe habita-ai-m0).
+[ "$(gcloud config get-value account 2>/dev/null)" = paulinoliliptec@gmail.com ] || echo "STOP: wrong gcloud account"
+gcloud secrets describe mongodb-uri-staging --project $P >/dev/null 2>&1 && echo "STOP: secret exists (use versions add)"
+HOST=habita-ai-m0.mhbehnn.mongodb.net
+read -rsp 'habita-staging-app password: ' PW; echo
+PW="$PW" HOST="$HOST" python3 -c 'import os,sys,urllib.parse as u; sys.stdout.write("mongodb+srv://habita-staging-app:%s@%s/?retryWrites=true&w=majority&appName=habita-staging" % (u.quote(os.environ["PW"], safe=""), os.environ["HOST"]))' \
+  | gcloud secrets create mongodb-uri-staging --project $P --replication-policy=automatic --labels=env=staging --data-file=-
+unset PW
+gcloud secrets versions list mongodb-uri-staging --project $P   # metadata only; never print a version
+#    After a password change: same pipeline into `gcloud secrets versions add mongodb-uri-staging --data-file=-`,
+#    then `gcloud secrets versions disable <old> --secret mongodb-uri-staging`.
+#    Readers: habita-staging-api (granted on this secret only, step 3) and, through roles/owner, the project owner;
+#    nobody else holds a project or organisation role that reads secrets (checked 2026-10-30).
 # 3. Runtime service accounts (the IAM API is disabled on the project today and must be enabled first):
 gcloud services enable iam.googleapis.com --project $P
 gcloud iam service-accounts create habita-staging-api --project $P --display-name="HABITA staging backend"
