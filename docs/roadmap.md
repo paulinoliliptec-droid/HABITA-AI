@@ -16,7 +16,7 @@ are not global milestones.
 | HR-003 | Official Sources, Zoning & Regulatory Retrieval Foundation | coordinates → jurisdiction → official source registry → planning context → provenance-bearing evidence → Permit workflow, **Cascais only**; owner decisions of 2026-10-28 (manual confirmation without a validated connector; `pypdf`, no OCR; initial trusted corpus) (`reviews/HR-003-…`, `plans/HR-003-official-sources-plan.md`); MU-9 structural verification as its follow-up (`plans/HR-003-MU9-final-candidate.md`) | see below | **IN PROGRESS** |
 | HR-004 | Intelligent Map Experience | interactive map, highlighted property, informative post-its, planning conditions, risks and consultable legal sources; zoning layers only as verified official data, otherwise the absence is stated (owner, 2026-10-29) | AC4.1–AC4.8 below | **MVP COMPLETE** — tested headless on staging; owner's real-browser check pending (TD-049) |
 | HR-005 | Visual Reasoning Graph (*proposed*, Drive master roadmap 30/10) | progressive, clickable graph property → jurisdiction/rules → evidence/conditions → conclusion with uncertainty → documents → next steps; relations traceable to sources; no invented causality or authorisation | criteria **PENDING** owner approval | not started |
-| HR-006 | Premium PDF Report | professional export: property identification, analysis summary, conditions, risks, official sources, verifiable references and conclusion status; VERIFIED / REJECTED / pending clearly distinct; evidence provenance and version preserved (owner, 2026-10-29) | AC6.1–AC6.9 below | **MVP COMPLETE** — real Google images validated locally and on the private staging (5734adc); original deploy blocked by the MU-9 migration (TD-038) |
+| HR-006 | Premium PDF Report | professional export: property identification, analysis summary, conditions, risks, official sources, verifiable references and conclusion status; VERIFIED / REJECTED / pending clearly distinct; evidence provenance and version preserved (owner, 2026-10-29) | AC6.1–AC6.9 below | **MVP COMPLETE** — Clássico PDF live on the original services since 2026-10-30 (`5fae732`, backend `00019-kew`, frontend `00014-jiy`); real Portuguese run VERIFIED on staging with 3 images; browser QA pending (TD-049) |
 | HR-007 | Voice Explanation (*proposed*) | audio explanation of results with listen/pause/repeat; audio is not legal proof | criteria **PENDING** | not started |
 | HR-008 | Property Intelligence (*proposed*) | property profile with provenance; official facts, observations and user declarations kept apart | criteria **PENDING** | not started |
 | HR-009 | Intent & Permits (*proposed*) | user intent → procedures by municipality and works type; never a specific licence without proof | criteria **PENDING** | not started |
@@ -38,6 +38,12 @@ in Portuguese or by the EN/PT switch. The address never changes the language.
 - Fixed texts: generated once with Google Translate into catalogs kept in the repository
   (`python -m app.services.i18n.generate`). Statuses, warnings, the disclaimer and machine errors are pinned by hand in
   `backend/app/services/i18n/pinned.json`, which always wins. New user-facing text goes through `t()` or `msg()`.
+
+### Deferred to the final stage — owner decision 2026-10-30
+
+Meta model failures: two open-weight models on Modal, one for background work and one to remove or treat sensitive
+data (Drive `03-DECISOES-E-APROVACOES`, HABITA-DEC-20261030-1330). Details to confirm before building. Answers stay
+gated by the independent verifier.
 
 ### HR-003 acceptance status
 
