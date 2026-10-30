@@ -69,7 +69,11 @@ class _Client:
         self.admin = _Admin(auth)
 
 
-def _user(*resources: dict, actions: tuple[str, ...] = ("find", "insert", "update", "createCollection")) -> dict:
+READ_WRITE = ("createCollection", "createIndex", "find", "insert", "listCollections", "listIndexes", "remove", "update",
+              "dropIndex", "collStats")
+
+
+def _user(*resources: dict, actions: tuple[str, ...] = READ_WRITE) -> dict:
     return {
         "authenticatedUsers": [{"user": "habita-staging", "db": "admin"}],
         "authenticatedUserPrivileges": [{"resource": r, "actions": list(actions)} for r in resources],
@@ -101,10 +105,28 @@ async def test_staging_user_reaching_beyond_its_database_is_refused(auth):
         await _require_confined_user(_Client(auth), STAGING_DB_NAME)
 
 
-@pytest.mark.parametrize("action", ["createUser", "grantRole", "dropDatabase", "bypassDocumentValidation", "collMod"])
-async def test_staging_user_with_administrative_actions_is_refused(action):
+@pytest.mark.parametrize(
+    "action", ["createUser", "grantRole", "dropDatabase", "bypassDocumentValidation", "collMod", "killAnyCursor"]
+)
+async def test_staging_user_with_actions_beyond_read_write_is_refused(action):
     from app.main import ConfigurationError, _require_confined_user
 
-    auth = _user({"db": STAGING_DB_NAME, "collection": ""}, actions=("find", "insert", action))
+    auth = _user({"db": STAGING_DB_NAME, "collection": ""}, actions=(*READ_WRITE, action))
     with pytest.raises(ConfigurationError, match=action):
+        await _require_confined_user(_Client(auth), STAGING_DB_NAME)
+
+
+async def test_a_read_only_staging_user_is_refused():
+    from app.main import ConfigurationError, _require_confined_user
+
+    auth = _user({"db": STAGING_DB_NAME, "collection": ""}, actions=("find", "listCollections", "listIndexes"))
+    with pytest.raises(ConfigurationError, match="lacks actions the backend needs"):
+        await _require_confined_user(_Client(auth), STAGING_DB_NAME)
+
+
+async def test_a_staging_user_with_collection_scoped_grants_only_is_refused():
+    from app.main import ConfigurationError, _require_confined_user
+
+    auth = _user({"db": STAGING_DB_NAME, "collection": "properties"})  # readWrite actions on one collection only
+    with pytest.raises(ConfigurationError, match="lacks actions the backend needs"):
         await _require_confined_user(_Client(auth), STAGING_DB_NAME)

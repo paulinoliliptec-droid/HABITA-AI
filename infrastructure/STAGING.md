@@ -100,19 +100,14 @@ atlas customDbRoles create habitaStagingMigrate --privilege COLL_MOD@habita_ai_s
   --inheritedRole readWrite@habita_ai_staging --projectId 6adfdf61d52b2b35f1de0cf3 -P habita
 atlas customDbRoles describe habitaStagingMigrate --projectId 6adfdf61d52b2b35f1de0cf3 -P habita -o json   # verify
 atlas dbusers describe habita-staging-app --projectId 6adfdf61d52b2b35f1de0cf3 -P habita -o json   # after a): roles, scopes
-# 2. Secret mongodb-uri-staging, built from the password typed at a hidden prompt (percent-encoded automatically):
-#    the password and URI never reach a command line, the shell history, a file, a log or Git. Run it in an
-#    interactive terminal. The host is not secret (atlas clusters connectionStrings describe habita-ai-m0).
-[ "$(gcloud config get-value account 2>/dev/null)" = paulinoliliptec@gmail.com ] || echo "STOP: wrong gcloud account"
-gcloud secrets describe mongodb-uri-staging --project $P >/dev/null 2>&1 && echo "STOP: secret exists (use versions add)"
-HOST=habita-ai-m0.mhbehnn.mongodb.net
-read -rsp 'habita-staging-app password: ' PW; echo
-PW="$PW" HOST="$HOST" python3 -c 'import os,sys,urllib.parse as u; sys.stdout.write("mongodb+srv://habita-staging-app:%s@%s/?retryWrites=true&w=majority&appName=habita-staging" % (u.quote(os.environ["PW"], safe=""), os.environ["HOST"]))' \
-  | gcloud secrets create mongodb-uri-staging --project $P --replication-policy=automatic --labels=env=staging --data-file=-
-unset PW
-gcloud secrets versions list mongodb-uri-staging --project $P   # metadata only; never print a version
-#    After a password change: same pipeline into `gcloud secrets versions add mongodb-uri-staging --data-file=-`,
-#    then `gcloud secrets versions disable <old> --secret mongodb-uri-staging`.
+# 2. Secret mongodb-uri-staging: run in an interactive terminal (not through an agent). It reads the password with
+#    getpass (hidden; never on argv, in the environment, a file, the history or any output), checks against Atlas that
+#    the user is habita-staging-app with application privileges on habita_ai_staging only (app.db.staging), sends the
+#    URI (cluster habita-ai-m0, database habita_ai_staging, authSource=admin) to gcloud on stdin, then lists the
+#    enabled versions. It never replaces an existing secret: it shows its metadata and stops.
+backend/.venv/bin/python infrastructure/create_staging_secret.py
+#    After a later password change the script stops (the secret exists): adding a version and disabling the old
+#    one is a separate, authorised step.
 #    Readers: habita-staging-api (granted on this secret only, step 3) and, through roles/owner, the project owner;
 #    nobody else holds a project or organisation role that reads secrets (checked 2026-10-30).
 # 3. Runtime service accounts (the IAM API is disabled on the project today and must be enabled first):
@@ -131,7 +126,10 @@ infrastructure/deploy-staging.sh --preflight
 |---|---|---|---|
 | 2026-10-29 | Atlas custom role `habitaStagingMigrate` (owner-authorised; profile `habita`, project 6adfdf61d52b2b35f1de0cf3) | Claude, Atlas CLI | Role did not exist before. Now: action `COLL_MOD` on `habita_ai_staging` (whole database) + inherited `readWrite@habita_ai_staging`; assigned to no user. Users unchanged (`habita_app`: `readWrite@habita_ai`, scope `habita-ai-m0`); network access unchanged; no database or data touched. |
 | 2026-10-29 | Atlas user `habita-staging-app` | owner, Atlas UI (generated password) | Only role `readWrite@habita_ai_staging`; scope cluster `habita-ai-m0`; no expiry; password authentication only (no X.509/IAM/LDAP/OIDC); not assigned `habitaStagingMigrate`. `habita_app` unchanged (`readWrite@habita_ai`, `habita-ai-m0`); role and network access unchanged. |
-| pending | Secret `mongodb-uri-staging`, IAM API, service accounts, secret grants | owner authorisation | — |
+| 2026-10-30 | Password of `habita-staging-app` replaced in Atlas (the first one appeared in a screenshot) | owner, Atlas UI | roles and scope unchanged (verified read-only) |
+| 2026-10-30 | `infrastructure/create_staging_secret.py` prepared (owner-run, hidden prompt, Atlas privilege check before creation, never replaces a secret) | Claude | reviewed by Codex (3 rounds, clean); tests and local MongoDB 7/8.0 checks pass. A PTY test with a dummy password made one failed login attempt on habita-ai-m0 (nothing read or changed) |
+| pending | Secret `mongodb-uri-staging` | owner, own terminal | — |
+| pending | IAM API, service accounts, per-secret grants | separate authorisation | — |
 
 ### Migrations (only when needed)
 Needed when the backend logs `MU-9: could not install the permit_verifications validator` after a release, or to raise

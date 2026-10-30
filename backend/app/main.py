@@ -22,6 +22,7 @@ from app.db.property_repository import (
     MongoPropertyRepository,
     PropertyRepository,
 )
+from app.db.staging import confinement_problem
 from app.integrations.maps.geocoding import GeocodingClient
 from app.integrations.meta.client import MetaChatModel
 from app.services.permit.repository import InMemoryPermitRepository, MongoPermitRepository, PermitRepository
@@ -47,40 +48,13 @@ class ConfigurationError(RuntimeError):
     pass
 
 
-# What dbAdmin/dbOwner add to readWrite (identical on MongoDB 7.0 and 8.0.34, the Atlas cluster's version). collMod can replace the MU-9 validator and
-# bypassDocumentValidation skips it: in staging only the migration user (apply-validator) may change it; the rest
-# administers users, roles or the database.
-_STAGING_FORBIDDEN_ACTIONS = frozenset({
-    "analyze", "bypassDocumentValidation", "changeCustomData", "changePassword", "collMod", "compact",
-    "configureQueryAnalyzer",
-    "createRole", "createUser", "dropDatabase", "dropRole", "dropUser", "enableProfiler", "grantRole",
-    "planCacheIndexFilter", "planCacheWrite", "reIndex", "revokeRole", "setAuthenticationRestriction", "storageDetails",
-    "validate", "viewRole", "viewUser",
-})  # fmt: skip
-
-
 async def _require_confined_user(mongo: AsyncMongoClient, db_name: str) -> None:
-    """Staging only: the MongoDB user must hold application privileges on ``db_name`` and nothing else.
-
-    A separate secret does not prove separate credentials; this refuses to start if the URI's user could also
-    reach another database (e.g. the preview's ``habita_ai``), a whole cluster or any resource, or holds
-    administrative actions (as with dbOwner).
-    """
+    """Staging only: the MongoDB user must hold application privileges on ``db_name`` and nothing else
+    (``app.db.staging``): no other database, cluster or any-resource grant, no administrative action."""
     status = await mongo.admin.command({"connectionStatus": 1, "showPrivileges": True})
-    auth = status.get("authInfo", {})
-    if not auth.get("authenticatedUsers"):
-        raise ConfigurationError(f"Staging needs an authenticated MongoDB user limited to {db_name}.")
-    # A privilege without a "db" is a cluster or anyResource grant; "" means every database.
-    reach = {
-        str(privilege.get("resource", {}).get("db", "<cluster or any resource>"))
-        for privilege in auth.get("authenticatedUserPrivileges", [])
-    }
-    if reach != {db_name}:
-        raise ConfigurationError(f"Staging MongoDB user must be limited to {db_name}; it reaches {sorted(reach)}.")
-    admin = {a for privilege in auth["authenticatedUserPrivileges"] for a in privilege.get("actions", [])}
-    admin &= _STAGING_FORBIDDEN_ACTIONS
-    if admin:
-        raise ConfigurationError(f"Staging MongoDB user on {db_name} must not hold administrative actions: {sorted(admin)}.")
+    problem = confinement_problem(status.get("authInfo", {}), db_name)
+    if problem:
+        raise ConfigurationError(problem)
 
 
 def _configure_logging() -> None:
