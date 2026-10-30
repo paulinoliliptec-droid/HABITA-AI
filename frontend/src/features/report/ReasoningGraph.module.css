@@ -243,8 +243,12 @@
 
 /* The entrance fills backwards only: a filled end state would override this. */
 .node[data-out] {
-  opacity: 0.5;
+  opacity: 0.6;
   filter: saturate(0.4);
+}
+
+.node[data-out] .nodeText {
+  color: var(--ink); /* about 6:1 once dimmed; the softer ink would fall under 4.5:1 */
 }
 
 .node[data-out]:hover,
