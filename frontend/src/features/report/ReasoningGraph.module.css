@@ -172,12 +172,25 @@
   animation-duration: 2.6s;
 }
 
+/* On a partial line the pulses stay short, so its dashes are always readable. */
+.current[data-partial] {
+  stroke-dasharray: 3 97;
+}
+
+.current[data-active][data-partial] {
+  stroke-dasharray: 4 46;
+}
+
 /* The selected node's lines arc like electricity. */
 .arc {
   fill: none;
   stroke: var(--current);
   stroke-width: 1.5;
   opacity: 0.75;
+}
+
+.arc[data-partial] {
+  stroke-dasharray: 4 3;
 }
 
 .node {

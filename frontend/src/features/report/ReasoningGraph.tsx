@@ -112,11 +112,19 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
                     <path
                       className={styles.current}
                       data-active={active || undefined}
+                      data-partial={edge.evidenceIds ? true : undefined}
                       d={d}
                       pathLength={100}
                       style={{ animationDelay: `${-index * 0.7}s` }}
                     />
-                    {active && <path className={styles.arc} d={d} filter={`url(#${sparkId})`} />}
+                    {active && (
+                      <path
+                        className={styles.arc}
+                        data-partial={edge.evidenceIds ? true : undefined}
+                        d={d}
+                        filter={`url(#${sparkId})`}
+                      />
+                    )}
                   </g>
                 );
               })}
