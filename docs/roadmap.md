@@ -37,6 +37,7 @@ are not global milestones.
 | MU-9 Phase 2: C2 identity binding (ACC-BIND), FP-3/FP-4, conclusion gate (ACC-CONC) | met offline | `test_property_identity_binding.py`, `test_permit_false_positives.py`, `test_permit_conclusion_gate.py` |
 | C2 on a real replica set (`test_permit_commit_atlas.py`) | **PENDING** (needs authorisation + credentials) | TD-001 |
 | Shadow measurement on live drafter output | **PENDING** (needs live runs) | TD-031 |
+| **Owner decision 2026-10-30** | remaining HR-003 live validations and semantic research **deferred to a final research phase** (Fable + Astra); HR-003 stays IN PROGRESS, MU-9 protections unchanged | Drive `03-DECISOES-E-APROVACOES` |
 | Pre-demo live gate, preview redeploy and visual QA (MU-1/4/5) | **PENDING** (needs authorisation) | TD-033 |
 | CX-3, CX-4, CX-5 backlog | met offline (Codex backlog review, final NO P1) | TD-016…018; `test_sources_concurrency.py`, `test_sources_ingest_concurrency.py`, `test_planning_context.py` |
 
