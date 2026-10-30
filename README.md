@@ -102,7 +102,9 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 (`habita_ai_staging`, its own least-privilege MongoDB user): no anonymous access, no public URL to open. It runs
 commit `5734adc` (deployed and tested end to end on 2026-10-30: address search in Cascais, map and satellite view,
 post-its, PDF with road map, satellite and Street View). The original (public) services still run the earlier slice:
-updating them first needs the MU-9 data migration of their database (see `docs/roadmap.md`).
+updating them first needs the MU-9 data migration of their database, now prepared and rehearsed on a copy and awaiting
+authorisation (see `infrastructure/STAGING.md`). Historical results verified under the old protocol are never shown
+as current VERIFIED: they read as superseded (legacy, not revalidated), with their original provenance.
 
 Access requires an authorised Google account and the official proxy, on the computer where the browser runs:
 ```bash

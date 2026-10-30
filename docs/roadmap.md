@@ -88,6 +88,7 @@ REJECTED), **PENDING CONFIRMATION** (anything else; unverified draft content is 
 | AC6.8 | met; **validated with real Google data locally and on staging** | real Cascais run: roadmap + hybrid (same centre/zoom/marker) + Street View (6 m, 2024-07) embedded, pixel-identical to Google's responses, no key leak; `tests/test_report_maps.py` (28); staging-5734adc PDF via the UI button with the three images |
 | AC6.9 | met | cover rendered and checked (pdftoppm); warning always present |
 | Visual QA in the owner's browser | **pending** | TD-049 |
+| Original update (2026-10-30) | prepared and rehearsed, not executed | MU-9 migration of `habita_ai` (backup, `migrate-floor`, temporary migration user), read-time legacy classification, no-traffic deploy and rollback — `infrastructure/STAGING.md`; awaits authorisation (TD-038) |
 | Open items | central register | `.ai-review/HABITA-AI-TECHNICAL-DEBT.md` (local, git-ignored): TD-044 … TD-052 |
 
 ## Candidate modules named in the approved architecture (not yet assigned to HR numbers)
