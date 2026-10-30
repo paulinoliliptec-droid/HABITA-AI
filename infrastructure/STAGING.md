@@ -143,6 +143,13 @@ infrastructure/deploy-staging.sh --preflight
   proxy uses the same token. Fix: re-authenticate gcloud with the CLI's own client, forcing a new authorisation flow,
   `gcloud auth login --force paulinoliliptec@gmail.com`, then check (prints only claims): `gcloud auth print-identity-token | python3 -c 'import
   sys,json,base64;p=sys.stdin.read().split(".")[1];print(json.loads(base64.urlsafe_b64decode(p+"="*(-len(p)%4)))["aud"])'`.
+- **This development machine is a Cloud Workstation** (`w-drakiesseai-…`, project `dra-kiesse`, europe-southwest1),
+  not the owner's computer. A browser opening its port 3000 goes through Workstations port forwarding
+  (`*.cloudworkstations.dev`), which needs `workstations.workstations.use` for the browser's Google account and, even
+  then, cannot run the demo: the page would call `http://localhost:8081` on the browser's own computer, and CORS and
+  the Maps key allow only `http://localhost:3000`. Run the two proxies on the computer where the browser runs (gcloud
+  installed there, `gcloud components install cloud-run-proxy`, `gcloud auth login paulinoliliptec@gmail.com`); that
+  also yields identity tokens from the gcloud CLI client.
 - **Several Google accounts in the browser**: the browser never needs a Google login for staging (the proxy adds the
   identity). Open `http://localhost:3000` in a private window or a browser profile without Google accounts; opening
   the `run.app` URLs directly only shows a 403/login error by design. In the `gcloud auth login --force` account
