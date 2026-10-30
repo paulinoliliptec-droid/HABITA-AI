@@ -254,6 +254,7 @@ Access policy unchanged (the original stays as public as it is now; TD-051). Sta
 | 2026-10-30 | Translation daily quota 1,000,000 characters; original updated to `0d9453d` (translation hardening), owner-authorised | Claude | backend `00021-gow`, frontend `00016-bir`, images `original-0d9453d`; rollback: backend `00019-kew`, frontend `00014-jiy` |
 | 2026-10-30 | Original updated to `46a253b` (HR-005 Visual Reasoning Graph), owner-authorised; merged into `main` | Claude | backend `00023-bul`, frontend `00018-xoy`, images `original-46a253b`; rollback: backend `00021-gow`, frontend `00016-bir` |
 | 2026-10-30 | Original updated to `98b70b4` (animated reasoning graph), owner-authorised; merged into `main` | Claude | backend `00025-wez`, frontend `00020-wif`, images `original-98b70b4`; rollback: backend `00023-bul`, frontend `00018-xoy` |
+| 2026-10-30 | Original updated to `6cf3302` (graph flow highlighting, platform colours), owner-authorised; merged into `main` | Claude | backend `00027-kuv`, frontend `00022-koz`, images `original-6cf3302`; rollback: backend `00025-wez`, frontend `00020-wif` |
 
 ### Migrations (only when needed)
 Needed when the backend logs `MU-9: could not install the permit_verifications validator` after a release, or to raise
