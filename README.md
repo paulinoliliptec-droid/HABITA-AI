@@ -20,7 +20,7 @@ the evidence does not support it.
 | Web app | Next.js (App Router) + React + TypeScript | address search, property workspace, map with post-its, permit questions, PDF download |
 | API | Python FastAPI | property resolution, jurisdiction, official sources, permit workflow, verifier, reports |
 | Database | MongoDB Atlas | properties, permit matters, evidence, verifications, official-source snapshots |
-| Maps | Google Maps Platform | Places autocomplete, Geocoding, Maps JavaScript (map), Maps Static (PDF maps, see HR-006) |
+| Maps | Google Maps Platform | Places autocomplete, Geocoding, Maps JavaScript (map), Maps Static and Street View Static (PDF images, see HR-006) |
 | AI | Meta Model API — **Muse Spark** (`muse-spark-1.3`) | planning, tool calls over official sources, drafting, a review that can only make a verdict stricter |
 | Hosting | Google Cloud Run + Artifact Registry + Secret Manager | containers deployed manually; private staging with IAM authentication |
 
@@ -61,18 +61,25 @@ assessment exists); zoning — a classification only from a verified layer, othe
 official plans to consult; risks and conditions; evidence and official sources with links. Tested with headless
 Chromium on the private staging. Code: `frontend/src/features/report/`.
 
-### HR-006 · PDF report — Tested offline; real Google maps not yet validated
+### HR-006 · PDF report — Done; real Google images validated locally, not yet on staging
 A server-generated PDF from the same model: cover (status, municipality, authority, zoning state, and a permanent
 warning that there is **no municipal confirmation**), property identification, a location page, planning context,
 analysis, conditions, risks, verification record (protocol, TrustPin), evidence provenance (source, version,
 snapshot, sha256, locator) and official sources, with the disclaimer on every page.
 
-The location page embeds two images from the **Google Maps Static API** — road map and satellite — with the same
-centre, zoom and size, a marker and a circle labelled **approximate location, not a cadastral boundary**.
-**Status of the maps:** validated only against a **simulated map service** (real JPEG images, automated tests). The
-Maps Static API is **not yet enabled** on the project, so **no PDF with real Google maps has been produced yet**; until
-it is, the PDF states "Location maps unavailable" and shows no substitute image. Code: `backend/app/services/report/`,
-`backend/app/integrations/maps/static_maps.py`.
+The location page embeds two images from the **Google Maps Static API** — a road map and a satellite image with
+labels — with the same centre, zoom, size and marker, and a circle labelled **approximate location, not a cadastral
+boundary** (HABITA holds no verified parcel geometry). A third image from **Street View** is added only when an outdoor
+panorama exists within 50 m of the point, with its capture date. The legend states that Google imagery proves neither
+ownership, parcel limits, zoning nor a municipal licence.
+
+**Validated with real Google data (2026-10-30, local backend):** for "Praça 5 de Outubro, Cascais" the two maps and a
+Street View image (panorama 6 m away, July 2024) were returned by Google for the geocoded centre and embedded in the
+PDF, pixel-identical to Google's responses; no key appears in the PDF or the logs. A dedicated server key restricted to
+Maps Static and Street View Static is kept in Secret Manager. Spend is capped (a daily limit shared by all instances,
+per-minute and per-property limits). **Not yet on staging:** it needs an access grant for the staging backend and a
+new deploy. If the map service is unavailable or unconfigured, the PDF says so and shows no substitute image.
+Code: `backend/app/services/report/`, `backend/app/integrations/maps/static_maps.py`.
 
 ### Feature summary
 | Feature | State |
@@ -84,7 +91,7 @@ it is, the PDF states "Location maps unavailable" and shows no substitute image.
 | Zoning classification from official GIS | Planned (no validated connector; absence stated) |
 | Map with post-its (HR-004) | Done (MVP); owner browser check pending |
 | PDF report with verification record and provenance (HR-006) | Done; tested on staging |
-| PDF road map + satellite images (HR-006) | Tested with a simulated service; **real Google maps pending** |
+| PDF road map + satellite (+ Street View) images (HR-006) | Validated with real Google data locally; **staging pending** (access grant + deploy) |
 | Private staging on Cloud Run | Done (IAM-authenticated, isolated database) |
 | SAM 3.1 segmentation, Muse Voice Transcribe, Muse Image | Planned (integration points only) |
 | HR-005, HR-007 … HR-015 | Pending definition |
@@ -108,7 +115,8 @@ Procedure, checks, rollback and costs: [`infrastructure/STAGING.md`](infrastruct
 ## Run it locally
 1. `cp .env.example .env` and fill in your own values. **Never commit secrets.** Without `MONGODB_URI` the backend
    uses in-memory storage (`ALLOW_EPHEMERAL_STORAGE=true`); without `META_API_KEY` Permit Intelligence reports that it
-   is unavailable; without a Maps Static key the PDF states that the maps are unavailable.
+   is unavailable; without `MAPS_STATIC_API_KEY` (dedicated Maps Static + Street View key) the PDF states that the
+   maps are unavailable.
 2. Backend ([`backend/README.md`](backend/README.md)):
    ```bash
    cd backend && python3 -m venv .venv && source .venv/bin/activate
@@ -134,8 +142,8 @@ MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentia
 - Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002
   done; HR-003 in controlled validation; HR-004 MVP complete; HR-006 pending the real-map validation; HR-005 and
   HR-007…HR-015 pending definition.
-- Main open items: enable the Maps Static API and validate the two real maps in the PDF; redeploy staging with the
-  latest HR-004/HR-006 code; improve answers to procedure questions (repeated zoning conditions, missing RJUE
+- Main open items: redeploy staging with the latest HR-004/HR-006 code (including the real PDF images); set Google
+  Cloud API quotas and review the Maps Platform terms for imagery in PDFs; improve answers to procedure questions (repeated zoning conditions, missing RJUE
   procedure citations); research semantic verification (entailment, negation scope, deontic logic) without weakening
   the deterministic final gate; validate an official GIS connector for zoning; real replica-set run of the identity
   binding.

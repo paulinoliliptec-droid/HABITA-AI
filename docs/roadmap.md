@@ -16,7 +16,7 @@ are not global milestones.
 | HR-003 | Official Sources, Zoning & Regulatory Retrieval Foundation | coordinates → jurisdiction → official source registry → planning context → provenance-bearing evidence → Permit workflow, **Cascais only**; owner decisions of 2026-10-28 (manual confirmation without a validated connector; `pypdf`, no OCR; initial trusted corpus) (`reviews/HR-003-…`, `plans/HR-003-official-sources-plan.md`); MU-9 structural verification as its follow-up (`plans/HR-003-MU9-final-candidate.md`) | see below | **IN PROGRESS** |
 | HR-004 | Intelligent Map Experience | interactive map, highlighted property, informative post-its, planning conditions, risks and consultable legal sources; zoning layers only as verified official data, otherwise the absence is stated (owner, 2026-10-29) | AC4.1–AC4.8 below | **MVP COMPLETE** — tested headless on staging; owner's real-browser check pending (TD-049) |
 | HR-005 | — | **PENDING DEFINITION** | **PENDING** | not started |
-| HR-006 | Premium PDF Report | professional export: property identification, analysis summary, conditions, risks, official sources, verifiable references and conclusion status; VERIFIED / REJECTED / pending clearly distinct; evidence provenance and version preserved (owner, 2026-10-29) | AC6.1–AC6.9 below | **IN PROGRESS** — all criteria met in tests; AC6.8 real map images pending the Maps Static API (TD-047) |
+| HR-006 | Premium PDF Report | professional export: property identification, analysis summary, conditions, risks, official sources, verifiable references and conclusion status; VERIFIED / REJECTED / pending clearly distinct; evidence provenance and version preserved (owner, 2026-10-29) | AC6.1–AC6.9 below | **MVP COMPLETE** — real Google images validated locally; staging redeploy pending (TD-053) |
 | HR-007 … HR-015 | — | **PENDING DEFINITION** (no approved scope in the repository) | **PENDING** | not started |
 
 ### HR-003 acceptance status
@@ -85,7 +85,7 @@ REJECTED), **PENDING CONFIRMATION** (anything else; unverified draft content is 
 | AC4.1–AC4.5, AC4.7 | met; **tested on staging** | headless Chromium through the authenticated proxies: map rendered, post-its, no console errors (`infrastructure/STAGING.md` Setup log) |
 | AC4.8 | met; tested | `postits.test.ts`; screenshot of the local frontend against the staging backend (not yet deployed to staging, TD-050) |
 | AC6.1–AC6.7 | met; **tested on staging** | real property PDF and a real VERIFIED matter PDF from staging (text, TrustPin, evidence ids, disclaimer on every page) |
-| AC6.8 | met with a simulated map service | `tests/test_report_maps.py` (16): two embedded JPEGs, same framing, approximate legend, failures → notice, no key leak, daily cap; **real images pending** the Maps Static API (TD-047) |
+| AC6.8 | met; **validated with real Google data** (local backend) | real Cascais run: roadmap + hybrid (same centre/zoom/marker) + Street View (6 m, 2024-07) embedded, pixel-identical to Google's responses, no key leak; `tests/test_report_maps.py` (28); staging pending (TD-053) |
 | AC6.9 | met | cover rendered and checked (pdftoppm); warning always present |
 | Visual QA in the owner's browser | **pending** | TD-049 |
 | Open items | central register | `.ai-review/HABITA-AI-TECHNICAL-DEBT.md` (local, git-ignored): TD-044 … TD-052 |

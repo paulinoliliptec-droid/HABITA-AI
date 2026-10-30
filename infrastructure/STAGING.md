@@ -137,17 +137,25 @@ infrastructure/deploy-staging.sh --preflight
 | 2026-10-30 | Owner re-authenticated gcloud (`--force`, CLI client) | owner | identity token `aud` 32555940559 (gcloud CLI), `email` paulinoliliptec@gmail.com; authenticated `/health/ready` 200 — the script's last check (it had stopped there on the first run) passes when run by hand; all other post-deploy checks had passed |
 | 2026-10-30 | Demo through `gcloud run services proxy` on the workstation (localhost:8081 / :3000), headless Chromium (libxkbcommon0 installed) | Claude | Backend and frontend 200 via proxies; CORS allows `http://localhost:3000`. Resolve "Praça 5 de Outubro, Cascais" → `prp_96bb6597b61c5c6b`, jurisdiction pt/lisboa/cascais, Câmara Municipal de Cascais. **HR-004**: property page renders the Google map (marker, no map error) and the post-its Property / Zoning "NO VERIFIED LAYER" (official plantas linked) / Official sources (26). **HR-006**: property PDF 4 pages and the UI "PDF report" button download the same file (8906 B): pending-confirmation state, zoning not verified with reasons, official cascais.pt maps, disclaimer on every page. Permit matter `pm_6c61911b229bf32c` (one Meta call): PLANNING → VERIFIED (`pv_466d22a3d5c31fff`, protocol atomic-v1, TrustPin listed in the 7-page PDF, every statement cites existing evidence, "not a permit" note, conditions to confirm). Quality finding: 6 of 9 statements repeat the planning condition and no RJUE procedural evidence is cited (TD-044) |
 
-### PDF location maps (HR-006) — needs owner authorisation
-The PDF embeds a road map and a satellite image from the Google Maps Static API, or states that they are unavailable.
-Today the API is not enabled on the project and the server key allows Geocoding only (TD-047). To enable:
-```bash
-P=habita-ai-512916
-gcloud services enable static-maps-backend.googleapis.com --project $P
-# then either add "static-maps-backend.googleapis.com" to the API restrictions of habita-server-geocoding,
-# or create a dedicated key restricted to it and store it as secret MAPS_STATIC_API_KEY (backend env MAPS_STATIC_API_KEY)
-# and set a daily request quota for the Maps Static API in the console (hard cap; the code caps 200 PDFs/day/process).
-```
-Each PDF costs two Static API loads. Attribution is printed under the images; images are not stored.
+### PDF location images (HR-006)
+The PDF embeds a road map and a satellite image with labels (`hybrid`) from the Maps Static API, same centre, zoom,
+size and marker, plus a Street View image only when an outdoor panorama exists within 50 m of the point; otherwise it
+states that they are unavailable. Each PDF costs two or three paid image loads (Street View metadata is free).
+- 2026-10-30: the owner enabled the Maps Platform APIs; Claude created the server key `habita-server-static-maps`
+  restricted to `static-maps-backend` and `street-view-image-backend` (no other API), stored as secret
+  `maps-static-api-key` (label purpose=report-maps; value never displayed). The geocoding key is refused by the Static
+  API (403) and the browser key is not used.
+- Real test (local backend, real Google APIs, Cascais): two maps (HTTP 200, 1280×800) with the geocoded centre and a
+  Street View image from a panorama 6 m away (2024-07), embedded in the PDF; pixel-identical to Google's responses
+  (mean difference ≤ 0.22/255); no key in the PDF or logs.
+- **Pending for staging (IAM, needs authorisation):** grant the backend account access to the new secret, then deploy
+  (`deploy-staging.sh` already passes `MAPS_STATIC_API_KEY` and its preflight refuses until the grant exists):
+  ```bash
+  gcloud secrets add-iam-policy-binding maps-static-api-key --project habita-ai-512916 \
+    --member=serviceAccount:habita-staging-api@habita-ai-512916.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor
+  ```
+- Spend bounds in code: 6 PDFs with maps per minute, 200 per day and 6 per location per hour, per process; set a daily
+  quota for both APIs in the Google Cloud console as the hard cap. Attribution is printed; images are not stored.
 
 ### Troubleshooting
 - **Authenticated requests get 401 "access token could not be verified"** (seen 2026-10-30): the stored gcloud
