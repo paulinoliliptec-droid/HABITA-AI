@@ -317,7 +317,26 @@ export function revealDelays(lines: string[]): number[][] {
   });
 }
 
-/** The nodes one step from a node, for highlighting. */
-export function neighbours(graph: ReasoningGraphModel, id: string): Set<string> {
-  return new Set(graph.edges.flatMap((e) => (e.from === id ? [e.to] : e.to === id ? [e.from] : [])));
+export const edgeKey = (edge: GraphEdge) => `${edge.from}>${edge.to}`;
+
+/**
+ * The flow of a node: what leads to it and what follows from it, along stored relations only. Evidence is grouped, so
+ * passing through a group follows the ids: a rule and a conclusion sharing a group but no evidence are not one flow.
+ */
+export function flowOf(graph: ReasoningGraphModel, id: string): { nodes: Set<string>; edges: Set<string> } {
+  const nodes = new Set([id]);
+  const edges = new Set<string>();
+  const walk = (at: string, side: "from" | "to", through: string[] | null) => {
+    const other = side === "from" ? "to" : "from";
+    for (const edge of graph.edges.filter((e) => e[other] === at)) {
+      const shared = through && edge.evidenceIds ? through.filter((i) => edge.evidenceIds!.includes(i)) : (edge.evidenceIds ?? through);
+      if (through && edge.evidenceIds && !shared?.length) continue;
+      edges.add(edgeKey(edge));
+      nodes.add(edge[side]);
+      walk(edge[side], side, shared ?? null);
+    }
+  };
+  walk(id, "from", null);
+  walk(id, "to", null);
+  return { nodes, edges };
 }
