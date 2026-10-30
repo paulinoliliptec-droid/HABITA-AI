@@ -75,6 +75,8 @@ def fidelity_problems(source: str, target: str) -> list[str]:
         problems.append("official name")
     if re.search(r"Representantes|Deputados|Comuns", target) and not re.search(r"Representatives|Deputies|Commons", source):
         problems.append("official name")  # "Câmara" is never a parliament here
+    if target.count("(") > source.count("("):  # an invented expansion: "REN" became "REN (Região de Referência de Energia)"
+        problems.append("added explanation")
     if any(symbol in target and symbol not in source for symbol in "™®©"):
         problems.append("stray symbol")
     for word, pattern in _NUMBER_WORDS.items():

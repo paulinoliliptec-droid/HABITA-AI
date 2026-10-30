@@ -85,6 +85,7 @@ def test_a_faithful_translation_passes(source, target):
     ("The Câmara's index of documents.", "Índice da Câmara dos Representantes dos documentos.", "official name"),
     ("The Regulamento's rules for the category.", "As regras do ™ para a categoria.", "official name"),
     ("The rules for the category.", "As regras do ™ para a categoria.", "stray symbol"),
+    ("The parcel is not in the REN.", "A parcela não está na REN (Região de Referência de Energia).", "added explanation"),
     ("The works comply with the plan.", "As obras foram aprovadas.", "legal outcome"),
     ("The works comply with the plan.", "As obras estão licenciadas.", "legal outcome"),
 ])
