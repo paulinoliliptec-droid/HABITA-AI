@@ -133,7 +133,8 @@ infrastructure/deploy-staging.sh --preflight
 | 2026-10-30 | IAM API enabled; `habita-staging-api`, `habita-staging-web` created; `secretAccessor` for the API account on `mongodb-uri-staging`, `GOOGLE_MAPS_API_KEY`, `meta-api-key` only | Claude (owner-authorised) | `mongodb-uri-staging` readable only by the API account (plus the owner via roles/owner); preview `mongodb-uri` unchanged; web account has no secret access; neither account has project/ancestor roles or user-managed keys. Codex: staging grants correct, nothing missing for deploy |
 | 2026-10-30 | Push of `mu9/structural-verification` only (334a5bd..1182201) | Claude (owner-authorised) | full tests on 1182201 (backend 6589 passed / 14 skipped / 3 xfailed; frontend 37, lint, typecheck); no credentials in the pushed diff; `origin/main` unchanged at 98af6af; full preflight passed |
 | 2026-10-30 | Deploy `staging-1182201` (images from `git archive` of 1182201) | Claude (owner-authorised) | `habita-backend-staging-00001-djm` (SA habita-staging-api, `APP_ENV=staging`, `MONGODB_DB_NAME=habita_ai_staging`, secrets by reference, max 1 instance, concurrency 10) and `habita-frontend-staging-00001-gcb` (SA habita-staging-web, max 1); no IAM bindings, anonymous requests 403; backend started on Atlas: 7 collections in `habita_ai_staging`, MU-9 validator `moderate`/`error` installed with readWrite only, 27 official sources seeded, no warnings in the logs; preview still 00016/00011 at 100%. The script stopped at its authenticated health check (HTTP 401, see Troubleshooting); the preview comparison was then done by hand |
-| pending | Authenticated access (proxy) and the HR-004/HR-006 demo | owner action, then test | blocked: see Troubleshooting |
+| 2026-10-30 | 401 diagnosis; official `google-cloud-cli-cloud-run-proxy` 591.0.0 installed (apt, Google repo) | Claude (owner-authorised) | account `paulinoliliptec@gmail.com` correct; `run.routes.invoke` granted on both services (testIamPermissions); identity token `aud` = `681255809395-….apps.googleusercontent.com` (not the gcloud CLI client): rejected, also through the proxy (401). No IAM, access-policy or service change |
+| pending | Re-authentication with the gcloud CLI client, then the HR-004/HR-006 demo | owner action, then test | blocked on the token audience |
 
 ### Troubleshooting
 - **Authenticated requests get 401 "access token could not be verified"** (seen 2026-10-30): the stored gcloud
@@ -142,7 +143,11 @@ infrastructure/deploy-staging.sh --preflight
   proxy uses the same token. Fix: re-authenticate gcloud with the CLI's own client, forcing a new authorisation flow,
   `gcloud auth login --force paulinoliliptec@gmail.com`, then check (prints only claims): `gcloud auth print-identity-token | python3 -c 'import
   sys,json,base64;p=sys.stdin.read().split(".")[1];print(json.loads(base64.urlsafe_b64decode(p+"="*(-len(p)%4)))["aud"])'`.
-- **`gcloud run services proxy` asks to install `cloud-run-proxy`**: the SDK here comes from apt, so install the
+- **Several Google accounts in the browser**: the browser never needs a Google login for staging (the proxy adds the
+  identity). Open `http://localhost:3000` in a private window or a browser profile without Google accounts; opening
+  the `run.app` URLs directly only shows a 403/login error by design. In the `gcloud auth login --force` account
+  chooser, pick `paulinoliliptec@gmail.com` explicitly.
+- **`gcloud run services proxy` asks to install `cloud-run-proxy`** (installed on this workstation 2026-10-30): the SDK here comes from apt, so install the
   component as a package: `sudo apt-get install google-cloud-cli-cloud-run-proxy`.
 
 ### Migrations (only when needed)
