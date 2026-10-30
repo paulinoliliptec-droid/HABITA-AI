@@ -27,7 +27,8 @@ CACHE_SIZE = 5000
 _OFFICIAL = re.compile(r"Câmara Municipal(?: de [A-ZÀ-Ý]\w+)?|Câmara\b|Regulamento\b|Plano Diretor Municipal(?: de [A-ZÀ-Ý]\w+)?|"
                        r"Reserva Ecológica Nacional|Reserva Agrícola Nacional|Parque Natural(?: de [A-ZÀ-Ý][\w-]+)?")
 #: Portuguese legal terms of art that the machine renders as something else ("prior control" as prior authorisation).
-_GLOSSARY = {"municipal prior control": "controlo prévio municipal", "prior control": "controlo prévio"}
+_GLOSSARY = {"municipal prior control": "controlo prévio municipal", "prior control": "controlo prévio",
+             "prior opinion": "parecer prévio", "prior information request": "pedido de informação prévia"}
 _glossary = re.compile("|".join(sorted(_GLOSSARY, key=len, reverse=True)), re.I)
 _protected = re.compile(rf'"[^"\n]{{3,}}"|“[^”\n]{{3,}}”|«[^»\n]{{3,}}»|\b[EK]\d+\b|\{{[a-z_]+\}}|{_OFFICIAL.pattern}')
 _span = re.compile(r'<span translate="no">\s*(.*?)\s*</span>', re.S)
@@ -42,7 +43,11 @@ _NUMBER_WORDS = {"one": r"um|uma", "two": r"dois|duas", "three": r"tr[eê]s", "f
 _CHECKS = (  # (what, in the English source, must have one of these in the Portuguese)
     ("negation", re.compile(r"\b(?:not|no|never|cannot|none|without|neither|nor|unless)\b|n't\b", re.I),
      re.compile(r"\b(?:não|nunca|nem|sem|nenhum\w*|nada|a menos|salvo|exceto|ausência|falta\w*|impossível)\b", re.I)),
-    ("obligation", re.compile(r"\b(?:must|shall|required|mandatory|need to|needs to)\b"),
+    ("prohibition", re.compile(r"\b(?:must not|shall not|may not|cannot|can't|prohibited|forbidden)\b", re.I),
+     # "não deve" and "não se deve" read as advice: a prohibition must stay one.
+     re.compile(r"\b(?:não pode\w*|não se pode\w*|não é permitid\w+|não são permitid\w+|proibid\w+|vedad\w+|"
+                r"interdit\w+|impossível)\b", re.I)),
+    ("obligation", re.compile(r"\b(?:must(?! not)|shall(?! not)|required|mandatory|need to|needs to)\b"),
      re.compile(r"\b(?:dev\w+|tem de|têm de|terá de|terão de|tem que|têm que|necess\w+|obrigat\w+|requer\w*|requisit\w*|"
                 r"exig\w+|é preciso|precis\w+)\b", re.I)),
     ("possibility", re.compile(r"\b(?:may|might|could|possibly|likely|probably)\b"),
@@ -52,6 +57,10 @@ _CHECKS = (  # (what, in the English source, must have one of these in the Portu
 _OUTCOME_PT = re.compile(r"\b(?:aprovad|licenciad|deferid|autorizad|legalizad|garantid)\w*", re.I)
 _OUTCOME_EN = re.compile(r"approv|licen[cs]|grant|authori[sz]|permit|legal|guarant", re.I)
 _ARTICLE = {"A": "O", "a": "o", "da": "do", "pela": "pelo", "à": "ao"}
+#: Meanings machines add on their own: Portuguese that needs a basis in the English. "classified" became "classified as
+#: historic heritage", "rooms" became bedrooms.
+_ADDED = ((re.compile(r"\b(?:patrim[oó]\w+|hist[oó]ric\w+)\b", re.I), re.compile(r"heritage|histor|patrim", re.I)),
+          (re.compile(r"\bquartos?\b", re.I), re.compile(r"bedroom", re.I)))
 _STATUS_WORDS = {"VERIFIED", "REJECTED", "PENDING", "CONFIRMATION", "HABITA"}
 
 
@@ -75,12 +84,25 @@ def fidelity_problems(source: str, target: str) -> list[str]:
         problems.append("official name")
     if re.search(r"Representantes|Deputados|Comuns", target) and not re.search(r"Representatives|Deputies|Commons", source):
         problems.append("official name")  # "Câmara" is never a parliament here
+    # An invented expansion: "REN" became "REN (Região de Referência de Energia)", or the same after a colon or a dash.
+    if target.count("(") > source.count("(") or any(
+            re.search(rf"\b{a}\b\s*[:–—-]\s*\w", target) and not re.search(rf"\b{a}\b\s*[:–—-]", source)
+            for a in _acronym.findall(source)):
+        problems.append("added explanation")
     if any(symbol in target and symbol not in source for symbol in "™®©"):
         problems.append("stray symbol")
     for word, pattern in _NUMBER_WORDS.items():
         if re.search(rf"\b{word}\b", source, re.I) and not re.search(rf"\b(?:{pattern})\b", target, re.I):
             problems.append("number word")
     problems += [name for name, en, pt in _CHECKS if en.search(source) and not pt.search(target)]
+    # Passages hold several sentences: each prohibition must survive, not just one of them.
+    _, banned_en, banned_pt = next(check for check in _CHECKS if check[0] == "prohibition")
+    if len(banned_pt.findall(target)) < len(banned_en.findall(source)) and "prohibition" not in problems:
+        problems.append("prohibition")
+    # Portuguese runs a little longer than English; well beyond that, something was added, whatever the words.
+    if any(pt.search(target) and not en.search(source) for pt, en in _ADDED) or (
+            len(source.split()) >= 6 and len(target.split()) > 1.4 * len(source.split())):
+        problems.append("added meaning")
     if _OUTCOME_PT.search(target) and not _OUTCOME_EN.search(source):
         problems.append("legal outcome")
     return problems

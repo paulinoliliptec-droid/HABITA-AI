@@ -66,6 +66,8 @@ def pdf_text(content: bytes) -> str:
     ("You must confirm this with the authority [E1].", "Tem de confirmar isto junto da autoridade [E1]."),
     ("The change may need a permit.", "A alteração pode exigir uma licença."),
     ("This is not a permit.", "Isto não é uma autorização."),
+    ("You must not change the facade.", "Não pode alterar a fachada."),
+    ("Any building here cannot be extended.", "Nenhum edifício aqui pode ser ampliado, é proibido."),
     ('The regulation says "uso habitacional" here.', 'O regulamento diz "uso habitacional" aqui.'),
 ])
 def test_a_faithful_translation_passes(source, target):
@@ -85,6 +87,17 @@ def test_a_faithful_translation_passes(source, target):
     ("The Câmara's index of documents.", "Índice da Câmara dos Representantes dos documentos.", "official name"),
     ("The Regulamento's rules for the category.", "As regras do ™ para a categoria.", "official name"),
     ("The rules for the category.", "As regras do ™ para a categoria.", "stray symbol"),
+    ("The parcel is not in the REN.", "A parcela não está na REN (Região de Referência de Energia).", "added explanation"),
+    ("You must not change the facade.", "Não se deve alterar a fachada.", "prohibition"),
+    ("You must not change the facade.", "Não deve alterar a fachada.", "prohibition"),
+    ("You must not build here. You must not demolish the wall.", "Não deve construir aqui. Não pode demolir o muro.",
+     "prohibition"),
+    ("The parcel is in the REN.", "A parcela está na REN: Região de Referência de Energia.", "added explanation"),
+    ("The parcel is in the REN.", "A parcela está na REN: região de referência de energia.", "added explanation"),
+    ("Works are exempt where the building is classified.",
+     "As obras estão isentas se o edifício for classificado como monumento nacional.", "added meaning"),
+    ("Works are exempt where the building is classified.", "As obras estão isentas se classificado como património.", "added meaning"),
+    ("Each unit must have two rooms.", "Cada unidade deve ter dois quartos.", "added meaning"),
     ("The works comply with the plan.", "As obras foram aprovadas.", "legal outcome"),
     ("The works comply with the plan.", "As obras estão licenciadas.", "legal outcome"),
 ])
@@ -95,6 +108,7 @@ def test_a_translation_that_changes_the_meaning_is_refused(source, target, probl
 def test_portuguese_legal_terms_are_used_not_translated():
     encoded = _encode("Apply for municipal prior control under the RJUE.")
     assert "controlo prévio municipal" in encoded and "prior control" not in encoded
+    assert "parecer prévio" in _encode("Request a prior opinion.")
     assert _decode(encoded.replace("Apply for", "Solicite")) == "Solicite controlo prévio municipal under the RJUE."
 
 
