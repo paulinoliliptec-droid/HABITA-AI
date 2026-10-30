@@ -251,6 +251,7 @@ Access policy unchanged (the original stays as public as it is now; TD-051). Sta
 | 2026-10-30 | Remote desktop on the workstation (Xvfb + noVNC, Chromium in guest mode at localhost:3000) | Claude | every listener on 127.0.0.1; viewer at `https://6080-$WEB_HOST/vnc.html` (Workstations sign-in) |
 | 2026-10-30 | Cloud Translation API enabled; key restricted to `translate.googleapis.com`; secret `google-translate-api-key` from it; `secretAccessor` for `habita-staging-api` only (owner-authorised) | Claude | the preflight now also requires this secret; the preview's account has no access, so the preview stays English |
 | 2026-10-30 | Original updated to `5fae732` (bilingual system, Clássico PDF), owner-authorised: `secretAccessor` on `google-translate-api-key` for `988261836110-compute@` only; no data migration (no stored schema changed); candidates without traffic checked, then backend and frontend at 100 % | Claude | backend `00019-kew`, frontend `00014-jiy`, images `original-5fae732`, IAM unchanged. Rollback: `update-traffic` to backend `00017-vel`, frontend `00012-xex` |
+| 2026-10-30 | Translation daily quota 1,000,000 characters; original updated to `0d9453d` (translation hardening), owner-authorised | Claude | backend `00021-gow`, frontend `00016-bir`, images `original-0d9453d`; rollback: backend `00019-kew`, frontend `00014-jiy` |
 
 ### Migrations (only when needed)
 Needed when the backend logs `MU-9: could not install the permit_verifications validator` after a release, or to raise
