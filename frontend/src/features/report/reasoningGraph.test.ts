@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { translator } from "@/i18n/core";
 import verified from "./fixtures/verified-report.json";
-import { buildGraph, layout, neighbours } from "./reasoningGraph";
+import { buildGraph, layout, neighbours, revealDelays } from "./reasoningGraph";
 import type { PermitReport } from "./types";
 
 // The fixture is the backend's own report, so every relation below is checked against the JSON the PDF is rendered from.
@@ -152,6 +152,15 @@ describe("reasoning graph (HR-005)", () => {
       "Dados de demonstração",
       "Tradução automática.",
     ]);
+  });
+
+  it("reveals every word in reading order and always ends soon", () => {
+    const delays = revealDelays(["one two three", "four five"]);
+    expect(delays.map((l) => l.length)).toEqual([3, 2]);
+    expect(delays.flat()).toEqual([...delays.flat()].sort((x, y) => x - y));
+    const long = revealDelays(Array.from({ length: 30 }, () => "word ".repeat(40).trim()));
+    expect(Math.max(...long.flat())).toBeLessThanOrEqual(2400);
+    expect(revealDelays([])).toEqual([]);
   });
 
   it("gives every node a place and finds its neighbours", () => {

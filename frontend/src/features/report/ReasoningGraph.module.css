@@ -1,5 +1,6 @@
 /* The reasoning graph opens over the workspace: quiet, architectural, distinct from the map. */
 .overlay {
+  --current: #f2b01e;
   position: fixed;
   inset: 0;
   z-index: calc(var(--z-topbar) + 1);
@@ -82,6 +83,23 @@
   stroke-width: 1.5;
 }
 
+/* A short bright stretch of line travels each relation slowly, like current; the selected node's lines carry more. */
+.current {
+  fill: none;
+  stroke: var(--current);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 7 93;
+  animation: flow 5s linear infinite;
+}
+
+.current[data-active] {
+  stroke-width: 3;
+  stroke-dasharray: 14 36;
+  filter: drop-shadow(0 0 4px var(--current));
+  animation-duration: 3s;
+}
+
 .node {
   position: absolute;
   display: flex;
@@ -97,7 +115,7 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  animation: appear 500ms var(--ease-standard) both;
+  animation: appear 900ms var(--ease-standard) both;
 }
 
 .node[data-tone="positive"] { border-left-color: var(--color-positive); }
@@ -109,9 +127,14 @@
 }
 
 .node[aria-pressed="true"] {
-  box-shadow: var(--shadow-md);
   outline: 2px solid var(--color-text);
   outline-offset: -1px;
+  /* Runs after the entrance, then keeps pulsing slowly. */
+  animation: appear 900ms var(--ease-standard) both, charged 2.8s ease-in-out infinite;
+}
+
+.node[data-near] {
+  animation: appear 900ms var(--ease-standard) both, hum 3.6s ease-in-out infinite;
 }
 
 .node:focus-visible {
@@ -169,8 +192,47 @@
   color: var(--color-text-secondary);
 }
 
+.letter {
+  display: inline-block;
+  white-space: pre;
+  animation: letter-in 500ms var(--ease-standard) both;
+}
+
+.word {
+  display: inline-block;
+  white-space: pre;
+  animation: word-in 650ms var(--ease-standard) both;
+}
+
 @keyframes appear {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes flow {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes charged {
+  0%, 100% { box-shadow: 0 0 4px 0 var(--current); }
+  50% { box-shadow: 0 0 18px 4px var(--current); }
+}
+
+/* A slow vibration of the nodes wired to the selected one. */
+@keyframes hum {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1px); }
+  75% { transform: translateX(1px); }
+}
+
+@keyframes letter-in {
+  from { opacity: 0; transform: translateY(-14px) rotate(-8deg); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes word-in {
+  from { opacity: 0; transform: translateX(-16px); }
   to { opacity: 1; transform: none; }
 }
 
@@ -184,9 +246,18 @@
   }
 }
 
+/* Movement never carries meaning here: without it, every word, line and status is still shown. */
 @media (prefers-reduced-motion: reduce) {
-  .node {
+  .node,
+  .node[aria-pressed="true"],
+  .node[data-near],
+  .letter,
+  .word {
     animation: none;
+  }
+
+  .current {
+    display: none;
   }
 
   .edge {

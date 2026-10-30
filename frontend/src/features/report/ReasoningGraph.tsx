@@ -4,9 +4,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { useI18n } from "@/i18n/useI18n";
-import { buildGraph, COLUMNS, layout, neighbours, NODE_HEIGHT, NODE_WIDTH } from "./reasoningGraph";
+import { buildGraph, COLUMNS, layout, neighbours, NODE_HEIGHT, NODE_WIDTH, revealDelays } from "./reasoningGraph";
 import type { PermitReport } from "./types";
 import styles from "./ReasoningGraph.module.css";
+
+/** Text that enters word by word; the words are decoration, so assistive technology reads the sentence once. */
+function Reveal({ text, delays }: { text: string; delays: number[] }) {
+  return (
+    <span aria-label={text} role="text">
+      {text.split(" ").map((word, i) => (
+        <span key={i} aria-hidden="true" className={styles.word} style={{ animationDelay: `${delays[i]}ms` }}>
+          {word}{" "}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 /** HR-005: how the result was reached, from the same report as the post-its and the PDF. */
 export function ReasoningGraph({ report, onClose }: { report: PermitReport; onClose: () => void }) {
@@ -17,6 +30,7 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
   const dialog = useRef<HTMLDivElement>(null);
   const node = graph.nodes.find((n) => n.id === selected) ?? graph.nodes[0];
   const near = neighbours(graph, node.id);
+  const delays = revealDelays(node.lines);
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
@@ -68,20 +82,30 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
               </p>
             ))}
             <svg className={styles.edges} width={width} height={height} aria-hidden="true">
-              {graph.edges.map((edge) => {
+              {graph.edges.map((edge, index) => {
                 const a = positions.get(edge.from)!;
                 const b = positions.get(edge.to)!;
                 const [sx, sy, ex, ey] = [a.x + NODE_WIDTH, a.y + NODE_HEIGHT / 2, b.x, b.y + NODE_HEIGHT / 2];
                 const mid = (sx + ex) / 2;
                 const active = edge.from === node.id || edge.to === node.id;
+                const d = `M${sx},${sy} C${mid},${sy} ${mid},${ey} ${ex},${ey}`;
                 return (
-                  <path
-                    key={`${edge.from}-${edge.to}`}
-                    className={styles.edge}
-                    data-partial={edge.evidenceIds ? true : undefined}
-                    data-active={active || undefined}
-                    d={`M${sx},${sy} C${mid},${sy} ${mid},${ey} ${ex},${ey}`}
-                  />
+                  <g key={`${edge.from}-${edge.to}`}>
+                    <path
+                      className={styles.edge}
+                      data-partial={edge.evidenceIds ? true : undefined}
+                      data-active={active || undefined}
+                      d={d}
+                    />
+                    {/* The current: it runs along the relation, from source to target. */}
+                    <path
+                      className={styles.current}
+                      data-active={active || undefined}
+                      d={d}
+                      pathLength={100}
+                      style={{ animationDelay: `${-index * 0.7}s` }}
+                    />
+                  </g>
                 );
               })}
             </svg>
@@ -106,11 +130,19 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
           </div>
         </div>
 
-        <aside className={styles.detail} aria-live="polite">
-          <h3 className={styles.detailTitle}>{node.title}</h3>
+        <aside key={node.id} className={styles.detail} aria-live="polite">
+          <h3 className={styles.detailTitle} aria-label={node.title}>
+            {[...node.title].map((letter, i) => (
+              <span key={i} aria-hidden="true" className={styles.letter} style={{ animationDelay: `${i * 35}ms` }}>
+                {letter}
+              </span>
+            ))}
+          </h3>
           <ul className={styles.lines}>
             {node.lines.map((line, i) => (
-              <li key={i}>{line}</li>
+              <li key={i}>
+                <Reveal text={line} delays={delays[i]} />
+              </li>
             ))}
           </ul>
           {node.links.length > 0 && (
