@@ -301,6 +301,22 @@ export function layout(graph: ReasoningGraphModel) {
   return { positions, height, width: COLUMNS.length * (NODE_WIDTH + COLUMN_GAP) - COLUMN_GAP, columnX: (c: number) => c * (NODE_WIDTH + COLUMN_GAP) };
 }
 
+const WORD_MS = 45;
+const LINE_MS = 140;
+const REVEAL_LIMIT_MS = 2400;
+
+/** When each word of the side panel enters, in ms: a slow reveal that always ends soon, however long the panel is. */
+export function revealDelays(lines: string[]): number[][] {
+  const words = lines.reduce((sum, line) => sum + line.split(" ").length, 0);
+  const pace = Math.min(1, REVEAL_LIMIT_MS / Math.max(words * WORD_MS + lines.length * LINE_MS, 1));
+  let at = 0;
+  return lines.map((line) => {
+    const delays = line.split(" ").map((_, i) => Math.round((at + i * WORD_MS) * pace));
+    at += line.split(" ").length * WORD_MS + LINE_MS;
+    return delays;
+  });
+}
+
 /** The nodes one step from a node, for highlighting. */
 export function neighbours(graph: ReasoningGraphModel, id: string): Set<string> {
   return new Set(graph.edges.flatMap((e) => (e.from === id ? [e.to] : e.to === id ? [e.from] : [])));

@@ -1,12 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { useI18n } from "@/i18n/useI18n";
-import { buildGraph, COLUMNS, layout, neighbours, NODE_HEIGHT, NODE_WIDTH } from "./reasoningGraph";
+import { buildGraph, COLUMNS, layout, neighbours, NODE_HEIGHT, NODE_WIDTH, revealDelays } from "./reasoningGraph";
 import type { PermitReport } from "./types";
 import styles from "./ReasoningGraph.module.css";
+
+/** Text that enters word by word; the words are decoration, so assistive technology reads the sentence once. */
+function Reveal({ text, delays }: { text: string; delays: number[] }) {
+  return (
+    <span aria-label={text} role="text">
+      {text.split(" ").map((word, i) => (
+        <span key={i} aria-hidden="true" className={styles.word} style={{ animationDelay: `${delays[i]}ms` }}>
+          {word}{" "}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 /** HR-005: how the result was reached, from the same report as the post-its and the PDF. */
 export function ReasoningGraph({ report, onClose }: { report: PermitReport; onClose: () => void }) {
@@ -15,8 +29,10 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
   const { positions, width, height, columnX } = useMemo(() => layout(graph), [graph]);
   const [selected, setSelected] = useState("conclusion");
   const dialog = useRef<HTMLDivElement>(null);
+  const sparkId = useId().replaceAll(":", "");
   const node = graph.nodes.find((n) => n.id === selected) ?? graph.nodes[0];
   const near = neighbours(graph, node.id);
+  const delays = revealDelays(node.lines);
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
@@ -68,20 +84,48 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
               </p>
             ))}
             <svg className={styles.edges} width={width} height={height} aria-hidden="true">
-              {graph.edges.map((edge) => {
+              <defs>
+                {/* Bends the selected node's lines like an arc; a change of shape, slow, never a flash. */}
+                <filter id={sparkId} x="-10%" y="-40%" width="120%" height="180%">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3" result="noise">
+                    <animate attributeName="seed" values="3;9;17;26;3" dur="2.4s" calcMode="discrete" repeatCount="indefinite" />
+                  </feTurbulence>
+                  <feDisplacementMap in="SourceGraphic" in2="noise" scale="7" />
+                </filter>
+              </defs>
+              {graph.edges.map((edge, index) => {
                 const a = positions.get(edge.from)!;
                 const b = positions.get(edge.to)!;
                 const [sx, sy, ex, ey] = [a.x + NODE_WIDTH, a.y + NODE_HEIGHT / 2, b.x, b.y + NODE_HEIGHT / 2];
                 const mid = (sx + ex) / 2;
                 const active = edge.from === node.id || edge.to === node.id;
+                const d = `M${sx},${sy} C${mid},${sy} ${mid},${ey} ${ex},${ey}`;
                 return (
-                  <path
-                    key={`${edge.from}-${edge.to}`}
-                    className={styles.edge}
-                    data-partial={edge.evidenceIds ? true : undefined}
-                    data-active={active || undefined}
-                    d={`M${sx},${sy} C${mid},${sy} ${mid},${ey} ${ex},${ey}`}
-                  />
+                  <g key={`${edge.from}-${edge.to}`}>
+                    <path
+                      className={styles.edge}
+                      data-partial={edge.evidenceIds ? true : undefined}
+                      data-active={active || undefined}
+                      d={d}
+                    />
+                    {/* The current: it runs along the relation, from source to target. */}
+                    <path
+                      className={styles.current}
+                      data-active={active || undefined}
+                      data-partial={edge.evidenceIds ? true : undefined}
+                      d={d}
+                      pathLength={100}
+                      style={{ animationDelay: `${-index * 0.7}s` }}
+                    />
+                    {active && (
+                      <path
+                        className={styles.arc}
+                        data-partial={edge.evidenceIds ? true : undefined}
+                        d={d}
+                        filter={`url(#${sparkId})`}
+                      />
+                    )}
+                  </g>
                 );
               })}
             </svg>
@@ -95,9 +139,10 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
                   data-tone={n.tone}
                   data-near={near.has(n.id) || undefined}
                   aria-pressed={n.id === node.id}
-                  style={{ left: x, top: y, width: NODE_WIDTH, height: NODE_HEIGHT, animationDelay: `${n.column * 120}ms` }}
+                  style={{ left: x, top: y, width: NODE_WIDTH, height: NODE_HEIGHT, "--column": n.column } as CSSProperties}
                   onClick={() => setSelected(n.id)}
                 >
+                  <span className={styles.soma} aria-hidden="true" />
                   <span className={styles.nodeTitle}>{n.title}</span>
                   <span className={styles.nodeText}>{n.text}</span>
                 </button>
@@ -106,24 +151,35 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
           </div>
         </div>
 
+        {/* The live region stays; only its content changes, so screen readers announce each selection. */}
         <aside className={styles.detail} aria-live="polite">
-          <h3 className={styles.detailTitle}>{node.title}</h3>
-          <ul className={styles.lines}>
-            {node.lines.map((line, i) => (
-              <li key={i}>{line}</li>
-            ))}
-          </ul>
-          {node.links.length > 0 && (
-            <ul className={styles.links}>
-              {node.links.map((l) => (
-                <li key={l.url}>
-                  <a href={l.url} target="_blank" rel="noopener noreferrer">
-                    {l.label}
-                  </a>
+          <div key={node.id} className={styles.detailContent}>
+            <h3 className={styles.detailTitle} aria-label={node.title}>
+              {[...node.title].map((letter, i) => (
+                <span key={i} aria-hidden="true" className={styles.letter} style={{ animationDelay: `${i * 35}ms` }}>
+                  {letter}
+                </span>
+              ))}
+            </h3>
+            <ul className={styles.lines}>
+              {node.lines.map((line, i) => (
+                <li key={i}>
+                  <Reveal text={line} delays={delays[i]} />
                 </li>
               ))}
             </ul>
-          )}
+            {node.links.length > 0 && (
+              <ul className={styles.links}>
+                {node.links.map((l) => (
+                  <li key={l.url}>
+                    <a href={l.url} target="_blank" rel="noopener noreferrer">
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </aside>
       </div>
       <p className={styles.disclaimer}>{report.disclaimer}</p>
