@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -47,6 +48,9 @@ class Settings(BaseSettings):
     maps_static_daily_limit: int = 200
     maps_static_per_location_hourly: int = 6
     maps_street_view: bool = True
+    # HR-006 v2 PDF style: "classico" (owner's choice 2026-10-30, WeasyPrint) or "legacy" (reportlab). The premium
+    # renderer falls back to legacy if WeasyPrint or its system libraries are missing, so a PDF is always served.
+    report_pdf_style: Literal["classico", "moderno", "legacy"] = "classico"
 
     resolve_rate_per_minute: float = 30
     resolve_burst: int = 10

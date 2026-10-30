@@ -84,8 +84,9 @@ def property_pdf(c: TestClient) -> bytes:
 
 def images_and_text(content: bytes) -> tuple[list[bytes], str]:
     reader = PdfReader(io.BytesIO(content))
-    images = [img.data for page in reader.pages for img in page.images]
-    return images, " ".join(p.extract_text() for p in reader.pages)
+    # distinct images: the premium PDF shares one resource dictionary across pages
+    images = list({img.data: None for page in reader.pages for img in page.images})
+    return images, " ".join(" ".join(p.extract_text().split()) for p in reader.pages)  # line breaks → spaces
 
 
 def test_the_pdf_embeds_a_road_map_and_a_satellite_image():
@@ -344,3 +345,28 @@ async def test_concurrent_downloads_for_one_property_respect_the_hourly_cap():
         c = StaticMapClient(h, KEY, rate_per_minute=1000, burst=1000, per_location_hourly=6, usage=SlowUsage())
         results = await asyncio.gather(*[c.location_maps(38.7, -9.42, "rooftop", place="prp_a") for _ in range(10)])
     assert sum(1 for m in results if m.images) == 6
+
+
+def test_the_pdf_endpoint_serves_the_classico_style_by_default():
+    with client(MapService()) as c:
+        _, text = images_and_text(property_pdf(c))
+    assert "REPORT AT A GLANCE" in text.upper() and "How the result was reached" in text
+
+
+def test_the_legacy_style_setting_serves_the_reportlab_pdf():
+    with client(MapService(), report_pdf_style="legacy") as c:
+        _, text = images_and_text(property_pdf(c))
+    assert "REPORT AT A GLANCE" not in text.upper() and "Property & Permit Report" in text
+
+
+def test_without_weasyprint_the_legacy_pdf_is_served(monkeypatch, caplog):
+    import app.api.report as api
+
+    def missing(*_args, **_kwargs):
+        raise OSError("cannot load library 'libpango-1.0-0'")
+
+    monkeypatch.setattr(api, "render_premium_pdf", missing)
+    with caplog.at_level(logging.ERROR), client(MapService()) as c:
+        _, text = images_and_text(property_pdf(c))
+    assert "REPORT AT A GLANCE" not in text.upper() and "Location" in text
+    assert "premium PDF unavailable" in caplog.text

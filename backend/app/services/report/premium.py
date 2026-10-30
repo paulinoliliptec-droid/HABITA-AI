@@ -96,6 +96,7 @@ thead { display: table-header-group; } tr { break-inside: avoid; }
 .muted { color: #5f646b; } .small { font-size: 8.4pt; } .mono { font-family: monospace; font-size: 7.6pt; word-break: break-all; }
 .pill { display: inline-block; padding: 1.2mm 3mm; border-radius: 1.5mm; font-weight: 700; letter-spacing: .4px; font-size: 9pt; }
 .pill.ok { background: #e3f1e8; color: #1f6f43; } .pill.bad { background: #f8e3e3; color: #9b2c2c; } .pill.warn { background: #fbefd9; color: #7a5200; }
+.box, .legend { hyphens: manual; text-align: left; }
 .box { border: .7pt solid #8a5a00; background: #fffaf0; padding: 3mm 4mm; margin: 4mm 0; break-inside: avoid; }
 .ref { color: #5f646b; font-size: .85em; white-space: nowrap; }
 .statement { margin: 0 0 2.6mm; break-inside: avoid; }
@@ -342,7 +343,7 @@ def _location(maps: LocationMaps | None) -> str:
                     "It shows the surroundings at that date, not the property's current state.</figcaption></figure>")
     elif maps.street_view_note:
         figs.append(f'<p class="small"><b>Street-level view:</b> {_e(maps.street_view_note)}</p>')
-    legend = (f'<p class="small"><b>Legend.</b> Red marker: the geocoded point. Shaded circle (radius about '
+    legend = (f'<p class="small legend"><b>Legend.</b> Red marker: the geocoded point. Shaded circle (radius about '
               f"{maps.radius_m} m): <b>approximate location</b>, sized from the geocoding precision "
               f"({_e(maps.precision)}). It is <b>not a cadastral or parcel boundary</b>: HABITA holds no verified "
               "parcel geometry for this property. Google imagery does not prove ownership, parcel limits, zoning or "
@@ -447,7 +448,7 @@ def _sources(report: PermitReport) -> str:
             "</p></section>")
 
 
-def render_html(report: PermitReport, maps: LocationMaps | None = None, style: str = "moderno") -> str:
+def render_html(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico") -> str:
     if style not in STYLES:
         raise ValueError(f"Unknown style {style!r}; expected one of {', '.join(STYLES)}.")
     return (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>HABITA AI report</title><meta name="author" content="HABITA AI">'
@@ -457,7 +458,7 @@ def render_html(report: PermitReport, maps: LocationMaps | None = None, style: s
             f"{_sources(report)}</body></html>")
 
 
-def render_premium_pdf(report: PermitReport, maps: LocationMaps | None = None, style: str = "moderno") -> bytes:
+def render_premium_pdf(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico") -> bytes:
     from weasyprint import HTML  # imported lazily: heavy, and only this renderer needs it
 
     return HTML(string=render_html(report, maps, style)).write_pdf()

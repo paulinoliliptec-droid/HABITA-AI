@@ -1,4 +1,3 @@
 -r requirements.txt
 pytest==9.1.1
 pytest-asyncio==1.4.1
-weasyprint==70.0  # HR-006 v2 premium PDF (prototype; production image needs pango)

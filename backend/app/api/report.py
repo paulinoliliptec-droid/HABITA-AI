@@ -4,9 +4,11 @@ The property report is public, like the property; an assessment report needs the
 matter. Both only present stored results: no model, retriever or verifier runs here. The PDF also embeds two location
 maps fetched for it (road map and satellite, same framing), or says why they are missing."""
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Path, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
 
 from app.api.permit import MatterId, Workflow
@@ -15,7 +17,9 @@ from app.core.errors import NotFoundError
 from app.schemas.report import PermitReport
 from app.services.report.builder import build_report
 from app.services.report.pdf import render_pdf
+from app.services.report.premium import render_premium_pdf
 
+log = logging.getLogger(__name__)
 router = APIRouter(tags=["report"])
 PropertyId = Annotated[str, Path(pattern=r"^prp_[0-9a-f]{16}$")]
 
@@ -37,7 +41,16 @@ async def _matter_report(request: Request, matter_id: str, workflow) -> PermitRe
 async def _pdf(request: Request, report: PermitReport, name: str) -> Response:
     p = report.property
     maps = await request.app.state.static_maps.location_maps(p.lat, p.lng, p.precision, place=p.property_id)
-    return Response(render_pdf(report, maps), media_type="application/pdf",
+    style = request.app.state.settings.report_pdf_style
+    content = None
+    if style != "legacy":
+        try:  # both renderers are CPU-bound: they run off the event loop
+            content = await run_in_threadpool(render_premium_pdf, report, maps, style)
+        except (ImportError, OSError):  # WeasyPrint or pango missing in this image: the legacy PDF is still correct
+            log.exception("premium PDF unavailable; serving the legacy PDF")
+    if content is None:
+        content = await run_in_threadpool(render_pdf, report, maps)
+    return Response(content, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="{name}.pdf"', "Cache-Control": "no-store"})
 
 
