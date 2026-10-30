@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { translator } from "@/i18n/core";
 import verified from "./fixtures/verified-report.json";
-import { buildGraph, layout, neighbours, revealDelays } from "./reasoningGraph";
+import { buildGraph, edgeKey, flowOf, layout, revealDelays } from "./reasoningGraph";
 import type { PermitReport } from "./types";
 
 // The fixture is the backend's own report, so every relation below is checked against the JSON the PDF is rendered from.
@@ -168,6 +168,58 @@ describe("reasoning graph (HR-005)", () => {
     const { positions, width, height } = layout(graph);
     expect(positions.size).toBe(graph.nodes.length);
     for (const { x, y } of positions.values()) expect(x < width && y < height).toBe(true);
-    expect(neighbours(graph, "jurisdiction").has("property")).toBe(true);
+  });
+
+  describe("the flow of a block", () => {
+    const ev = (id: string, source_type: string) => ({ ...a.evidence[0], evidence_id: id, source_type, verification_status: "system_record" });
+    // One group holds E1 (from the authority) and E2 (from planning); the conclusion cites only E2.
+    const shared = withAssessment({
+      evidence: [ev("E1", "authority_record"), ev("E2", "planning_context")],
+      conclusion_evidence_ids: ["E2"],
+      statements: [],
+      conditions: [],
+    });
+
+    it("reaches back to what leads to the block", () => {
+      const graph = buildGraph(shared);
+      const { nodes } = flowOf(graph, "conclusion");
+      expect([...nodes]).toEqual(expect.arrayContaining(["conclusion", "ev:system", "planning", "property"]));
+    });
+
+    it("follows evidence through a group: sharing a group is not sharing a flow", () => {
+      const graph = buildGraph(shared);
+      expect(flowOf(graph, "conclusion").nodes.has("authority")).toBe(false);
+      expect(flowOf(graph, "authority").nodes.has("conclusion")).toBe(false);
+      expect(flowOf(graph, "planning").nodes.has("conclusion")).toBe(true);
+    });
+
+    it("shows the whole group's relations when the group itself is selected", () => {
+      const { nodes } = flowOf(buildGraph(shared), "ev:system");
+      expect(nodes.has("authority") && nodes.has("planning") && nodes.has("conclusion")).toBe(true);
+    });
+
+    it("runs forward from a block to what follows it", () => {
+      const graph = buildGraph(report);
+      const { nodes, edges } = flowOf(graph, "property");
+      expect(nodes.has("jurisdiction") && nodes.has("planning")).toBe(true);
+      expect(edges.has(edgeKey({ from: "property", to: "planning" }))).toBe(true);
+    });
+
+    it("leaves out a block with no stored relation to it", () => {
+      const graph = buildGraph(withAssessment({ conditions: ["x"] }));
+      expect(flowOf(graph, "conditions").nodes).toEqual(new Set(["conditions"]));
+      expect(flowOf(graph, "conclusion").nodes.has("conditions")).toBe(false);
+    });
+
+    it("only ever contains existing blocks and stored edges", () => {
+      const graph = buildGraph(report);
+      const keys = new Set(graph.edges.map(edgeKey));
+      const ids = new Set(graph.nodes.map((n) => n.id));
+      for (const n of graph.nodes) {
+        const flow = flowOf(graph, n.id);
+        for (const e of flow.edges) expect(keys.has(e)).toBe(true);
+        for (const id of flow.nodes) expect(ids.has(id)).toBe(true);
+      }
+    });
   });
 });

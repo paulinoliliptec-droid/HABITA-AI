@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { useI18n } from "@/i18n/useI18n";
-import { buildGraph, COLUMNS, layout, neighbours, NODE_HEIGHT, NODE_WIDTH, revealDelays } from "./reasoningGraph";
+import { buildGraph, COLUMNS, edgeKey, flowOf, layout, NODE_HEIGHT, NODE_WIDTH, revealDelays } from "./reasoningGraph";
 import type { PermitReport } from "./types";
 import styles from "./ReasoningGraph.module.css";
 
@@ -31,7 +31,8 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
   const dialog = useRef<HTMLDivElement>(null);
   const sparkId = useId().replaceAll(":", "");
   const node = graph.nodes.find((n) => n.id === selected) ?? graph.nodes[0];
-  const near = neighbours(graph, node.id);
+  const flow = useMemo(() => flowOf(graph, node.id), [graph, node.id]);
+  const flowNodes = graph.nodes.filter((n) => flow.nodes.has(n.id) && n.id !== node.id);
   const delays = revealDelays(node.lines);
 
   useEffect(() => {
@@ -98,10 +99,10 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
                 const b = positions.get(edge.to)!;
                 const [sx, sy, ex, ey] = [a.x + NODE_WIDTH, a.y + NODE_HEIGHT / 2, b.x, b.y + NODE_HEIGHT / 2];
                 const mid = (sx + ex) / 2;
-                const active = edge.from === node.id || edge.to === node.id;
+                const active = flow.edges.has(edgeKey(edge));
                 const d = `M${sx},${sy} C${mid},${sy} ${mid},${ey} ${ex},${ey}`;
                 return (
-                  <g key={`${edge.from}-${edge.to}`}>
+                  <g key={edgeKey(edge)} className={styles.synapse} data-out={active ? undefined : true}>
                     <path
                       className={styles.edge}
                       data-partial={edge.evidenceIds ? true : undefined}
@@ -137,7 +138,8 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
                   type="button"
                   className={styles.node}
                   data-tone={n.tone}
-                  data-near={near.has(n.id) || undefined}
+                  data-flow={flow.nodes.has(n.id) || undefined}
+                  data-out={flow.nodes.has(n.id) ? undefined : true}
                   aria-pressed={n.id === node.id}
                   style={{ left: x, top: y, width: NODE_WIDTH, height: NODE_HEIGHT, "--column": n.column } as CSSProperties}
                   onClick={() => setSelected(n.id)}
@@ -178,6 +180,20 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
                   </li>
                 ))}
               </ul>
+            )}
+            {flowNodes.length > 0 && (
+              <nav className={styles.flow} aria-label={t("Blocks in this flow")}>
+                <h4 className={styles.flowTitle}>{t("Blocks in this flow")}</h4>
+                <ul className={styles.flowList}>
+                  {flowNodes.map((n) => (
+                    <li key={n.id}>
+                      <button type="button" className={styles.flowItem} data-tone={n.tone} onClick={() => setSelected(n.id)}>
+                        {n.title}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
             )}
           </div>
         </aside>
