@@ -2,7 +2,7 @@ import { ANSWER } from "@/features/permit/present";
 import type { ConclusionAnswer } from "@/features/permit/types";
 import { english, msg, type Translate } from "@/i18n/core";
 import { STATUS_LABEL, type PostItTone } from "./postits";
-import type { PermitReport, ReportEvidence, ReportStatement } from "./types";
+import type { PermitReport, ReportEvidence, ReportStatement, ReportStatus } from "./types";
 
 // HR-005 reasoning graph: a presentation of the shared report model only, like the post-its. No model runs, and an edge
 // exists only where the report stores that relation: nothing causal or authorising is drawn. Findings, risks and
@@ -73,6 +73,26 @@ function evidenceGroups(evidence: ReportEvidence[]) {
 
 const statementLine = (s: ReportStatement) =>
   `${s.step ? `${s.step}: ` : ""}${s.text}${s.evidence_ids.length ? ` [${s.evidence_ids.join(", ")}]` : ""}`;
+
+type Assessment = NonNullable<PermitReport["assessment"]>;
+
+/** The PDF's rule: verified only when the status, the content and a current VERIFIED record all agree. */
+export function isVerified(assessment: Assessment): boolean {
+  const record = assessment.verification;
+  return assessment.status === "VERIFIED" && assessment.content_verified && record?.current === true && record.outcome === "VERIFIED";
+}
+
+/** The status every view shows: anything claiming VERIFIED without the full rule reads as pending. */
+export function presentedStatus(assessment: Assessment): ReportStatus {
+  return assessment.status === "VERIFIED" && !isVerified(assessment) ? "PENDING_CONFIRMATION" : assessment.status;
+}
+
+/** The reason that goes with the status shown: a corrected status never keeps the reason of the one it replaced. */
+export function statusReason(assessment: Assessment, t: Translate): string {
+  return assessment.status === "VERIFIED" && !isVerified(assessment)
+    ? t("The verification record does not support a verified result.")
+    : assessment.status_reason;
+}
 
 export function buildGraph(report: PermitReport, t: Translate = english): ReasoningGraphModel {
   const { property, planning, assessment } = report;
@@ -182,11 +202,8 @@ export function buildGraph(report: PermitReport, t: Translate = english): Reason
       });
     }
 
-    // The PDF's rule: verified only when the status, the content and a current VERIFIED record all agree.
-    const record = assessment.verification;
-    const verified =
-      assessment.status === "VERIFIED" && assessment.content_verified && record?.current === true && record.outcome === "VERIFIED";
-    const status = STATUS_LABEL[verified || assessment.status !== "VERIFIED" ? assessment.status : "PENDING_CONFIRMATION"];
+    const verified = isVerified(assessment);
+    const status = STATUS_LABEL[presentedStatus(assessment)];
     const answer = assessment.conclusion_answer as ConclusionAnswer | null;
     nodes.push({
       id: "conclusion",
@@ -199,7 +216,7 @@ export function buildGraph(report: PermitReport, t: Translate = english): Reason
         ...(assessment.conclusion_summary
           ? [verified ? assessment.conclusion_summary : t("Not verified: {text}", { text: assessment.conclusion_summary })]
           : []),
-        assessment.status_reason,
+        statusReason(assessment, t),
         ...assessment.issues,
         ...(assessment.conclusion_evidence_ids.length
           ? [t("Evidence cited: {ids}", { ids: assessment.conclusion_evidence_ids.join(", ") })]

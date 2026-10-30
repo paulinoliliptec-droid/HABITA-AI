@@ -98,6 +98,12 @@ describe("reasoning graph (HR-005)", () => {
     expect(conclusion.lines.join(" ")).toContain("Not verified:");
   });
 
+  it("never keeps the reason of a status it corrected", () => {
+    const lines = node(withAssessment({ verification: { current: false, outcome: "VERIFIED" } }), "conclusion")!.lines;
+    expect(lines).not.toContain(a.status_reason);
+    expect(lines).toContain("The verification record does not support a verified result.");
+  });
+
   it("marks statements of an unverified result as not verified", () => {
     const findings = node(withAssessment({ status: "PENDING_CONFIRMATION", content_verified: false }), "findings")!;
     expect(findings.tone).toBe("warning");
