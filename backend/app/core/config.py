@@ -52,6 +52,14 @@ class Settings(BaseSettings):
     # renderer falls back to legacy if WeasyPrint or its system libraries are missing, so a PDF is always served.
     report_pdf_style: Literal["classico", "moderno", "legacy"] = "classico"
 
+    # Bilingual system: Google Cloud Translation, with a dedicated key restricted to that API (secret
+    # google-translate-api-key). Unset: everything still works and is shown in English.
+    google_translate_api_key: SecretStr | None = None
+    translate_timeout_seconds: float = 10.0
+    translate_rate_per_minute: float = 30  # requests, per process
+    translate_burst: int = 10
+    translate_daily_limit: int = 500  # requests per UTC day, across instances
+
     resolve_rate_per_minute: float = 30
     resolve_burst: int = 10
     resolve_max_concurrency: int = 4

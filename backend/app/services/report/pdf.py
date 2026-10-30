@@ -88,6 +88,8 @@ def _cover(report: PermitReport, s) -> list:
     flow = [Spacer(1, 30 * mm), Paragraph("HABITA AI", s["brand"]),
             Paragraph("Property &amp; Permit Report", s["h2"]),
             Paragraph(_t(p.address), s["cover_address"])]
+    if report.translation is not None and report.translation.note:  # every translated report says so on its cover
+        flow += [Paragraph(_t(report.translation.note), s["small"]), Spacer(1, 2 * mm)]
     if report.demo:
         flow += [_banner("PENDING_CONFIRMATION", "DEMONSTRATION DATA — not a real assessment", s), Spacer(1, 2 * mm)]
     flow += [_banner(status, reason, s), Spacer(1, 6 * mm), _table([

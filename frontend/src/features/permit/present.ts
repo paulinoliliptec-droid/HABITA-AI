@@ -1,7 +1,8 @@
 import type { BadgeTone } from "@/components/ui/Badge";
+import { english, msg, type Translate } from "@/i18n/core";
 import type { ConclusionAnswer, Evidence, MatterState } from "./types";
 
-export const PHASES = ["Goal", "Investigation", "Evidence", "Result"] as const;
+export const PHASES = [msg("Goal"), msg("Investigation"), msg("Evidence"), msg("Result")] as const;
 export type Phase = (typeof PHASES)[number];
 
 /**
@@ -29,16 +30,16 @@ export function phaseOf(state: MatterState, failedState?: MatterState): { phase:
 }
 
 export const OUTCOME: Record<"VERIFIED" | "ESCALATE" | "REJECTED" | "FAILED" | "NEEDS_INPUT", { label: string; tone: BadgeTone }> = {
-  VERIFIED: { label: "Verified assessment", tone: "positive" },
-  NEEDS_INPUT: { label: "Waiting for your information", tone: "warning" },
-  ESCALATE: { label: "Needs professional review", tone: "warning" },
-  REJECTED: { label: "Not verified: unsupported by its evidence", tone: "warning" },
-  FAILED: { label: "Interrupted", tone: "warning" },
+  VERIFIED: { label: msg("Verified assessment"), tone: "positive" },
+  NEEDS_INPUT: { label: msg("Waiting for your information"), tone: "warning" },
+  ESCALATE: { label: msg("Needs professional review"), tone: "warning" },
+  REJECTED: { label: msg("Not verified: unsupported by its evidence"), tone: "warning" },
+  FAILED: { label: msg("Interrupted"), tone: "warning" },
 };
 
 // MU-9: a VERIFIED state verified under a protocol HABITA no longer accepts is presented as superseded — legacy, not
 // revalidated — never as a current verified assessment. The API's assessment_status decides, not the raw state.
-export const SUPERSEDED = { label: "Superseded: verified under an earlier protocol", tone: "warning" as BadgeTone };
+export const SUPERSEDED = { label: msg("Superseded: verified under an earlier protocol"), tone: "warning" as BadgeTone };
 
 export function outcomeOf(matter: { state: string; assessment_status: string }) {
   if (matter.assessment_status === "superseded_assessment") return SUPERSEDED;
@@ -46,49 +47,52 @@ export function outcomeOf(matter: { state: string; assessment_status: string }) 
 }
 
 export const ANSWER: Record<ConclusionAnswer, string> = {
-  likely_possible: "Likely possible",
-  conditional: "Possible, subject to conditions",
-  likely_not_possible: "Likely not possible",
-  undetermined: "Not yet determined",
+  likely_possible: msg("Likely possible"),
+  conditional: msg("Possible, subject to conditions"),
+  likely_not_possible: msg("Likely not possible"),
+  undetermined: msg("Not yet determined"),
 };
 
 export const EVIDENCE_STATUS: Record<Evidence["verification_status"], string> = {
-  system_record: "HABITA record",
-  curated_reference: "Curated reference — check the official text",
-  official_text: "Official text",
-  user_declared: "Stated by you",
+  system_record: msg("HABITA record"),
+  curated_reference: msg("Curated reference — check the official text"),
+  official_text: msg("Official text"),
+  user_declared: msg("Stated by you"),
 };
 
 /** How an evidence record is grounded, e.g. "Official text · retrieved 28 Oct 2026". */
-export function evidenceBasis(e: Evidence): string {
-  const label = e.source_type === "planning_context" ? "Official planning sources" : EVIDENCE_STATUS[e.verification_status];
+export function evidenceBasis(e: Evidence, t: Translate = english, locale = "en-GB"): string {
+  const label = t(e.source_type === "planning_context" ? msg("Official planning sources") : EVIDENCE_STATUS[e.verification_status]);
   const at = e.verification_status === "official_text" ? e.provenance?.retrieved_at : null;
   if (!at) return label;
   const date = new Date(at);
   if (Number.isNaN(date.getTime())) return label;
-  return `${label} · retrieved ${date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}`;
+  return `${label} · ${t("retrieved")} ${date.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}`;
 }
 
 /**
  * Structured answers for checklist items with a small, known answer space (canonical keys from the backend's
- * requirement catalog). The chosen label is sent as the answer. Descriptive items stay free text.
+ * requirement catalog). The chosen English label is sent as the answer, whatever the language shown: it is what the
+ * verifier reads. Descriptive items stay free text.
  */
 export const INPUT_CHOICES: Record<string, { options: readonly string[]; other?: string }> = {
   ownership_status: {
-    options: ["Single ownership", "Horizontal property / multiple fractions", "I don't know"],
+    options: [msg("Single ownership"), msg("Horizontal property / multiple fractions"), msg("I don't know")],
   },
   current_licensed_use: {
-    options: ["Housing: one dwelling", "Housing: more than one dwelling", "I don't know"],
-    other: "Other use",
+    options: [msg("Housing: one dwelling"), msg("Housing: more than one dwelling"), msg("I don't know")],
+    other: msg("Other use"),
   },
 };
 
-export function sourcesLine(checked: number, needed: number): string {
-  const sources = `${checked} ${checked === 1 ? "source" : "sources"} checked`;
-  return needed ? `${sources} · ${needed} ${needed === 1 ? "fact" : "facts"} still needed from you` : sources;
+export function sourcesLine(checked: number, needed: number, t: Translate = english): string {
+  const sources = checked === 1 ? t("{n} source checked", { n: checked }) : t("{n} sources checked", { n: checked });
+  if (!needed) return sources;
+  const facts = needed === 1 ? t("{n} fact still needed from you", { n: needed }) : t("{n} facts still needed from you", { n: needed });
+  return `${sources} · ${facts}`;
 }
 
 export const SUGGESTED_QUESTIONS = [
-  "Can I convert this property into two residential units?",
-  "What can I do with this property?",
+  msg("Can I convert this property into two residential units?"),
+  msg("What can I do with this property?"),
 ] as const;

@@ -379,3 +379,17 @@ class CreateMatterResponse(BaseModel):
     matter: PermitMatter
     #: Capability for this matter, returned only here. Send it as "Authorization: Bearer <token>".
     access_token: str
+    #: "pt" or "en" when the question's language was recognised, for the UI to follow it; never stored.
+    detected_language: str | None = None
+
+
+class MatterTranslation(BaseModel):
+    """A labelled reading view of a matter's texts. What was verified stays the English text in the matter."""
+
+    lang: str
+    available: bool
+    #: True only when the matter presents a current verified assessment.
+    verified: bool
+    kept_original: int
+    note: str | None
+    texts: dict[str, str]  # English text → text to show

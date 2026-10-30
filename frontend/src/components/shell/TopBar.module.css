@@ -89,3 +89,31 @@
     display: none;
   }
 }
+
+.languages {
+  display: flex;
+  gap: 2px;
+  margin-left: 12px;
+}
+
+.language {
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.language[aria-pressed="true"] {
+  font-weight: 600;
+  opacity: 1;
+}
+
+.language:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}

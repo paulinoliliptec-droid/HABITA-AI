@@ -17,23 +17,31 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from app.integrations.maps.static_maps import ATTRIBUTION, LocationMaps
 from app.schemas.report import PermitReport
+from app.services.i18n.translator import msg, translator_for
 
 FONTS = Path(__file__).with_name("fonts")
 STYLES = ("classico", "moderno")
 ACCENT = {"classico": "#8a6d3b", "moderno": "#2c4d82"}  # SVG ignores CSS classes in WeasyPrint: colours are inlined
-SECTIONS = (("finding", "Findings"), ("procedure", "Procedure"), ("risk", "Risks"), ("next_action", "Next actions"))
+SECTIONS = (("finding", msg("Findings")), ("procedure", msg("Procedure")), ("risk", msg("Risks")),
+            ("next_action", msg("Next actions")))
 STATUS = {  # status → (label, css class); the words always carry the status, colour only reinforces it
-    "VERIFIED": ("VERIFIED", "ok"), "REJECTED": ("REJECTED", "bad"),
-    "PENDING_CONFIRMATION": ("PENDING CONFIRMATION", "warn"),
+    "VERIFIED": (msg("VERIFIED"), "ok"), "REJECTED": (msg("REJECTED"), "bad"),
+    "PENDING_CONFIRMATION": (msg("PENDING CONFIRMATION"), "warn"),
 }
 
 
-DEMO = "DEMONSTRATION DATA — not a real assessment"
+DEMO = msg("DEMONSTRATION DATA — not a real assessment")
 SECRET_PARAM = re.compile(r"key|token|secret|signature|sig|password|auth|credential", re.I)
 
 
 def _e(text) -> str:
     return escape("" if text is None else str(text))
+
+
+def _level(j: str, t) -> str:
+    """"Municipality: Cascais" with its label in the report's language; names stay official."""
+    label, _, name = j.partition(": ")
+    return f"{t(label)}: {name}"
 
 
 def _url(url: str | None) -> str:
@@ -53,11 +61,11 @@ def display_status(report: PermitReport) -> tuple[str, str]:
     is shown as PENDING CONFIRMATION (the builder already guarantees this; the renderer does not rely on it)."""
     a = report.assessment
     if a is None:
-        return "PENDING_CONFIRMATION", "No permit assessment is included in this report."
+        return "PENDING_CONFIRMATION", msg("No permit assessment is included in this report.")
     status = a.status if a.status in STATUS else "PENDING_CONFIRMATION"
     v = a.verification
     if status == "VERIFIED" and not (a.content_verified and v is not None and v.current and v.outcome == "VERIFIED"):
-        return "PENDING_CONFIRMATION", "The verification record does not support a verified result."
+        return "PENDING_CONFIRMATION", msg("The verification record does not support a verified result.")
     return status, a.status_reason
 
 
@@ -80,7 +88,7 @@ FONT_FACES = {
 CSS_BASE = """
 @page { size: A4; margin: 22mm 22mm 24mm 22mm;
   @bottom-left { content: element(disclaimer); width: 150mm; vertical-align: top; }
-  @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 7.5pt; color: #6b6f76; } }
+  @bottom-right { content: "%PAGE% " counter(page) " %OF% " counter(pages); font-size: 7.5pt; color: #6b6f76; } }
 @page cover { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
 html { -weasy-hyphens: auto; }
 body { margin: 0; color: #1b1b1b; hyphens: auto; }
@@ -145,10 +153,11 @@ th { background: #13233d; color: #fff; font-weight: 600; } td { border-bottom: .
 
 
 # ── Charts (inline SVG, data from the report only) ──────────────────────────────────────────────────────────────
-def bar_chart(title: str, items: list[tuple[str, int]], note: str = "", color: str = "#2c4d82") -> str:
+def bar_chart(title: str, items: list[tuple[str, int]], note: str = "", color: str = "#2c4d82",
+              t=translator_for("en")) -> str:
     """Horizontal bars with the exact counts printed; empty data says so instead of drawing anything."""
     if not items or not any(v for _, v in items):
-        return f'<div class="chart"><h3>{_e(title)}</h3><p class="muted small">No data in this report.</p></div>'
+        return f'<div class="chart"><h3>{_e(title)}</h3><p class="muted small">{t("No data in this report.")}</p></div>'
     top, width, bar_h, gap, label_w = max(v for _, v in items), 300, 14, 7, 120
     rows = []
     for i, (label, value) in enumerate(items):
@@ -166,23 +175,24 @@ def bar_chart(title: str, items: list[tuple[str, int]], note: str = "", color: s
 
 
 def charts(report: PermitReport, color: str = "#2c4d82") -> str:
-    by_status = Counter(s.status for s in report.sources)
-    out = [bar_chart("Official sources by trust status", sorted(by_status.items(), key=lambda kv: -kv[1]),
-                     f"{len(report.sources)} official sources registered for this jurisdiction.", color)]
+    t = translator_for(report.language)
+    by_status = Counter(t(s.status) for s in report.sources)
+    out = [bar_chart(t("Official sources by trust status"), sorted(by_status.items(), key=lambda kv: -kv[1]),
+                     t("{n} official sources registered for this jurisdiction.", n=len(report.sources)), color, t)]
     a = report.assessment
     if a is not None:
-        out.append(bar_chart("Evidence cited, by verification status",
-                             sorted(Counter(e.verification_status for e in a.evidence).items(), key=lambda kv: -kv[1]),
-                             color=color))
+        out.append(bar_chart(t("Evidence cited, by verification status"),
+                             sorted(Counter(t(e.verification_status) for e in a.evidence).items(), key=lambda kv: -kv[1]),
+                             color=color, t=t))
         seen: set[str] = set()
         rows = []
         for key, name in SECTIONS:
             texts = [s.text.strip() for s in a.statements if s.section == key]
             unique = [t for t in texts if t not in seen]
             seen.update(texts)
-            rows.append((f"{name} ({len(unique)} new)", len(texts)))
-        out.append(bar_chart("Statements per section", rows,
-                             "Count of statements; 'new' excludes text already stated in an earlier section.", color))
+            rows.append((t("{name} ({n} new)", name=t(name), n=len(unique)), len(texts)))
+        out.append(bar_chart(t("Statements per section"), rows,
+                             t("Count of statements; 'new' excludes text already stated in an earlier section."), color, t))
     return f'<div class="charts">{"".join(out)}</div>'
 
 
@@ -207,12 +217,13 @@ def _wrap(text: str, width: int, lines: int = 3) -> list[str]:
 def graph_model(report: PermitReport) -> tuple[list[list[dict]], list[tuple[str, str]]]:
     """Columns of nodes and the edges between them, each edge backed by a report field."""
     p, pl, a = report.property, report.planning, report.assessment
+    t = translator_for(report.language)
     municipality = next((j.split(": ", 1)[1] for j in p.jurisdiction if j.startswith("Municipality:")), p.jurisdiction_id)
     cols: list[list[dict]] = [
-        [{"id": "property", "title": "Property", "text": p.address}],
-        [{"id": "jurisdiction", "title": "Jurisdiction", "text": municipality},
-         *([{"id": "authority", "title": "Competent authority", "text": p.authority}] if p.authority else []),
-         {"id": "planning", "title": "Zoning", "text": pl.classification if pl.verified_zoning else "not verified",
+        [{"id": "property", "title": t("Property"), "text": p.address}],
+        [{"id": "jurisdiction", "title": t("Jurisdiction"), "text": municipality},
+         *([{"id": "authority", "title": t("Competent authority"), "text": p.authority}] if p.authority else []),
+         {"id": "planning", "title": t("Zoning"), "text": pl.classification if pl.verified_zoning else t("not verified"),
           "cls": "ok" if pl.verified_zoning else "warn"}],
     ]
     edges = [("property", "jurisdiction"), ("property", "planning")]
@@ -220,20 +231,20 @@ def graph_model(report: PermitReport) -> tuple[list[list[dict]], list[tuple[str,
         edges.insert(1, ("jurisdiction", "authority"))
     if a is None:
         # The pending items belong to the report as a whole: linked to the property, never to a specific node.
-        cols.append([{"id": "pending", "title": "Pending", "text": f"{len(report.pending)} item(s) to confirm"}])
+        cols.append([{"id": "pending", "title": t("Pending"), "text": t("{n} item(s) to confirm", n=len(report.pending))}])
         edges.append(("property", "pending"))
         return cols, edges
     evidence = [{"id": f"ev:{e.evidence_id}", "title": e.evidence_id, "text": e.title} for e in a.evidence]
-    cols.append(evidence or [{"id": "ev:none", "title": "Evidence", "text": "none cited"}])
+    cols.append(evidence or [{"id": "ev:none", "title": t("Evidence"), "text": t("none cited")}])
     section_nodes, cited = [], {}
     for key, name in SECTIONS:
         ids = {i for s in a.statements if s.section == key for i in s.evidence_ids}
         count = sum(1 for s in a.statements if s.section == key)
         if count:
-            section_nodes.append({"id": f"sec:{key}", "title": name, "text": f"{count} statement(s)"})
+            section_nodes.append({"id": f"sec:{key}", "title": t(name), "text": t("{n} statement(s)", n=count)})
             cited[f"sec:{key}"] = ids
     status_label, status_cls = STATUS[display_status(report)[0]]
-    section_nodes.append({"id": "conclusion", "title": "Conclusion", "text": status_label, "cls": status_cls})
+    section_nodes.append({"id": "conclusion", "title": t("Conclusion"), "text": t(status_label), "cls": status_cls})
     cited["conclusion"] = set(a.conclusion_evidence_ids)
     cols.append(section_nodes)
     for node, ids in cited.items():
@@ -247,6 +258,7 @@ def graph_model(report: PermitReport) -> tuple[list[list[dict]], list[tuple[str,
 
 def reasoning_graph(report: PermitReport, color: str = "#2c4d82") -> str:
     cols, edges = graph_model(report)
+    t = translator_for(report.language)
     col_w, node_w, node_h, vgap, x0 = 128, 104, 46, 10, 4
     height = max(len(c) for c in cols) * (node_h + vgap) + 10
     pos, nodes_svg = {}, []
@@ -274,13 +286,19 @@ def reasoning_graph(report: PermitReport, color: str = "#2c4d82") -> str:
                              f'stroke-width="1" stroke-opacity=".8"/>')
     width = x0 + len(cols) * col_w
     return (f'<figure><svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 {width} {height}" '
-            f'font-family="sans-serif">{"".join(edges_svg)}{"".join(nodes_svg)}</svg><figcaption>Reasoning graph: '
-            "each line is a relation stored in this report (jurisdiction chain, planning status, the evidence each "
-            "statement section and the conclusion cite). It shows how the result was reached; it is not a legal "
-            "determination.</figcaption></figure>")
+            f'font-family="sans-serif">{"".join(edges_svg)}{"".join(nodes_svg)}</svg><figcaption>'
+            + t("Reasoning graph: each line is a relation stored in this report (jurisdiction chain, planning status, "
+                "the evidence each statement section and the conclusion cite). It shows how the result was reached; it "
+                "is not a legal determination.") + "</figcaption></figure>")
 
 
 # ── Document ────────────────────────────────────────────────────────────────────────────────────────────────────
+def _statement_label(label: str, t) -> str:
+    """"risk 2" in the report's language; claim ids such as K3 stay as they are."""
+    name, _, n = label.rpartition(" ")
+    return t("{name} {n}", name=t(name), n=n) if name else label
+
+
 def _refs(ids) -> str:
     return f' <span class="ref">[{_e(", ".join(ids))}]</span>' if ids else ""
 
@@ -288,173 +306,200 @@ def _refs(ids) -> str:
 def _status(report: PermitReport) -> tuple[str, str, str]:
     status, reason = display_status(report)
     label, cls = STATUS[status]
-    return label, cls, reason
+    t = translator_for(report.language)
+    return t(label), cls, t(reason)
 
 
 def _cover(report: PermitReport) -> str:
     p, pl = report.property, report.planning
+    t = translator_for(report.language)
     label, cls, reason = _status(report)
     municipality = next((j.split(": ", 1)[1] for j in p.jurisdiction if j.startswith("Municipality:")), "—")
-    rows = [("Property", p.property_id), ("Municipality", municipality),
-            ("Competent authority", p.authority or "Not modelled for this jurisdiction"),
-            ("Zoning", f"{pl.classification} (verified official layer)" if pl.verified_zoning else
-             "Zoning not verified: no classification or boundary is stated"),
-            ("Generated", f"{report.generated_at:%Y-%m-%d %H:%M} UTC")]
-    demo = f'<p><span class="pill warn">{DEMO}</span></p>' if report.demo else ""
-    return (f'<div class="cover"><div class="brand">HABITA AI · Property Intelligence</div>'
-            f'<h1>Property &amp; Permit Report</h1><div class="address">{_e(p.address)}</div>{demo}'
+    rows = [(t("Property"), p.property_id), (t("Municipality"), municipality),
+            (t("Competent authority"), p.authority or t("Not modelled for this jurisdiction")),
+            (t("Zoning"), t("{classification} (verified official layer)", classification=pl.classification)
+             if pl.verified_zoning else t("Zoning not verified: no classification or boundary is stated")),
+            (t("Generated"), f"{report.generated_at:%Y-%m-%d %H:%M} UTC")]
+    demo = f'<p><span class="pill warn">{t(DEMO)}</span></p>' if report.demo else ""
+    return (f'<div class="cover"><div class="brand">HABITA AI · {t("Property Intelligence")}</div>'
+            f'<h1>{t("Property & Permit Report").replace("&", "&amp;")}</h1><div class="address">{_e(p.address)}</div>{demo}'
             f'<p><span class="pill {cls}">{label}</span> <span class="small">{_e(reason)}</span></p>'
+            f'{_translation_box(report)}'
             f'<table>{"".join(f"<tr><td>{_e(k)}</td><td>{_e(v)}</td></tr>" for k, v in rows)}</table>'
-            '<div class="box"><b>No municipal confirmation.</b> This report has not been confirmed by the Câmara '
-            "Municipal or any other authority; HABITA's statuses, VERIFIED included, are its own checks. Items marked "
-            "pending must be confirmed with the competent authority before any decision.</div>"
+            '<div class="box">' + t("<b>No municipal confirmation.</b> This report has not been confirmed by the Câmara "
+                                    "Municipal or any other authority; HABITA's statuses, VERIFIED included, are its own "
+                                    "checks. Items marked pending must be confirmed with the competent authority before "
+                                    "any decision.") + "</div>"
             f'<div class="foot">{_e(report.disclaimer)}</div></div>')
+
+
+def _translation_box(report: PermitReport) -> str:
+    """Every translated report says so on its cover; the note never calls an unverified draft verified."""
+    tr = report.translation
+    return f'<p class="small"><b>{_e(tr.note)}</b></p>' if tr is not None and tr.note else ""
 
 
 def _glance(report: PermitReport, style: str) -> str:
     label, cls, _ = _status(report)
+    t = translator_for(report.language)
     a = report.assessment
-    cards = [("Assessment", f'<span class="pill {cls}">{label}</span>'),
-             ("Zoning", "Verified" if report.planning.verified_zoning else "Not verified"),
-             ("Official sources", str(len(report.sources))),
-             ("Evidence cited", str(len(a.evidence)) if a else "—")]
-    demo = f'<p><span class="pill warn">{DEMO}</span></p>' if report.demo else ""
-    return (f'<section><h2>Report at a glance</h2>{demo}<div class="glance">'
+    cards = [(t("Assessment"), f'<span class="pill {cls}">{label}</span>'),
+             (t("Zoning"), t("Verified") if report.planning.verified_zoning else t("Not verified")),
+             (t("Official sources"), str(len(report.sources))),
+             (t("Evidence cited"), str(len(a.evidence)) if a else "—")]
+    demo = f'<p><span class="pill warn">{t(DEMO)}</span></p>' if report.demo else ""
+    return (f'<section><h2>{t("Report at a glance")}</h2>{demo}<div class="glance">'
             + "".join(f'<div class="card"><div class="k">{_e(k)}</div><div class="v">{v}</div></div>' for k, v in cards)
-            + f"</div>{charts(report, ACCENT[style])}<h3>How the result was reached</h3>"
+            + f'</div>{charts(report, ACCENT[style])}<h3>{t("How the result was reached")}</h3>'
             f"{reasoning_graph(report, ACCENT[style])}</section>")
 
 
-def _location(maps: LocationMaps | None) -> str:
+def _location(maps: LocationMaps | None, t=translator_for("en")) -> str:
     if maps is None or not maps.images:
         why = maps.unavailable if maps is not None else "Maps were not requested for this report."
-        return (f'<section><h2>Location</h2><div class="box"><b>Location maps unavailable.</b> {_e(why)} No image has '
-                "been substituted; use the coordinates in the property identification.</div></section>")
-    caps = {"roadmap": "A. Road map", "hybrid": "B. Satellite image (with labels)"}
+        return (f'<section><h2>{t("Location")}</h2><div class="box"><b>{t("Location maps unavailable.")}</b> {_e(t(why))} '
+                + t("No image has been substituted; use the coordinates in the property identification.")
+                + "</div></section>")
+    caps = {"roadmap": t("A. Road map"), "hybrid": t("B. Satellite image (with labels)")}
     figs = [f'<figure><img class="map" src="data:image/jpeg;base64,{base64.b64encode(i.jpeg).decode()}"/><figcaption>'
-            f'<b>{caps[i.kind]}</b> — centre {maps.lat:.6f}, {maps.lng:.6f}; zoom {i.zoom}; same centre, zoom, size and '
-            "marker in both maps.</figcaption></figure>" for i in maps.images if i.kind in caps]
+            f'<b>{caps[i.kind]}</b> — '
+            + t("centre {lat}, {lng}; zoom {zoom}; same centre, zoom, size and marker in both maps.",
+                lat=f"{maps.lat:.6f}", lng=f"{maps.lng:.6f}", zoom=i.zoom)
+            + "</figcaption></figure>" for i in maps.images if i.kind in caps]
     street = next((i for i in maps.images if i.kind == "streetview"), None)
     if street is not None:
+        facing = t("Google Street View panorama about {distance} m from the geocoded point, facing it",
+                   distance=street.distance_m) if street.facing else t(
+                       "Google Street View panorama about {distance} m from the geocoded point", distance=street.distance_m)
         figs.append(f'<figure><img class="map" style="width:72%" src="data:image/jpeg;base64,'
-                    f'{base64.b64encode(street.jpeg).decode()}"/><figcaption><b>C. Street-level view</b> — Google Street '
-                    f"View panorama about {street.distance_m} m from the geocoded point"
-                    f"{', facing it' if street.facing else ''}; captured {_e(street.captured) or 'on an unknown date'}. "
-                    "It shows the surroundings at that date, not the property's current state.</figcaption></figure>")
+                    f'{base64.b64encode(street.jpeg).decode()}"/><figcaption><b>{t("C. Street-level view")}</b> — {facing}; '
+                    f'{t("captured")} {_e(street.captured) or t("on an unknown date")}. '
+                    + t("It shows the surroundings at that date, not the property's current state.")
+                    + "</figcaption></figure>")
     elif maps.street_view_note:
-        figs.append(f'<p class="small"><b>Street-level view:</b> {_e(maps.street_view_note)}</p>')
-    legend = (f'<p class="small legend"><b>Legend.</b> Red marker: the geocoded point. Shaded circle (radius about '
-              f"{maps.radius_m} m): <b>approximate location</b>, sized from the geocoding precision "
-              f"({_e(maps.precision)}). It is <b>not a cadastral or parcel boundary</b>: HABITA holds no verified "
-              "parcel geometry for this property. Google imagery does not prove ownership, parcel limits, zoning or "
-              f"the existence of a municipal licence. Source: {_e(ATTRIBUTION)}.</p>")
-    return f'<section><h2>Location</h2>{"".join(figs[:2])}{legend}{"".join(figs[2:])}</section>'
+        figs.append(f'<p class="small"><b>{t("Street-level view:")}</b> {_e(t(maps.street_view_note))}</p>')
+    legend = ('<p class="small legend">'
+              + t("<b>Legend.</b> Red marker: the geocoded point. Shaded circle (radius about {radius} m): <b>approximate "
+                  "location</b>, sized from the geocoding precision ({precision}). It is <b>not a cadastral or parcel "
+                  "boundary</b>: HABITA holds no verified parcel geometry for this property. Google imagery does not "
+                  "prove ownership, parcel limits, zoning or the existence of a municipal licence.",
+                  radius=maps.radius_m, precision=_e(t(maps.precision)))
+              + f" {t('Source:')} {_e(ATTRIBUTION)}.</p>")
+    return f'<section><h2>{t("Location")}</h2>{"".join(figs[:2])}{legend}{"".join(figs[2:])}</section>'
 
 
 def _planning(report: PermitReport) -> str:
     p, pl = report.property, report.planning
-    rows = [("Address", _e(p.address)), ("Coordinates", f"{p.lat:.6f}, {p.lng:.6f} (precision: {_e(p.precision)})"),
-            ("Jurisdiction", "<br/>".join(_e(j) for j in p.jurisdiction) or "—"),
-            ("Competent authority", _e(p.authority) or "Not modelled for this jurisdiction"),
-            ("Zoning", f"<b>{_e(pl.classification)}</b> (verified official layer)" if pl.verified_zoning else
-             "<b>Zoning not verified.</b> No verified zoning layer; HABITA does not determine the classification. It "
-             "must be confirmed on the official maps or with the competent authority.")]
+    t = translator_for(report.language)
+    rows = [(t("Address"), _e(p.address)),
+            (t("Coordinates"), f"{p.lat:.6f}, {p.lng:.6f} ({t('precision')}: {_e(t(p.precision))})"),
+            (t("Jurisdiction"), "<br/>".join(_e(_level(j, t)) for j in p.jurisdiction) or "—"),
+            (t("Competent authority"), _e(p.authority) or t("Not modelled for this jurisdiction")),
+            (t("Zoning"), t("<b>{classification}</b> (verified official layer)", classification=_e(pl.classification))
+             if pl.verified_zoning else
+             t("<b>Zoning not verified.</b> No verified zoning layer; HABITA does not determine the classification. It "
+               "must be confirmed on the official maps or with the competent authority."))]
     if pl.instrument:
-        rows.append(("Instrument", _e(pl.instrument) + (f" — {_e(pl.instrument_version)}" if pl.instrument_version else "")))
+        rows.append((t("Instrument"), _e(pl.instrument) + (f" — {_e(pl.instrument_version)}" if pl.instrument_version else "")))
     if pl.reasons:
-        rows.append(("Why pending", "<br/>".join(_e(r) for r in pl.reasons)))
+        rows.append((t("Why pending"), "<br/>".join(_e(r) for r in pl.reasons)))
     docs = "".join(f"<tr><td>{_e(d.designation or d.title)}</td><td>{_e(d.reason)}"
                    + (f'<br/><span class="mono">{_url(d.url)}</span>' if d.url else "") + "</td></tr>"
                    for d in pl.documents_to_consult)
-    return ('<section><h2>Property and planning context</h2><table>'
+    return (f'<section><h2>{t("Property and planning context")}</h2><table>'
             + "".join(f"<tr><td style='width:34mm'>{k}</td><td>{v}</td></tr>" for k, v in rows) + "</table>"
-            + (f"<h3>Official maps to consult</h3><table><thead><tr><th>Document</th><th>What it shows</th></tr></thead>"
-               f"<tbody>{docs}</tbody></table>" if docs else "") + "</section>")
+            + (f'<h3>{t("Official maps to consult")}</h3><table><thead><tr><th>{t("Document")}</th>'
+               f'<th>{t("What it shows")}</th></tr></thead><tbody>{docs}</tbody></table>' if docs else "") + "</section>")
 
 
 def _analysis(report: PermitReport) -> str:
     a = report.assessment
     if a is None:
         return ""
-    out = ["<section><h2>Analysis</h2>"]
+    t = translator_for(report.language)
+    out = [f'<section><h2>{t("Analysis")}</h2>{_translation_box(report)}']
     if not a.content_verified or display_status(report)[0] != "VERIFIED":
-        out.append('<p class="notverified">Not verified. The statements below have not passed HABITA\'s verification '
-                   "and must not be relied on.</p>")
-    out.append(f"<p><b>Question:</b> {_e(a.question)}</p>")
+        out.append('<p class="notverified">' + t("Not verified. The statements below have not passed HABITA's "
+                                                 "verification and must not be relied on.") + "</p>")
+    out.append(f'<p><b>{t("Question:")}</b> {_e(a.question)}</p>')
     if a.conclusion_summary:
-        out.append(f"<p><b>Conclusion ({_e(a.conclusion_answer)}):</b> {_e(a.conclusion_summary)}"
+        out.append(f'<p><b>{t("Conclusion")} ({_e(t(a.conclusion_answer or ""))}):</b> {_e(a.conclusion_summary)}'
                    f"{_refs(a.conclusion_evidence_ids)}</p>")
     first: dict[str, str] = {}
     for key, heading in SECTIONS:
         items = [s for s in a.statements if s.section == key]
         if not items:
             continue
-        out.append(f"<h3>{heading}</h3>")
+        out.append(f"<h3>{t(heading)}</h3>")
         for s in items:
             text = s.text.strip()
-            shown_as = s.step or s.label
+            shown_as = s.step or _statement_label(s.label, t)
             lead = f'<span class="label">{_e(shown_as)}</span>'
             if text in first:  # repeated word for word: referenced, with its own evidence ids (TD-044)
-                out.append(f'<p class="statement">{lead}<span class="crossref">Same as {_e(first[text])} above.'
-                           f"</span>{_refs(s.evidence_ids)}</p>")
+                out.append(f'<p class="statement">{lead}<span class="crossref">'
+                           + t("Same as {label} above.", label=_e(first[text])) + f"</span>{_refs(s.evidence_ids)}</p>")
             else:
                 first[text] = shown_as
                 out.append(f'<p class="statement">{lead}{_e(text)}{_refs(s.evidence_ids)}</p>')
     if a.conditions:
-        out.append("<h3>Conditions</h3><ul>" + "".join(f"<li>{_e(c)}</li>" for c in a.conditions) + "</ul>")
+        out.append(f'<h3>{t("Conditions")}</h3><ul>' + "".join(f"<li>{_e(c)}</li>" for c in a.conditions) + "</ul>")
     if a.issues:
-        out.append("<h3>Why it was rejected</h3><ul>" + "".join(f"<li>{_e(i)}</li>" for i in a.issues) + "</ul>")
+        out.append(f'<h3>{t("Why it was rejected")}</h3><ul>' + "".join(f"<li>{_e(i)}</li>" for i in a.issues) + "</ul>")
     if a.verification:
         v = a.verification
         # The record's outcome is shown bare only when it is the assessment's own status; any other record (earlier,
         # superseded or disagreeing) is labelled as history so it can never read as the current result.
         shown = display_status(report)[0]
         current = v.current and v.outcome == shown
-        outcome = _e(v.outcome) if current else (f"{_e(v.outcome)} — recorded for draft revision {v.draft_revision}; "
-                                                 f"history only, not the current status ({STATUS[shown][0]})")
-        out.append(f"<h3>{'Verification record' if current else 'Earlier verification (not current)'}</h3><table>"
-                   f"<tr><td>Outcome</td><td>{outcome}</td></tr>"
-                   f"<tr><td>Report</td><td>{_e(v.verification_id)}</td></tr>"
-                   f"<tr><td>Verified at</td><td>{v.created_at:%Y-%m-%d %H:%M} UTC</td></tr>"
-                   f"<tr><td>Protocol</td><td>{_e(v.protocol)}</td></tr>"
-                   f"<tr><td>Trust pin</td><td class='small'>{'<br/>'.join(f'{_e(k)}: {_e(val)}' for k, val in sorted(v.trust_pin.items())) or '—'}</td></tr></table>")
+        outcome = _e(t(v.outcome)) if current else t(
+            "{outcome} — recorded for draft revision {revision}; history only, not the current status ({status})",
+            outcome=_e(t(v.outcome)), revision=v.draft_revision, status=t(STATUS[shown][0]))
+        out.append(f"<h3>{t('Verification record') if current else t('Earlier verification (not current)')}</h3><table>"
+                   f"<tr><td>{t('Outcome')}</td><td>{outcome}</td></tr>"
+                   f"<tr><td>{t('Report')}</td><td>{_e(v.verification_id)}</td></tr>"
+                   f"<tr><td>{t('Verified at')}</td><td>{v.created_at:%Y-%m-%d %H:%M} UTC</td></tr>"
+                   f"<tr><td>{t('Protocol')}</td><td>{_e(v.protocol)}</td></tr>"
+                   f"<tr><td>{t('Trust pin')}</td><td class='small'>{'<br/>'.join(f'{_e(k)}: {_e(val)}' for k, val in sorted(v.trust_pin.items())) or '—'}</td></tr></table>")
     if a.evidence:
-        out.append("<h3>Evidence and provenance</h3><table><thead><tr><th>Id</th><th>Source</th><th>Status</th>"
-                   "<th>Provenance</th></tr></thead><tbody>")
+        out.append(f'<h3>{t("Evidence and provenance")}</h3><table><thead><tr><th>Id</th><th>{t("Source")}</th>'
+                   f'<th>{t("Status")}</th><th>{t("Provenance")}</th></tr></thead><tbody>')
         for e in a.evidence:
-            prov = " · ".join(f"{k} {_e(v)}" for k, v in (("source", e.source_id), ("trust", e.trust_status),
-                                                         ("version", e.version), ("snapshot", e.snapshot_id),
-                                                         ("sha256", e.sha256), ("locator", e.locator)) if v)
+            prov = " · ".join(f"{k} {_e(t(v))}" for k, v in ((t("source"), e.source_id), (t("trust"), e.trust_status),
+                                                            (t("version"), e.version), ("snapshot", e.snapshot_id),
+                                                            ("sha256", e.sha256), (t("locator"), e.locator)) if v)
             out.append(f"<tr><td><b>{_e(e.evidence_id)}</b></td><td>{_e(e.title)}<br/><span class='small muted'>"
                        f"{_e(e.reference)}</span>" + (f"<br/><span class='mono'>{_url(e.url)}</span>" if e.url else "")
-                       + f"</td><td class='small'>{_e(e.verification_status)}<br/>retrieved {e.retrieved_at:%Y-%m-%d}"
+                       + f"</td><td class='small'>{_e(t(e.verification_status))}<br/>{t('retrieved')} {e.retrieved_at:%Y-%m-%d}"
                        f"</td><td class='mono'>{prov or '—'}</td></tr>")
         out.append("</tbody></table>")
     return "".join(out) + "</section>"
 
 
 def _sources(report: PermitReport) -> str:
+    t = translator_for(report.language)
     out = []
     if report.pending:
-        out.append("<h3>Pending confirmation</h3><ul>" + "".join(f"<li>{_e(x)}</li>" for x in report.pending) + "</ul>")
+        out.append(f'<h3>{t("Pending confirmation")}</h3><ul>' + "".join(f"<li>{_e(x)}</li>" for x in report.pending) + "</ul>")
     if report.sources:
-        out.append("<h3>Official sources for this jurisdiction</h3><table><thead><tr><th>Source</th><th>Publisher</th>"
-                   "<th>Status</th></tr></thead><tbody>" + "".join(
+        out.append(f'<h3>{t("Official sources for this jurisdiction")}</h3><table><thead><tr><th>{t("Source")}</th>'
+                   f'<th>{t("Publisher")}</th><th>{t("Status")}</th></tr></thead><tbody>' + "".join(
                        f"<tr><td>{_e(s.title)}" + (f"<br/><span class='mono'>{_url(s.url)}</span>" if s.url else "")
-                       + f"</td><td class='small'>{_e(s.publisher)}</td><td class='small'>{_e(s.status)}"
-                       + (f"<br/>verified {s.verified_on}" if s.verified_on else "") + "</td></tr>"
+                       + f"</td><td class='small'>{_e(s.publisher)}</td><td class='small'>{_e(t(s.status))}"
+                       + (f"<br/>{t('verified')} {s.verified_on}" if s.verified_on else "") + "</td></tr>"
                        for s in report.sources) + "</tbody></table>")
-    return (f'<section><h2>Sources and pending items</h2>{"".join(out)}<p class="small muted">{_e(report.disclaimer)}'
+    return (f'<section><h2>{t("Sources and pending items")}</h2>{"".join(out)}<p class="small muted">{_e(report.disclaimer)}'
             "</p></section>")
 
 
 def render_html(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico") -> str:
     if style not in STYLES:
         raise ValueError(f"Unknown style {style!r}; expected one of {', '.join(STYLES)}.")
-    return (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>HABITA AI report</title><meta name="author" content="HABITA AI">'
-            f"<style>{FONT_FACES[style]()}\n{CSS_BASE}\n{CSS_STYLE[style]}</style></head><body class='{style}'>"
-            f'<div class="disclaimer-running">{"<b>" + DEMO + ".</b> " if report.demo else ""}{_e(report.disclaimer)}</div>'
-            f"{_cover(report)}{_glance(report, style)}{_location(maps)}{_planning(report)}{_analysis(report)}"
+    t = translator_for(report.language)
+    css = CSS_BASE.replace("%PAGE%", t("Page")).replace("%OF%", t("of"))
+    return (f'<!doctype html><html lang="{report.language}"><head><meta charset="utf-8"><title>{t("HABITA AI report")}</title><meta name="author" content="HABITA AI">'
+            f"<style>{FONT_FACES[style]()}\n{css}\n{CSS_STYLE[style]}</style></head><body class='{style}'>"
+            f'<div class="disclaimer-running">{"<b>" + t(DEMO) + ".</b> " if report.demo else ""}{_e(report.disclaimer)}</div>'
+            f"{_cover(report)}{_glance(report, style)}{_location(maps, t)}{_planning(report)}{_analysis(report)}"
             f"{_sources(report)}</body></html>")
 
 

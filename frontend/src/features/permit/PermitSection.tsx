@@ -5,8 +5,18 @@ import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { Section } from "@/components/ui/Section";
 import { reportChanged } from "@/features/report/api";
+import { setLanguage, useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
-import { continueMatter, createMatter, getEvidence, getMatter, permitStatus, supplyInputs } from "./api";
+import {
+  continueMatter,
+  createMatter,
+  getEvidence,
+  getMatter,
+  getTranslation,
+  permitStatus,
+  supplyInputs,
+  type MatterTranslation,
+} from "./api";
 import { forgetMatter, recallMatter, rememberMatter } from "./capability";
 import { PermitInputs } from "./PermitInputs";
 import { PermitProgress } from "./PermitProgress";
@@ -18,6 +28,7 @@ import styles from "./Permit.module.css";
 const POLL_MS = 1500;
 
 export function PermitSection({ propertyId, authorityName }: { propertyId: string; authorityName: string | null }) {
+  const { lang, t } = useI18n();
   const [available, setAvailable] = useState<boolean | null>(null);
   const [matter, setMatter] = useState<PermitMatter | null>(null);
   // The capability for this browser's own matter; never shared, never in the URL.
@@ -26,6 +37,8 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  // Keyed like the evidence below: a translation read for another matter, state or language is never shown.
+  const [translation, setTranslation] = useState<{ key: string; data: MatterTranslation | null } | null>(null);
 
   // Resume only the matter this browser created for this property (its capability is stored locally).
   useEffect(() => {
@@ -67,6 +80,20 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
     if (matterId && settledState) reportChanged();
   }, [matterId, settledState]);
 
+  // What was verified stays the English text in the matter; Portuguese is a labelled view of it, read when it settles.
+  const revision = matter?.draft?.revision;
+  const translationKey = `${matterId}:${settledState}:${revision}:${lang}`;
+  useEffect(() => {
+    if (!matterId || !settledState || !token || lang === "en") return;
+    getTranslation(matterId, token, lang)
+      .then((data) => setTranslation({ key: translationKey, data }))
+      .catch(() => setTranslation({ key: translationKey, data: null }));
+  }, [matterId, settledState, token, lang, revision, translationKey]);
+  const current = translation?.key === translationKey ? translation : null;
+  const shown = (text: string) => current?.data?.texts[text] ?? text;
+  const note =
+    lang === "en" || !current ? null : (current.data?.note ?? t("Translation is unavailable right now: the original English text is shown."));
+
   const poller = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const advance = useCallback(async (id: string, capability: string) => {
@@ -79,14 +106,14 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
     try {
       setMatter(await continueMatter(id, capability));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "The investigation was interrupted. You can resume it.");
+      setError(err instanceof ApiError ? err.message : t("The investigation was interrupted. You can resume it."));
       getMatter(id, capability).then(setMatter).catch(() => {});
     } finally {
       if (poller.current) clearInterval(poller.current);
       poller.current = null;
       setRunning(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => () => {
     if (poller.current) clearInterval(poller.current);
@@ -96,6 +123,7 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
     setError(null);
     try {
       const created = await createMatter(propertyId, question);
+      if (created.detected_language) setLanguage(created.detected_language); // answers follow the language asked in
       rememberMatter(propertyId, { matterId: created.matter.matter_id, token: created.access_token });
       reportChanged(); // the map and the PDF now follow the new matter
       setToken(created.access_token);
@@ -104,7 +132,7 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
       setAsking(false);
       await advance(created.matter.matter_id, created.access_token);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof ApiError ? err.message : t("Something went wrong. Please try again."));
     }
   }
 
@@ -116,16 +144,16 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
       setMatter(updated);
       await advance(updated.matter_id, token);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof ApiError ? err.message : t("Something went wrong. Please try again."));
       setRunning(false);
     }
   }
 
   return (
-    <Section label="Permit intelligence" id="permit">
+    <Section label={t("Permit intelligence")} id="permit">
       {available === false ? (
-        <Notice title="Permit intelligence isn't available yet">
-          The reasoning model isn&apos;t configured on this server. Property and jurisdiction data remain available.
+        <Notice title={t("Permit intelligence isn't available yet")}>
+          {t("The reasoning model isn't configured on this server. Property and jurisdiction data remain available.")}
         </Notice>
       ) : !matter || asking ? (
         <GoalForm onAsk={ask} onCancel={matter ? () => setAsking(false) : undefined} />
@@ -139,31 +167,32 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
               {sourcesLine(
                 evidence.filter((e) => e.source_type !== "user_statement").length,
                 matter.missing_inputs.length,
+                t,
               )}
             </p>
           )}
           {matter.state === "NEEDS_INPUT" && !running && (
-            <PermitInputs key={matter.missing_inputs.map((m) => m.input_key).join()} items={matter.missing_inputs} busy={running} onSubmit={answer} />
+            <PermitInputs key={matter.missing_inputs.map((m) => m.input_key).join()} items={matter.missing_inputs} busy={running} onSubmit={answer} shown={shown} />
           )}
           {(matter.state === "VERIFIED" || matter.state === "ESCALATE" || matter.state === "REJECTED" ||
             matter.state === "NEEDS_INPUT") && (
-            <PermitResult matter={matter} evidence={evidence} authorityName={authorityName} />
+            <PermitResult matter={matter} evidence={evidence} authorityName={authorityName} shown={shown} note={note} />
           )}
 
           <div className={styles.actions}>
             {matter.state === "FAILED" && !running && (
               <Button variant="secondary" onClick={() => token && advance(matter.matter_id, token)}>
-                Resume investigation
+                {t("Resume investigation")}
               </Button>
             )}
             {!STABLE_STATES.has(matter.state) && !running && (
               <Button variant="secondary" onClick={() => token && advance(matter.matter_id, token)}>
-                Continue
+                {t("Continue")}
               </Button>
             )}
             {STABLE_STATES.has(matter.state) && !running && (
               <Button variant="ghost" onClick={() => setAsking(true)}>
-                Ask another question
+                {t("Ask another question")}
               </Button>
             )}
           </div>
@@ -179,6 +208,7 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
 }
 
 function GoalForm({ onAsk, onCancel }: { onAsk: (question: string) => Promise<void>; onCancel?: () => void }) {
+  const { t } = useI18n();
   const id = useId();
   const [question, setQuestion] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -194,37 +224,36 @@ function GoalForm({ onAsk, onCancel }: { onAsk: (question: string) => Promise<vo
   return (
     <form className={styles.goalForm} onSubmit={submit}>
       <label htmlFor={id} className={styles.fieldLabel}>
-        Ask what this property allows
+        {t("Ask what this property allows")}
       </label>
       <textarea
         id={id}
         className={styles.textarea}
         rows={2}
         maxLength={500}
-        placeholder="e.g. Can I convert this property into two residential units?"
+        placeholder={t("e.g. Can I convert this property into two residential units?")}
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
       />
       <div className={styles.suggestions}>
         {SUGGESTED_QUESTIONS.map((q) => (
-          <button key={q} type="button" className={styles.suggestion} onClick={() => setQuestion(q)}>
-            {q}
+          <button key={q} type="button" className={styles.suggestion} onClick={() => setQuestion(t(q))}>
+            {t(q)}
           </button>
         ))}
       </div>
       <div className={styles.actions}>
         <Button type="submit" loading={submitting} disabled={question.trim().length < 8}>
-          Investigate
+          {t("Investigate")}
         </Button>
         {onCancel && (
           <Button type="button" variant="ghost" onClick={onCancel}>
-            Cancel
+            {t("Cancel")}
           </Button>
         )}
       </div>
       <p className={styles.fieldHint}>
-        HABITA plans a checklist, gathers evidence from the jurisdiction&apos;s sources, drafts an answer and has it
-        independently verified. Powered by Meta Muse Spark.
+        {t("HABITA plans a checklist, gathers evidence from the jurisdiction's sources, drafts an answer and has it independently verified. Powered by Meta Muse Spark.")}
       </p>
     </form>
   );

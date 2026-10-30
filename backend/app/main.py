@@ -26,10 +26,12 @@ from app.db.staging import confinement_problem
 from app.integrations.maps.geocoding import GeocodingClient
 from app.integrations.maps.static_maps import MemoryDailyUsage, MongoDailyUsage, StaticMapClient
 from app.integrations.meta.client import MetaChatModel
+from app.integrations.translate.client import GoogleTranslateClient
 from app.services.permit.repository import InMemoryPermitRepository, MongoPermitRepository, PermitRepository
 from app.services.permit.sources.base import SourceRegistry
 from app.services.permit.sources.portugal import PortugalSources
 from app.services.permit.workflow import PermitWorkflow
+from app.services.i18n.translator import Translator
 from app.services.jurisdiction import JurisdictionResolver
 from app.services.permit.model import ReasoningModel
 from app.services.planning.cascais import cascais_resolver
@@ -156,6 +158,13 @@ def create_app(
                 usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"]) if mongo is not None
                 else MemoryDailyUsage(),
             )
+            app.state.translator = Translator(GoogleTranslateClient(
+                http, settings.google_translate_api_key.get_secret_value() if settings.google_translate_api_key else None,
+                timeout_seconds=settings.translate_timeout_seconds, rate_per_minute=settings.translate_rate_per_minute,
+                burst=settings.translate_burst, daily_limit=settings.translate_daily_limit,
+                usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"], "translate")
+                if mongo is not None else MemoryDailyUsage(),
+            ))
             app.state.property_service = property_service = PropertyLocationService(
                 geocoder=GeocodingClient(http, api_key),
                 resolver=JurisdictionResolver(),

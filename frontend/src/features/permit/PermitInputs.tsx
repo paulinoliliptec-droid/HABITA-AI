@@ -2,6 +2,7 @@
 
 import { Fragment, useId, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
+import { useI18n } from "@/i18n/useI18n";
 import { INPUT_CHOICES } from "./present";
 import type { MissingInput } from "./types";
 import styles from "./Permit.module.css";
@@ -12,11 +13,14 @@ export function PermitInputs({
   items,
   busy,
   onSubmit,
+  shown,
 }: {
   items: MissingInput[];
   busy: boolean;
   onSubmit: (answers: Record<string, string>) => void;
+  shown: (text: string) => string;
 }) {
+  const { t } = useI18n();
   const formId = useId();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [others, setOthers] = useState<Record<string, string>>({});
@@ -39,7 +43,7 @@ export function PermitInputs({
   return (
     <form className={styles.inputs} onSubmit={submit}>
       <p className={styles.inputsIntro}>
-        These facts can&apos;t be obtained from public sources. Everything else HABITA checks itself.
+        {t("These facts can't be obtained from public sources. Everything else HABITA checks itself.")}
       </p>
       {items.map((item) => {
         const id = `${formId}-${item.input_key}`;
@@ -47,7 +51,7 @@ export function PermitInputs({
         if (choices) {
           return (
             <fieldset key={item.input_key} className={styles.field} aria-describedby={`${id}-why`}>
-              <legend className={styles.fieldLabel}>{item.question}</legend>
+              <legend className={styles.fieldLabel}>{shown(item.question)}</legend>
               <div className={styles.choices}>
                 {[...choices.options, ...(choices.other ? [OTHER] : [])].map((option) => (
                   <Fragment key={option}>
@@ -60,15 +64,15 @@ export function PermitInputs({
                         disabled={busy}
                         onChange={() => setAnswers((a) => ({ ...a, [item.input_key]: option }))}
                       />
-                      {option === OTHER ? choices.other : option}
+                      {t(option === OTHER ? (choices.other ?? "") : option)}
                     </label>
                     {/* Revealed directly under "Other use" so the user can specify it. */}
                     {option === OTHER && answers[item.input_key] === OTHER && (
                       <input
                         type="text"
                         className={`${styles.textInput} ${styles.otherInput}`}
-                        aria-label={`${choices.other}: please specify`}
-                        placeholder="Please specify"
+                        aria-label={`${t(choices.other ?? "")}: ${t("Please specify")}`}
+                        placeholder={t("Please specify")}
                         maxLength={300}
                         autoFocus
                         value={others[item.input_key] ?? ""}
@@ -80,7 +84,7 @@ export function PermitInputs({
                 ))}
               </div>
               <p id={`${id}-why`} className={styles.fieldHint}>
-                {item.reason}
+                {shown(item.reason)}
               </p>
             </fieldset>
           );
@@ -88,7 +92,7 @@ export function PermitInputs({
         return (
           <div key={item.input_key} className={styles.field}>
             <label htmlFor={id} className={styles.fieldLabel}>
-              {item.question}
+              {shown(item.question)}
             </label>
             <textarea
               id={id}
@@ -101,18 +105,18 @@ export function PermitInputs({
               onChange={(e) => setAnswers((a) => ({ ...a, [item.input_key]: e.target.value }))}
             />
             <p id={`${id}-why`} className={styles.fieldHint}>
-              {item.reason}
+              {shown(item.reason)}
             </p>
           </div>
         );
       })}
       <div className={styles.submitRow}>
         <Button type="submit" loading={busy} disabled={!complete} aria-describedby={complete ? undefined : `${formId}-hint`}>
-          Continue investigation
+          {t("Continue investigation")}
         </Button>
         {!complete && (
           <p id={`${formId}-hint`} className={styles.fieldHint}>
-            Answer the required questions to continue.
+            {t("Answer the required questions to continue.")}
           </p>
         )}
       </div>

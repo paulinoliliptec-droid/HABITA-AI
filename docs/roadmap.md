@@ -27,6 +27,18 @@ are not global milestones.
 | HR-014 | Production Readiness (*proposed*) | reliability, privacy, security, isolation, permissions, costs, observability, accessibility | criteria **PENDING** | not started |
 | HR-015 | Hackathon Submission (*proposed*) | video, narrative, documentation, evidence, official competition rules | criteria **PENDING** | not started |
 
+### Bilingual system (PT/EN) — owner decision 2026-10-30
+
+Cross-cutting, not a milestone: English by default (the jury is international); Portuguese when the permit question is
+in Portuguese or by the EN/PT switch. The address never changes the language.
+
+- Answers (decision B1): the verified text stays the English one in the matter. Portuguese is a labelled reading view
+  from Google Cloud Translation; a text that fails the fidelity checks stays in English. A later native Portuguese
+  drafter (B2) belongs to the final research phase, with the verifier re-evaluated for Portuguese drafts.
+- Fixed texts: generated once with Google Translate into catalogs kept in the repository
+  (`python -m app.services.i18n.generate`). Statuses, warnings, the disclaimer and machine errors are pinned by hand in
+  `backend/app/services/i18n/pinned.json`, which always wins. New user-facing text goes through `t()` or `msg()`.
+
 ### HR-003 acceptance status
 
 | Criterion (approved source) | Status | Evidence |

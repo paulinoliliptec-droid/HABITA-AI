@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
 import { cycleIndex } from "@/lib/cycleIndex";
 import { resolveLocation } from "./api";
@@ -20,6 +21,7 @@ interface AddressSearchProps {
 
 /** Address combobox: suggests places as you type, resolves on submit, then opens the workspace. */
 export function AddressSearch({ variant = "hero", autoFocus = false, examples }: AddressSearchProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const ids = { input: useId(), listbox: useId(), error: useId() };
   const inputRef = useRef<HTMLInputElement>(null);
@@ -57,7 +59,7 @@ export function AddressSearch({ variant = "hero", autoFocus = false, examples }:
       // Release the form on every successful path; a retained component must not stay busy.
       setResolving(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof ApiError ? err.message : t("Something went wrong. Please try again."));
       setResolving(false);
       inputRef.current?.focus();
     }
@@ -74,7 +76,7 @@ export function AddressSearch({ variant = "hero", autoFocus = false, examples }:
     if (activeSuggestion) return choose(activeSuggestion);
     const address = query.trim();
     if (address.length < 3) {
-      setError("Enter a full address, including the street and town.");
+      setError(t("Enter a full address, including the street and town."));
       return;
     }
     void resolve({ address });
@@ -97,7 +99,7 @@ export function AddressSearch({ variant = "hero", autoFocus = false, examples }:
   return (
     <form className={`${styles.search} ${styles[variant]}`} onSubmit={onSubmit} role="search" noValidate>
       <label htmlFor={ids.input} className={variant === "hero" ? styles.label : "visually-hidden"}>
-        Property address
+        {t("Property address")}
       </label>
 
       <div className={styles.control} data-busy={resolving || undefined}>
@@ -111,7 +113,7 @@ export function AddressSearch({ variant = "hero", autoFocus = false, examples }:
           autoComplete="off"
           spellCheck={false}
           autoFocus={autoFocus}
-          placeholder={variant === "hero" ? "Enter a property address" : "Search another address"}
+          placeholder={variant === "hero" ? t("Enter a property address") : t("Search another address")}
           value={query}
           disabled={resolving}
           role="combobox"
@@ -132,11 +134,11 @@ export function AddressSearch({ variant = "hero", autoFocus = false, examples }:
           onKeyDown={onKeyDown}
         />
         <Button type="submit" size={variant === "hero" ? "lg" : "md"} loading={resolving} className={styles.submit}>
-          {resolving ? "Resolving" : variant === "hero" ? "Resolve" : "Go"}
+          {resolving ? t("Resolving") : variant === "hero" ? t("Resolve") : t("Go")}
           {!resolving && <Icon name="arrowRight" size={16} />}
         </Button>
 
-        <ul id={ids.listbox} role="listbox" aria-label="Address suggestions" className={styles.listbox} hidden={!listVisible}>
+        <ul id={ids.listbox} role="listbox" aria-label={t("Address suggestions")} className={styles.listbox} hidden={!listVisible}>
           {suggestions.map((s, i) => (
             <li
               key={s.placeId}
@@ -156,7 +158,7 @@ export function AddressSearch({ variant = "hero", autoFocus = false, examples }:
             </li>
           ))}
           <li role="presentation" className={styles.attribution}>
-            Suggestions from Google Maps
+            {t("Suggestions from Google Maps")}
           </li>
         </ul>
       </div>
@@ -167,7 +169,7 @@ export function AddressSearch({ variant = "hero", autoFocus = false, examples }:
 
       {variant === "hero" && examples?.length ? (
         <div className={styles.examples}>
-          <span className={styles.examplesLabel}>Try</span>
+          <span className={styles.examplesLabel}>{t("Try")}</span>
           {examples.map((example) => (
             <button
               key={example}

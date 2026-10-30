@@ -6,9 +6,9 @@ There is deliberately no lookup of matters by property ID: the property is
 public, its permit matters are not.
 """
 
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Header, Path, Request
+from fastapi import APIRouter, Depends, Header, Path, Query, Request
 
 from app.core.errors import NotFoundError
 from app.schemas.permit import (
@@ -16,11 +16,15 @@ from app.schemas.permit import (
     CreateMatterRequest,
     CreateMatterResponse,
     Evidence,
+    MatterTranslation,
     PermitMatter,
     SupplyInputsRequest,
     VerificationReport,
 )
+from app.services.i18n.translator import translation_note
 from app.services.permit.workflow import PermitWorkflow
+from app.services.report.builder import assessment_status
+from app.services.report.localize import matter_texts
 
 router = APIRouter(prefix="/api/permit", tags=["permit"])
 
@@ -59,15 +63,28 @@ async def permit_status(request: Request) -> dict[str, object]:
 
 
 @router.post("/matters", response_model=CreateMatterResponse, status_code=201)
-async def create_matter(body: CreateMatterRequest, workflow: Workflow) -> CreateMatterResponse:
+async def create_matter(body: CreateMatterRequest, request: Request, workflow: Workflow) -> CreateMatterResponse:
     """Create a private matter. The access token is returned here, once; keep it to resume."""
     matter, token = await workflow.create(body.property_id, body.question)
-    return CreateMatterResponse(matter=matter, access_token=token)
+    return CreateMatterResponse(matter=matter, access_token=token,
+                                detected_language=await request.app.state.translator.detect(body.question))
 
 
 @router.get("/matters/{matter_id}", response_model=PermitMatter)
 async def get_matter(matter_id: MatterId, workflow: Workflow) -> PermitMatter:
     return await workflow.get(matter_id)
+
+
+@router.get("/matters/{matter_id}/translation", response_model=MatterTranslation)
+async def get_translation(matter_id: MatterId, workflow: Workflow, request: Request,
+                          lang: Annotated[Literal["en", "pt"], Query()] = "en") -> MatterTranslation:
+    """The matter's texts for reading in ``lang``, after verification; it changes nothing in the matter."""
+    matter = await workflow.get(matter_id)
+    verified = assessment_status(matter, await workflow.verification(matter_id))[0] == "VERIFIED"
+    result = await request.app.state.translator.translate(matter_texts(matter), lang)
+    return MatterTranslation(lang=lang, available=result.available, verified=verified,
+                             kept_original=result.kept_original, texts=result.texts,
+                             note=translation_note(result, verified=verified, has_answer=matter.draft is not None))
 
 
 @router.post("/matters/{matter_id}/continue", response_model=PermitMatter)

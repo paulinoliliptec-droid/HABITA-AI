@@ -106,6 +106,12 @@ class ReportAssessment(BaseModel):
     evidence: list[ReportEvidence] = Field(default_factory=list)
 
 
+class ReportTranslation(BaseModel):
+    available: bool
+    kept_original: int
+    note: str | None
+
+
 class PermitReport(BaseModel):
     generated_at: datetime
     property: ReportProperty
@@ -117,3 +123,6 @@ class PermitReport(BaseModel):
     #: Set when any part comes from labelled demonstration data.
     demo: bool = False
     disclaimer: str
+    #: The language this report is shown in. Statuses stay the fields above, whatever the language.
+    language: Literal["en", "pt"] = "en"
+    translation: ReportTranslation | None = None

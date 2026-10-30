@@ -5,11 +5,13 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Section } from "@/components/ui/Section";
+import { useI18n } from "@/i18n/useI18n";
 import { formatCoordinate } from "./format";
 import type { ResolvedProperty } from "./types";
 import styles from "./LocationSection.module.css";
 
 export function LocationSection({ property }: { property: ResolvedProperty }) {
+  const { t } = useI18n();
   const { lat, lng } = property.coordinates;
   const [copied, setCopied] = useState(false);
 
@@ -31,14 +33,14 @@ export function LocationSection({ property }: { property: ResolvedProperty }) {
   const resolvedAt = new Date(property.resolved_at);
 
   return (
-    <Section label="Location" id="location">
+    <Section label={t("Location")} id="location">
       <dl className={styles.grid}>
         <div>
-          <dt>Latitude</dt>
+          <dt>{t("Latitude")}</dt>
           <dd>{formatCoordinate(lat, "lat")}</dd>
         </div>
         <div>
-          <dt>Longitude</dt>
+          <dt>{t("Longitude")}</dt>
           <dd>{formatCoordinate(lng, "lng")}</dd>
         </div>
       </dl>
@@ -48,11 +50,11 @@ export function LocationSection({ property }: { property: ResolvedProperty }) {
           <time dateTime={property.resolved_at}>
             {resolvedAt.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
           </time>{" "}
-          · <Link href="/privacy">Privacy &amp; terms</Link>
+          · <Link href="/privacy">{t("Privacy & terms")}</Link>
         </p>
         <Button variant="ghost" onClick={copy} aria-live="polite">
           <Icon name={copied ? "check" : "copy"} size={16} />
-          {copied ? "Copied" : "Copy coordinates"}
+          {copied ? t("Copied") : t("Copy coordinates")}
         </Button>
       </div>
     </Section>

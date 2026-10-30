@@ -130,13 +130,13 @@ class MemoryDailyUsage:
 class MongoDailyUsage:
     """Daily counter shared by every instance: one document per UTC day, incremented atomically below the limit."""
 
-    def __init__(self, collection) -> None:
-        self._collection = collection
+    def __init__(self, collection, name: str = "report-maps") -> None:
+        self._collection, self._name = collection, name
 
     async def take(self, day: str, limit: int) -> int | None:
         try:
             doc = await self._collection.find_one_and_update(
-                {"_id": f"report-maps:{day}", "count": {"$lt": limit}}, {"$inc": {"count": 1}},
+                {"_id": f"{self._name}:{day}", "count": {"$lt": limit}}, {"$inc": {"count": 1}},
                 upsert=True, return_document=ReturnDocument.AFTER)
         except DuplicateKeyError:  # the day's document exists at the limit, so the upsert could not match it
             return None
