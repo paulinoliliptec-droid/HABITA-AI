@@ -35,6 +35,10 @@ def to_bson(value: Any) -> Any:
     return value
 
 
+class StatusChangedConcurrently(Exception):
+    """The source's status or trust_version moved since the operator's change was validated (CX-3)."""
+
+
 class InMemorySourceRepository:
     def __init__(self) -> None:
         self.sources: dict[str, OfficialSource] = {}
@@ -65,9 +69,14 @@ class InMemorySourceRepository:
     async def list_sources(self) -> list[OfficialSource]:
         return [s.model_copy(deep=True) for s in self.sources.values()]
 
-    async def set_status(self, source_id: str, change: StatusChange) -> None:
+    async def set_status(self, source_id: str, change: StatusChange,
+                         expected: tuple[str, int] | None = None) -> None:
+        """``expected``: the (status, trust_version) the change was validated against; if it moved, nothing is written
+        and ``StatusChangedConcurrently`` is raised (CX-3: a retirement can't be undone by a stale promotion)."""
         async with self.trust_lock:
             source = self.sources[source_id]
+            if expected is not None and (source.status, source.trust_version) != expected:
+                raise StatusChangedConcurrently(source_id)
             source.status = change.status
             source.status_history.append(change)
             source.trust_version += 1
@@ -86,9 +95,13 @@ class InMemorySourceRepository:
     async def get_snapshot(self, snapshot_id: str) -> SourceSnapshot | None:
         return self.snapshots.get(snapshot_id)
 
-    async def save_snapshot(self, snapshot: SourceSnapshot, chunks: list[RegulatoryChunk]) -> None:
+    async def save_snapshot(self, snapshot: SourceSnapshot, chunks: list[RegulatoryChunk]) -> SourceSnapshot:
+        """The stored snapshot: this one, or the one already stored for the same (source_id, sha256) (CX-4)."""
+        if (winner := await self.find_snapshot(snapshot.source_id, snapshot.sha256)) is not None:
+            return winner
         self.snapshots[snapshot.snapshot_id] = snapshot
         self.chunks[snapshot.snapshot_id] = list(chunks)
+        return snapshot
 
     async def list_chunks(self, snapshot_id: str) -> list[RegulatoryChunk]:
         return list(self.chunks.get(snapshot_id, []))
@@ -134,12 +147,17 @@ class MongoSourceRepository:
         docs = await self._call(self._sources.find({}).to_list(None))
         return [OfficialSource.model_validate(d) for d in docs]
 
-    async def set_status(self, source_id: str, change: StatusChange) -> None:
-        await self._call(self._sources.update_one(
-            {"_id": source_id},
+    async def set_status(self, source_id: str, change: StatusChange,
+                         expected: tuple[str, int] | None = None) -> None:
+        """Compare-and-swap when ``expected`` is given (see the in-memory store; CX-3)."""
+        flt = self.pin_filter(source_id, *expected) if expected is not None else {"_id": source_id}
+        result = await self._call(self._sources.update_one(
+            flt,
             {"$set": {"status": change.status}, "$inc": {"trust_version": 1},
              "$push": {"status_history": to_bson(change.model_dump(mode="python"))}},
         ))
+        if expected is not None and result.matched_count != 1:
+            raise StatusChangedConcurrently(source_id)
 
     async def set_latest_snapshot(self, source_id: str, snapshot_id: str) -> None:
         await self._call(self._sources.update_one({"_id": source_id}, {"$set": {"latest_snapshot_id": snapshot_id}}))
@@ -163,15 +181,38 @@ class MongoSourceRepository:
         doc = await self._call(self._snapshots.find_one({"_id": snapshot_id}))
         return SourceSnapshot.model_validate(doc) if doc else None
 
-    async def save_snapshot(self, snapshot: SourceSnapshot, chunks: list[RegulatoryChunk]) -> None:
-        # Chunks first: a snapshot document only exists once its passages are stored.
-        if chunks:
-            await self._call(self._chunks.insert_many(
-                [{"_id": c.chunk_id, "seq": n, **to_bson(c.model_dump(mode="python"))} for n, c in enumerate(chunks)]
-            ))
-        await self._call(self._snapshots.insert_one(
-            {"_id": snapshot.snapshot_id, **to_bson(snapshot.model_dump(mode="python"))}
-        ))
+    async def save_snapshot(self, snapshot: SourceSnapshot, chunks: list[RegulatoryChunk]) -> SourceSnapshot:
+        """Publish a snapshot idempotently under its unique (source_id, sha256) key and return the stored one.
+
+        Chunks first: a snapshot document only exists once its passages are stored. If another worker published the
+        same content first (duplicate key), or the chunk write fails part-way, this snapshot's chunks are removed so
+        none is left orphaned, and the winner is returned (HR-003 CX-4)."""
+        try:
+            if chunks:
+                await self._chunks.insert_many(
+                    [{"_id": c.chunk_id, "seq": n, **to_bson(c.model_dump(mode="python"))}
+                     for n, c in enumerate(chunks)])
+            await self._snapshots.insert_one(
+                {"_id": snapshot.snapshot_id, **to_bson(snapshot.model_dump(mode="python"))})
+            return snapshot
+        except DuplicateKeyError:
+            winner = await self.find_snapshot(snapshot.source_id, snapshot.sha256)
+            if winner is not None and winner.snapshot_id == snapshot.snapshot_id:
+                return winner  # this very snapshot, already published (a retry): its chunks are in use
+            await self._call(self._chunks.delete_many({"snapshot_id": snapshot.snapshot_id}))
+            if winner is None:
+                raise StorageUnavailableError(_UNAVAILABLE) from None
+            return winner
+        except PyMongoError:
+            # The snapshot insert may have been applied with its acknowledgement lost: its chunks are then in use.
+            # Remove them only once the snapshot is known to be absent; if that can't be known, keep them.
+            try:
+                if await self._snapshots.find_one({"_id": snapshot.snapshot_id}) is not None:
+                    return snapshot
+                await self._chunks.delete_many({"snapshot_id": snapshot.snapshot_id})
+            except PyMongoError:
+                pass
+            raise StorageUnavailableError(_UNAVAILABLE) from None
 
     async def list_chunks(self, snapshot_id: str) -> list[RegulatoryChunk]:
         docs = await self._call(self._chunks.find({"snapshot_id": snapshot_id}).sort("seq", ASCENDING).to_list(None))

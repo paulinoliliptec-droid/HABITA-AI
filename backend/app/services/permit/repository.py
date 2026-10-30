@@ -17,6 +17,7 @@ is 256 bits of randomness, so an unsalted hash is not guessable.
 
 import hashlib
 import hmac
+import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
@@ -25,9 +26,15 @@ from pymongo import ASCENDING, DESCENDING, AsyncMongoClient
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
 from app.core.errors import ConflictError, StorageUnavailableError
+from app.db.property_repository import (
+    InMemoryPropertyRepository, MongoPropertyRepository, PropertyIdentity, identity_filter,
+)
 from app.schemas.permit import Checklist, Evidence, MatterState, PermitMatter, VerificationReport
+from app.services.permit.protocol import DEFAULT_FLOOR, FLOOR_ID, Floor, validator
 from app.services.sources.registry import TrustPin
 from app.services.sources.repository import InMemorySourceRepository, MongoSourceRepository
+
+logger = logging.getLogger(__name__)
 
 LEASE = timedelta(minutes=5)
 _UNAVAILABLE = "HABITA can't reach its permit store right now. Please try again shortly."
@@ -63,11 +70,17 @@ class PermitRepository(Protocol):
     async def save_verification(self, report: VerificationReport) -> None: ...
     async def latest_verification(self, matter_id: str) -> VerificationReport | None: ...
     async def commit_verified(self, matter: PermitMatter, report: VerificationReport, pin: TrustPin,
-                              sources: Any) -> bool: ...
+                              sources: Any, identity: PropertyIdentity | None, properties: Any) -> bool: ...
+
+
+def _binds(identity: PropertyIdentity | None, matter: PermitMatter) -> bool:
+    """A VERIFIED commit binds the matter's own property document; no identity (merged, purged, unversioned) or
+    another document's identity fails closed."""
+    return identity is not None and identity.property_id == matter.property_id
 
 
 class _PinMoved(Exception):
-    """A pinned source changed after the final gate: the VERIFIED commit must not happen."""
+    """A pinned source (or the property, C2) changed after the final gate: the VERIFIED commit must not happen."""
 
 
 class CommitOutcomeUnknown(StorageUnavailableError):
@@ -78,6 +91,17 @@ class CommitOutcomeUnknown(StorageUnavailableError):
 class MatterCommitConflict(ConflictError):
     """The VERIFIED commit doesn't fit the stored matter (missing, another state or revision, already VERIFIED by
     another report) or the matter/report pair is inconsistent. Nothing was written."""
+
+
+class ProtocolBelowFloor(MatterCommitConflict):
+    """The report's verification protocol is below the persisted floor, or known unsafe (MU-9). Nothing was
+    written: a rolled-back verifier can't commit VERIFIED."""
+
+
+def _check_floor(floor: Floor, report: VerificationReport) -> None:
+    if not floor.admits(report.protocol):
+        raise ProtocolBelowFloor(f"Verification protocol {report.protocol} is not admitted by the floor "
+                                 f"({floor.min_protocol}; known unsafe: {', '.join(floor.known_unsafe) or 'none'}).")
 
 
 class MatterAlreadyVerified(ConflictError):
@@ -133,6 +157,8 @@ class InMemoryPermitRepository:
         self.verifications: dict[str, list[VerificationReport]] = {}
         self.access_hashes: dict[str, str] = {}
         self._leases: dict[str, datetime] = {}
+        #: The persisted protocol floor (MU-9); the Mongo store keeps it in ``verification_policy``.
+        self.floor: Floor = DEFAULT_FLOOR
 
     async def create_matter(self, matter: PermitMatter, access_hash: str) -> None:
         self.matters[matter.matter_id] = matter.model_copy(deep=True)
@@ -185,15 +211,20 @@ class InMemoryPermitRepository:
         self.verifications.setdefault(report.matter_id, []).append(report.model_copy(deep=True))
 
     async def commit_verified(self, matter: PermitMatter, report: VerificationReport, pin: TrustPin,
-                              sources: InMemorySourceRepository) -> bool:
-        """Persist the VERIFIED report and matter only if every pinned source is unchanged, atomically with respect
-        to status changes (same lock). Returns False, writing nothing, if the registry moved after the gate."""
+                              sources: InMemorySourceRepository, identity: PropertyIdentity | None,
+                              properties: InMemoryPropertyRepository) -> bool:
+        """Persist the VERIFIED report and matter only if every pinned source and the property the gate read
+        (``identity``, C2) are unchanged, atomically with respect to status changes (same lock). Returns False,
+        writing nothing, if either moved after the gate or the property has no identity to bind to."""
         _check_pair(matter, report)
         async with sources.trust_lock:
             stored = self.matters.get(matter.matter_id)
             if _already_committed(stored, report):
                 return True  # idempotent: this exact commit already happened
+            _check_floor(self.floor, report)
             if not sources.pin_holds(pin.versions):
+                return False
+            if not _binds(identity, matter) or not properties.identity_holds(identity):
                 return False
             if (stored is None or stored.state != MatterState.VERIFYING or stored.revision != matter.revision
                     or stored.property_id != matter.property_id):
@@ -215,11 +246,26 @@ class MongoPermitRepository:
         self._checklists = db["permit_checklists"]
         self._evidence = db["permit_evidence"]
         self._verifications = db["permit_verifications"]
+        self._policy = db["verification_policy"]
 
     async def ensure_indexes(self) -> None:
         await self._matters.create_index([("property_id", ASCENDING), ("created_at", DESCENDING)])
         await self._evidence.create_index([("matter_id", ASCENDING), ("seq", ASCENDING)])
         await self._evidence.create_index([("matter_id", ASCENDING), ("dedupe_key", ASCENDING)], unique=True)
+        # MU-9 (M8): the server-side VERIFIED rule is installed by every deployment of this code, so a later rollback
+        # to a pre-MU-9 revision can't commit VERIFIED even if nobody ran raise-protocol-floor. Fail closed: without
+        # it, rollback protection would silently be absent, so the service does not start. Installed before the
+        # index, which would otherwise create the collection without it: a new collection then needs only
+        # createCollection, and an installed, unchanged rule needs nothing, so the application user needs collMod
+        # only when the rule changes (a migration user can apply it instead: apply-validator).
+        try:
+            await self.apply_validator(await self.get_floor())
+        except StorageUnavailableError:
+            logger.error("MU-9: could not install the permit_verifications validator; refusing to start without "
+                         "server-side rollback protection. Run `python -m app.maintenance apply-validator` with a "
+                         "user holding collMod on this database (outside staging, granting collMod to the "
+                         "application user also works; staging refuses an application user with it).")
+            raise
         await self._verifications.create_index([("matter_id", ASCENDING), ("created_at", DESCENDING)])
 
     async def create_matter(self, matter: PermitMatter, access_hash: str) -> None:
@@ -294,6 +340,73 @@ class MongoPermitRepository:
             self._verifications.insert_one({"_id": report.verification_id, **report.model_dump(mode="python")})
         )
 
+    async def get_floor(self) -> Floor:
+        return Floor.from_doc(await self._call(self._policy.find_one({"_id": FLOOR_ID})))
+
+    async def store_floor(self, current: Floor, new: Floor) -> bool:
+        """Write ``new`` only if the stored floor is still ``current`` (no concurrent change); True if written."""
+        if current == DEFAULT_FLOOR and not current.history:
+            exists = await self._call(self._policy.find_one({"_id": FLOOR_ID}))
+            if exists is None:
+                await self._call(self._policy.insert_one(new.to_doc()))
+                return True
+        result = await self._call(self._policy.replace_one(
+            {"_id": FLOOR_ID, "min_protocol": current.min_protocol, "known_unsafe": list(current.known_unsafe)},
+            new.to_doc()))
+        return result.matched_count == 1
+
+    async def apply_validator(self, floor: Floor) -> None:
+        """Install the server-side VERIFIED rule (``protocol.validator``); existing documents are not re-checked."""
+        db = self._verifications.database
+        wanted = {"validator": validator(floor), "validationLevel": "moderate", "validationAction": "error"}
+
+        async def installed() -> dict | None:
+            cursor = await self._call(db.list_collections(filter={"name": "permit_verifications"}))
+            found = await self._call(cursor.to_list())
+            return {key: found[0].get("options", {}).get(key) for key in wanted} if found else None
+
+        current = await installed()
+        if current is None:
+            try:
+                await self._call(db.create_collection("permit_verifications", **wanted))
+                return
+            except StorageUnavailableError:
+                # Another instance may have created it first: accept only the exact rule, otherwise fail.
+                current = await installed()
+                if current is None:
+                    raise
+        if current == wanted:
+            return  # already in force: no collMod needed
+        await self._call(db.command("collMod", "permit_verifications", **wanted))
+
+    async def raise_floor(self, current: Floor, new: Floor) -> bool:
+        """Install the stricter validator first, then store the floor: if storing fails, the server is already at
+        least as strict as the stored floor (never the other way round). True if the floor was stored."""
+        await self.apply_validator(new)
+        return await self.store_floor(current, new)
+
+    async def flag_superseded(self, floor: Floor) -> int:
+        """Mark VERIFIED reports from protocols the floor no longer admits (including pre-MU-9 ones, which have no
+        protocol field) as superseded, and their matters with them: both stay as history, flagged for
+        re-verification, so no client reads them as currently verified. ``superseded_protocol: None`` matches both
+        a missing field (pre-MU-9) and the ``null`` that current reports store."""
+        stale = {"outcome": "VERIFIED", "superseded_protocol": None,
+                 "$or": [{"protocol": {"$exists": False}}, {"protocol": {"$nin": floor.admitted()}}]}
+        by_protocol: dict[str, list[str]] = {}
+        async for d in self._verifications.find(stale, {"_id": 1, "protocol": 1}):
+            by_protocol.setdefault(d.get("protocol") or "statement-v1", []).append(d["_id"])
+        flagged = 0
+        for protocol, ids in by_protocol.items():
+            # Matters first: if the report update then fails, a rerun still finds these reports (still unflagged)
+            # and repeats both; the matter update is idempotent.
+            await self._call(self._matters.update_many(
+                {"state": MatterState.VERIFIED.value, "latest_verification_id": {"$in": ids}},
+                {"$set": {"superseded_protocol": protocol}}))
+            result = await self._call(self._verifications.update_many(
+                {"_id": {"$in": ids}}, {"$set": {"superseded_protocol": protocol}}))
+            flagged += result.modified_count
+        return flagged
+
     async def latest_verification(self, matter_id: str) -> VerificationReport | None:
         doc = await self._call(
             self._verifications.find_one({"matter_id": matter_id}, sort=[("created_at", DESCENDING)])
@@ -301,21 +414,28 @@ class MongoPermitRepository:
         return VerificationReport.model_validate(doc) if doc else None
 
     async def commit_verified(self, matter: PermitMatter, report: VerificationReport, pin: TrustPin,
-                              sources: MongoSourceRepository) -> bool:
+                              sources: MongoSourceRepository, identity: PropertyIdentity | None,
+                              properties: MongoPropertyRepository) -> bool:
         """One multi-document transaction (MongoDB core API, with the documented retry pattern):
 
         - idempotent: a matter already VERIFIED by this report is success, with no writes;
+        - the report's protocol must be admitted by the persisted floor (read in the transaction; MU-9), else
+          ``ProtocolBelowFloor``; the collection validator enforces the same server-side;
         - every pinned source is matched on its (status, trust_version) and written, so a concurrent status change
           is a write conflict, never a silent interleaving (CX-2);
+        - the property is matched on the identity the gate read (version, active, no merge in flight) and written
+          the same way, so a save, merge or purge after the gate aborts the commit (C2, ``identity_filter``);
         - the matter must match exactly ``{_id, state: VERIFYING, revision, property_id}``; anything else aborts
           everything;
         - then the report is inserted.
 
-        Returns False (nothing written) if a pin moved. ``TransientTransactionError`` re-runs the whole transaction;
+        Returns False (nothing written) if a pin or the property moved, or the property has no identity to bind to. ``TransientTransactionError`` re-runs the whole transaction;
         ``UnknownTransactionCommitResult`` retries only the commit, and if it stays unknown raises
         ``CommitOutcomeUnknown`` (never a failure: the caller reads the matter back). Other errors abort and raise
         ``StorageUnavailableError``; ``MatterCommitConflict`` aborts and is raised. Never a partial write."""
         _check_pair(matter, report)
+        if not _binds(identity, matter):
+            return False
         now = datetime.now(UTC)
         async with self._client.start_session() as session:
             for attempt in range(_TXN_ATTEMPTS):
@@ -326,12 +446,18 @@ class MongoPermitRepository:
                     if _already_committed(stored, report):
                         await _abort(session)
                         return True
+                    _check_floor(Floor.from_doc(await self._policy.find_one({"_id": FLOOR_ID}, session=session)),
+                                 report)
                     for source_id, (status, version) in sorted(pin.versions.items()):
                         result = await sources.collection.update_one(
                             sources.pin_filter(source_id, status, version),
                             {"$set": {"last_verified_commit_at": now}}, session=session)
                         if result.matched_count != 1:
                             raise _PinMoved(source_id)
+                    result = await properties.collection.update_one(
+                        identity_filter(identity), {"$set": {"last_verified_commit_at": now}}, session=session)
+                    if result.matched_count != 1:
+                        raise _PinMoved(identity.property_id)
                     result = await self._matters.update_one(
                         {"_id": matter.matter_id, "state": MatterState.VERIFYING.value, "revision": matter.revision,
                          "property_id": matter.property_id},

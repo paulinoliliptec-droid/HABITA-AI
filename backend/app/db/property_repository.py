@@ -67,6 +67,13 @@ Concurrency
     it). An alias owned by another, unrelated canonical property is not moved:
     the conflict is recorded explicitly in ``possible_duplicates``.
 
+Identity binding (HR-003 MU-9 C2)
+    Every write to a property document increments ``identity_version`` (an integer; 0 on insert, backfilled to 0 for
+    older documents). A VERIFIED permit commit reads ``(property_id, identity_version)`` before its final gate and, in
+    the same transaction as the matter, writes the property conditionally on that version, an active state and no
+    merge in flight (``identity_filter``). A save, merge or purge after the read is then a write conflict or a filter
+    miss, and nothing is committed. The commit's own write (``last_verified_commit_at``) does not change the version.
+
 Schema versions:
     0  (HR-001 initial) ``_id`` = hash of a single place ID; flat jurisdiction strings.
     1  aliases, generic jurisdiction levels, authority entity, provenance, expiry.
@@ -130,6 +137,23 @@ def distance_m(a: Coordinates, b: Coordinates) -> float:
 
 
 @dataclass(frozen=True)
+class PropertyIdentity:
+    """A property as the final gate read it: its document ID and ``identity_version`` (see module docstring)."""
+    property_id: str
+    version: int
+
+
+def identity_filter(identity: PropertyIdentity) -> dict:
+    """The property is still the one the gate read: same version, active, no merge from or into it in flight."""
+    return {"_id": identity.property_id, "identity_version": identity.version, "snapshot_state": "current",
+            "merged_into": {"$exists": False}, "merging_into": {"$exists": False},
+            "absorbing": {"$in": [None, []]}}  # missing, or emptied by the merge that set it
+
+
+_BUMP = {"$inc": {"identity_version": 1}}
+
+
+@dataclass(frozen=True)
 class StoredProperty:
     property_id: str
     #: Primary provider ID, used to refresh the snapshot.
@@ -152,6 +176,10 @@ class PropertyRepository(Protocol):
 
     async def get(self, property_id: str) -> StoredProperty | None: ...
 
+    async def identity(self, property_id: str) -> PropertyIdentity | None:
+        """The document's own identity (no merge followed), or None if it is merged, merging, purged or unversioned."""
+        ...
+
     async def purge_expired(self, now: datetime | None = None) -> int: ...
 
     async def merge(self, keep: str, duplicate: str) -> None: ...
@@ -172,6 +200,7 @@ class InMemoryPropertyRepository:
         self._items: dict[str, ResolvedProperty] = {}
         self._address_keys: dict[str, str] = {}
         self._owner_by_alias: dict[str, str] = {}
+        self._versions: dict[str, int] = {}
 
     async def save(
         self,
@@ -194,12 +223,16 @@ class InMemoryPropertyRepository:
         if pid is None:
             identity, pid = "new", new_property_id()
 
-        for alias in aliases:
-            self._owner_by_alias.setdefault(alias, pid)
+        claimed = [alias for alias in aliases if alias not in self._owner_by_alias]
+        for alias in claimed:
+            self._owner_by_alias[alias] = pid
         current = self._items.get(pid)
         if current is not None and current.resolved_at >= snapshot.resolved_at:
+            if claimed:
+                self.touch(pid)  # an older snapshot still attached aliases: a write
             return current
         self._items[pid] = ResolvedProperty(**_with_identity(snapshot, identity).model_dump(), property_id=pid)
+        self._versions[pid] = self._versions.get(pid, -1) + 1
         if address_key:
             self._address_keys[pid] = address_key
         return self._items[pid]
@@ -216,6 +249,17 @@ class InMemoryPropertyRepository:
     async def get(self, property_id: str) -> StoredProperty | None:
         prop = self._items.get(property_id)
         return StoredProperty(prop.property_id, prop.place_id, prop) if prop else None
+
+    async def identity(self, property_id: str) -> PropertyIdentity | None:
+        version = self._versions.get(property_id)
+        return PropertyIdentity(property_id, version) if version is not None and property_id in self._items else None
+
+    def identity_holds(self, identity: PropertyIdentity) -> bool:
+        return identity.property_id in self._items and self._versions.get(identity.property_id) == identity.version
+
+    def touch(self, property_id: str) -> None:
+        """A write to the property (tests: a save between the gate and the commit)."""
+        self._versions[property_id] = self._versions.get(property_id, -1) + 1
 
     async def purge_expired(self, now: datetime | None = None) -> int:
         # Memory is never durable; nothing outlives the process.
@@ -239,7 +283,7 @@ class MongoPropertyRepository:
     async def ensure_indexes(self) -> None:
         # Tombstones written before this fix stored `place_ids: []`, which the unique index
         # treats as a null key shared between documents. Remove the empty arrays.
-        await self._collection.update_many({"place_ids": {"$size": 0}}, {"$unset": {"place_ids": ""}})
+        await self._collection.update_many({"place_ids": {"$size": 0}}, {"$unset": {"place_ids": ""}, **_BUMP})
         indexes = {ix["name"]: ix async for ix in await self._collection.list_indexes()}
         # v0 made place_id unique; under aliases it is only the primary ID and need not be.
         if indexes.get("place_id_1", {}).get("unique"):
@@ -266,6 +310,8 @@ class MongoPropertyRepository:
         ).sort("created_at", ASCENDING).to_list(None)
         for doc in unclaimed:
             await self._claim_premise(doc["_id"], doc["address_key"])
+        # Identity binding: documents written before identity_version existed start at 0 (C2).
+        await self._collection.update_many({"identity_version": {"$exists": False}}, {"$set": {"identity_version": 0}})
         await self._collection.create_index([("expires_at", ASCENDING)])
         await self._collection.create_index([("location", GEOSPHERE)])
 
@@ -321,12 +367,29 @@ class MongoPropertyRepository:
                 logger.warning("Stored property %s failed validation; it will be refreshed", doc["_id"])
         return StoredProperty(doc["_id"], doc["place_id"], snapshot)
 
+    async def identity(self, property_id: str) -> PropertyIdentity | None:
+        try:
+            doc = await self._collection.find_one({"_id": property_id},
+                                                  {"identity_version": 1, "snapshot_state": 1, "merged_into": 1,
+                                                   "merging_into": 1, "absorbing": 1})
+        except PyMongoError as exc:
+            raise _unavailable(exc) from None
+        if doc is None or _merge_target(doc) or doc.get("snapshot_state") != "current" or doc.get("absorbing"):  # []
+            return None  # an absorbing property has a merge into it in flight
+        version = doc.get("identity_version")
+        return PropertyIdentity(property_id, version) if isinstance(version, int) else None
+
+    @property
+    def collection(self) -> AsyncCollection:
+        return self._collection
+
     async def purge_expired(self, now: datetime | None = None) -> int:
         """Remove expired Google-derived fields. Identity, place IDs and provenance are kept."""
         try:
             result = await self._collection.update_many(
                 {"expires_at": {"$lte": now or datetime.now(UTC)}, "snapshot_state": "current"},
-                {"$unset": {field: "" for field in GOOGLE_DERIVED_FIELDS}, "$set": {"snapshot_state": "purged"}},
+                {"$unset": {field: "" for field in GOOGLE_DERIVED_FIELDS}, "$set": {"snapshot_state": "purged"},
+                 **_BUMP},
             )
         except PyMongoError as exc:
             raise _unavailable(exc) from None
@@ -340,7 +403,13 @@ class MongoPropertyRepository:
             kept = await self._collection.find_one({"_id": keep})
             dup = await self._collection.find_one({"_id": duplicate})
             if kept is None or dup is None:
+                if kept is not None:
+                    await self._unmark(duplicate, keep)  # a mark left for a duplicate that no longer exists
                 raise ValueError("Both properties must exist.")
+            if dup.get("absorbing") and not _merge_target(dup):
+                # Containment (C2, chained merges): a duplicate with a merge into it still pending would hand that
+                # merge to `keep` unmarked. Complete pending merges first (resume_pending_merges).
+                raise ValueError(f"{duplicate} has a pending merge into it; complete pending merges first.")
             # Always merge into the canonical end of any chain (A → B, then B → C: keep C).
             kept = await self._canonical_doc(kept)
             if kept is None:
@@ -354,12 +423,24 @@ class MongoPropertyRepository:
             if target:
                 canonical_target = await self._canonical_doc(await self._collection.find_one({"_id": target}))
                 if canonical_target is None or canonical_target["_id"] != keep:
+                    await self._unmark(duplicate, keep)  # a mark left on `keep` by a superseded attempt
                     raise ValueError(f"{duplicate} is already merged into {target}.")
+
+            # Step 0 (C2): mark `keep` as absorbing the duplicate *first*, moving its identity, so a VERIFIED commit
+            # bound to `keep` can't pass while the merge is pending; the mark goes in step 3. Idempotent.
+            result = await self._collection.update_one(
+                {"_id": keep, "merged_into": {"$exists": False}, "merging_into": {"$exists": False}},
+                {"$addToSet": {"absorbing": {"$each": [duplicate]}}, **_BUMP})
+            if result.matched_count == 0:
+                raise ValueError(f"{keep} was merged concurrently; re-run to inspect.")
 
             if not target:
                 # Step 1, atomic: release the aliases into merged_aliases and mark the merge pending.
+                # Atomic with the pending-merge refusal: a merge into the duplicate that started after the read
+                # above (its mark) makes this write miss (Codex backlog review round 1).
                 await self._collection.update_one(
-                    {"_id": duplicate, "merged_into": {"$exists": False}, "merging_into": {"$exists": False}},
+                    {"_id": duplicate, "merged_into": {"$exists": False}, "merging_into": {"$exists": False},
+                     "absorbing": {"$in": [None, []]}},
                     {
                         "$set": {
                             "merging_into": keep,
@@ -369,10 +450,14 @@ class MongoPropertyRepository:
                         # Unset, not []: an empty array is indexed as a null key, and the
                         # unique place_ids index would then collide between tombstones.
                         "$unset": {"place_ids": "", "premise_key": ""},
+                        **_BUMP,
                     },
                 )
                 dup = await self._collection.find_one({"_id": duplicate})
                 if _merge_target(dup) != keep:
+                    await self._unmark(duplicate, keep)  # only ours: the winning merge keeps its mark
+                    if dup.get("absorbing"):
+                        raise ValueError(f"{duplicate} has a pending merge into it; complete pending merges first.")
                     raise ValueError(f"{duplicate} was merged concurrently; re-run to inspect.")
 
             # Step 2, idempotent: attach the recorded aliases to `keep` (its canonical property
@@ -382,6 +467,12 @@ class MongoPropertyRepository:
                 try:
                     if aliases:
                         await self._add_aliases(keep, aliases)
+                    else:  # nothing to attach, but `keep` now stands for the duplicate too: a write (C2)
+                        result = await self._collection.update_one(
+                            {"_id": keep, "merged_into": {"$exists": False}, "merging_into": {"$exists": False}},
+                            _BUMP)
+                        if result.matched_count == 0:
+                            raise _RetrySave("target merged before the merge write")
                     break
                 except _RetrySave:
                     canonical = await self._canonical_doc(await self._collection.find_one({"_id": keep}))
@@ -396,23 +487,42 @@ class MongoPropertyRepository:
                 {
                     "$set": {"merged_into": keep, "snapshot_state": "merged"},
                     "$unset": {"merging_into": "", **{field: "" for field in GOOGLE_DERIVED_FIELDS}},
+                    **_BUMP,
                 },
             )
+            # Step 3b: the duplicate is merged, so no property absorbs it any more, including a former kept one along
+            # a merge chain (identity moves again).
+            await self._unmark(duplicate)
         except PyMongoError as exc:
             raise _unavailable(exc) from None
         logger.info("Merged property %s into %s (%d aliases moved)", duplicate, keep, len(aliases))
 
+    async def _unmark(self, duplicate: str, holder: str | None = None) -> None:
+        """Remove this duplicate's mark from ``holder``, or from every property holding it once the duplicate is
+        merged. An atomic $pull per document, never a read-and-rewrite, so another duplicate's mark is kept."""
+        flt = {"absorbing": duplicate, **({"_id": holder} if holder else {})}
+        await self._collection.update_many(flt, {"$pull": {"absorbing": duplicate}, **_BUMP})
+
     async def resume_pending_merges(self) -> int:
-        """Complete merges interrupted between steps. Safe to run at any time."""
+        """Complete merges interrupted between steps, including one stopped right after marking the kept property
+        (C2: its identity stays unbindable until the merge completes). Safe to run at any time."""
         try:
             pending = await self._collection.find(
                 {"snapshot_state": "merging"}, {"_id": 1, "merging_into": 1}
             ).to_list(None)
+            marked = await self._collection.find(
+                {"absorbing": {"$exists": True}}, {"_id": 1, "absorbing": 1}
+            ).to_list(None)
         except PyMongoError as exc:
             raise _unavailable(exc) from None
-        for doc in pending:
-            await self.merge(keep=doc["merging_into"], duplicate=doc["_id"])
-        return len(pending)
+        merges = {(doc["merging_into"], doc["_id"]) for doc in pending}
+        started = {(doc["_id"], dup) for doc in marked for dup in doc.get("absorbing") or []}
+        for keep, duplicate in sorted(merges | {pair for pair in started if pair[1] not in {d for _, d in merges}}):
+            try:
+                await self.merge(keep=keep, duplicate=duplicate)
+            except ValueError as exc:  # superseded (the duplicate went elsewhere): its mark is gone, carry on
+                logger.warning("Pending merge %s → %s not resumed: %s", duplicate, keep, exc)
+        return len(merges | started)
 
     async def _save_once(
         self, snapshot: PropertySnapshot, aliases: list[str], address_key: str | None, property_id: str | None
@@ -434,7 +544,8 @@ class MongoPropertyRepository:
         if pid is None:
             pid = new_property_id()
             snapshot = _with_identity(snapshot, "new")
-            doc = {**self._document(snapshot, address_key), "_id": pid, "place_ids": aliases, "created_at": snapshot.resolved_at}
+            doc = {**self._document(snapshot, address_key), "_id": pid, "place_ids": aliases,
+                   "created_at": snapshot.resolved_at, "identity_version": 0}
             if possible_duplicates:
                 logger.warning("New property %s shares an address key with %s; not merged", pid, possible_duplicates)
                 doc["possible_duplicates"] = possible_duplicates
@@ -457,7 +568,7 @@ class MongoPropertyRepository:
         result = await self._collection.update_one(
             {"_id": pid, **not_tombstone, **newer_or_upgrade},
             # partial_match was stored by schema 1; it is request-scoped and must not linger.
-            {"$set": self._document(snapshot, address_key), "$unset": {"partial_match": ""}},
+            {"$set": self._document(snapshot, address_key), "$unset": {"partial_match": ""}, **_BUMP},
         )
         if result.matched_count == 0:
             current = await self._collection.find_one({"_id": pid}, {"merged_into": 1, "merging_into": 1})
@@ -469,7 +580,8 @@ class MongoPropertyRepository:
             if address_key:
                 await self._claim_premise(pid, address_key)
             else:
-                await self._collection.update_one({"_id": pid, **not_tombstone}, {"$unset": {"premise_key": ""}})
+                await self._collection.update_one({"_id": pid, **not_tombstone},
+                                                  {"$unset": {"premise_key": ""}, **_BUMP})
         # Success is only reported for the active canonical property. If a merge started after
         # our writes, the aliases we attached travel with it; retry so the result (and snapshot)
         # is the canonical property's.
@@ -537,7 +649,7 @@ class MongoPropertyRepository:
         if free:
             try:
                 result = await self._collection.update_one(
-                    {"_id": pid, **not_tombstone}, {"$addToSet": {"place_ids": {"$each": free}}}
+                    {"_id": pid, **not_tombstone}, {"$addToSet": {"place_ids": {"$each": free}}, **_BUMP}
                 )
             except DuplicateKeyError:
                 raise _RetrySave("an alias was claimed concurrently") from None
@@ -548,7 +660,7 @@ class MongoPropertyRepository:
             conflicting = sorted(set(owned_elsewhere.values()))
             logger.warning("Aliases of %s are owned by %s; recorded for reconciliation", pid, conflicting)
             result = await self._collection.update_one(
-                {"_id": pid, **not_tombstone}, {"$addToSet": {"possible_duplicates": {"$each": conflicting}}}
+                {"_id": pid, **not_tombstone}, {"$addToSet": {"possible_duplicates": {"$each": conflicting}}, **_BUMP}
             )
             if result.matched_count == 0:
                 raise _RetrySave("target merged before recording the alias conflict")
@@ -572,7 +684,8 @@ class MongoPropertyRepository:
     async def _claim_premise(self, pid: str, address_key: str) -> None:
         """Let an existing property hold its premise key if nobody else does (migration, refresh)."""
         try:
-            await self._collection.update_one({"_id": pid, "snapshot_state": "current"}, {"$set": {"premise_key": address_key}})
+            await self._collection.update_one({"_id": pid, "snapshot_state": "current"},
+                                              {"$set": {"premise_key": address_key}, **_BUMP})
         except DuplicateKeyError:
             pass  # another property holds this premise; this one stays a reviewed/flagged peer
 

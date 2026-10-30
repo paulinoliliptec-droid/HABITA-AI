@@ -6,6 +6,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Notice } from "@/components/ui/Notice";
 import { PermitSection } from "@/features/permit/PermitSection";
+import { MapPostIts } from "@/features/report/MapPostIts";
 import { ApiError } from "@/lib/api";
 import { AddressSearch } from "./AddressSearch";
 import { getCachedProperty, getProperty, subscribeToProperties } from "./api";
@@ -72,6 +73,7 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
       </aside>
 
       <div className={styles.mapArea}>
+        {property && <MapPostIts propertyId={property.property_id} />}
         {property ? (
           <PropertyMap
             coordinates={property.coordinates}

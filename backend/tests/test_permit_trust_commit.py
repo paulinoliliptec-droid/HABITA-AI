@@ -176,9 +176,9 @@ def test_commit_racing_a_retirement_is_serialised(retirement_first):
         repo, registry = workflow_of(client)._repo, registry_of(client)
         original, log = repo.commit_verified, []
 
-        async def commit(matter, report, pin, sources):
+        async def commit(matter, report, pin, sources, *binding):
             async def do_commit():
-                ok = await original(matter, report, pin, sources)
+                ok = await original(matter, report, pin, sources, *binding)
                 log.append(("commit", ok))
                 return ok
 
@@ -345,7 +345,7 @@ async def test_mongo_commit_writes_everything_only_while_every_pin_holds():
     src._sources.docs["legacy"] = {"_id": "legacy", "status": "trusted"}  # written before trust_version: version 0
     m, r = durability.verified()
     pin = TrustPin({"pt-rjue": ("trusted", 2), "legacy": ("trusted", 0)})
-    assert await permit.commit_verified(m, r, pin, src)
+    assert await permit.commit_verified(m, r, pin, src, durability.IDENT, durability.props(client))
     assert client.commits_applied == 1 and "pv_1" in permit._verifications.docs
     assert permit._matters.docs["pm_1"]["state"] == MatterState.VERIFIED
     assert all("last_verified_commit_at" in src._sources.docs[sid] for sid in ("pt-rjue", "legacy"))
@@ -357,7 +357,7 @@ async def test_mongo_commit_writes_everything_only_while_every_pin_holds():
 async def test_mongo_commit_aborts_and_writes_nothing_when_a_pin_moved(pin):
     client, permit, src = durability.stores()
     m, r = durability.verified()
-    assert await permit.commit_verified(m, r, TrustPin(pin), src) is False
+    assert await permit.commit_verified(m, r, TrustPin(pin), src, durability.IDENT, durability.props(client)) is False
     assert client.commits_applied == 0 and "pv_1" not in permit._verifications.docs
     assert permit._matters.docs["pm_1"]["state"] == "VERIFYING"
     assert "last_verified_commit_at" not in src._sources.docs["pt-rjue"]
@@ -371,7 +371,7 @@ async def test_mongo_write_conflict_with_a_status_change_is_a_refused_commit():
     conflict._add_error_label("TransientTransactionError")
     client.fail_on["official_sources.update_one"] = conflict
     m, r = durability.verified()
-    assert await permit.commit_verified(m, r, TrustPin({"pt-rjue": ("trusted", 2)}), src) is False
+    assert await permit.commit_verified(m, r, TrustPin({"pt-rjue": ("trusted", 2)}), src, durability.IDENT, durability.props(client)) is False
     assert "pv_1" not in permit._verifications.docs and client.commits_applied == 0
 
 
@@ -380,7 +380,7 @@ async def test_mongo_other_storage_errors_fail_closed():
     client.fail_on["official_sources.update_one"] = PyMongoError("down")
     m, r = durability.verified()
     with pytest.raises(StorageUnavailableError):
-        await permit.commit_verified(m, r, TrustPin({"pt-rjue": ("trusted", 2)}), src)
+        await permit.commit_verified(m, r, TrustPin({"pt-rjue": ("trusted", 2)}), src, durability.IDENT, durability.props(client))
     assert "pv_1" not in permit._verifications.docs
 
 

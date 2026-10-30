@@ -71,7 +71,9 @@ def default_draft(payload: dict) -> dict:
         {"evidence_ids": civil + rgeu, "summary": "A division may be possible if each new dwelling is autonomous, "
                                                   "subject to the conditions."}
         if civil else
-        {"evidence_ids": rjue + authority, "summary": "Works need municipal prior control, subject to the conditions."}
+        # A legal requirement resting on a curated summary is not certified (MU-9): the overview defers it instead.
+        {"evidence_ids": rjue + authority, "summary": "Whether the works need municipal prior control must be "
+                                                      "confirmed with the Câmara, subject to the conditions."}
     )
     return {
         "conclusion": {"answer": answer, **conclusion, **none},

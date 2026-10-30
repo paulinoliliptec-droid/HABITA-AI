@@ -42,7 +42,8 @@ def _matches(doc: dict, flt: dict) -> bool:
         if isinstance(cond, dict):
             for op, arg in cond.items():
                 if op == "$in":
-                    ok = any(v in arg for v in value) if isinstance(value, list) else value in arg
+                    # MongoDB: an array matches if any element, or the array itself, is listed.
+                    ok = (value in arg or any(v in arg for v in value)) if isinstance(value, list) else value in arg
                 elif op == "$lt":
                     ok = value is not None and value < arg
                 elif op == "$lte":
@@ -57,6 +58,9 @@ def _matches(doc: dict, flt: dict) -> bool:
                     raise NotImplementedError(op)
                 if not ok:
                     return False
+        elif isinstance(value, list) and not isinstance(cond, list):
+            if cond not in value:  # MongoDB: equality on an array field matches an element
+                return False
         elif value != cond:
             return False
     return True
@@ -114,6 +118,10 @@ class FakeCollection:
         new = {**target, **update.get("$set", {})}
         for field in update.get("$unset", {}):
             new.pop(field, None)
+        for field, value in update.get("$pull", {}).items():
+            new[field] = [v for v in new.get(field, []) if v != value]
+        for field, step in update.get("$inc", {}).items():
+            new[field] = new.get(field, 0) + step
         for field, spec in update.get("$addToSet", {}).items():
             new[field] = list(dict.fromkeys([*new.get(field, []), *spec["$each"]]))
         self._check_aliases(target["_id"], new.get("place_ids"))
@@ -573,7 +581,7 @@ async def test_merge_interrupted_at_any_step_stays_consistent_and_retry_converge
     repo, col = make_repo(FailingCollection())
     keep, dup = await _two_properties(repo)
 
-    col.arm(failing_step)
+    col.arm(failing_step + 1)  # write 1 is step 0: `keep` marked as absorbing (C2)
     with pytest.raises(StorageUnavailableError):
         await repo.merge(keep=keep, duplicate=dup)
 
@@ -593,7 +601,7 @@ async def test_merge_interrupted_at_any_step_stays_consistent_and_retry_converge
 async def test_startup_resumes_an_interrupted_merge():
     repo, col = make_repo(FailingCollection())
     keep, dup = await _two_properties(repo)
-    col.arm(2)
+    col.arm(3)  # step 2 (write 1 marks `keep`, C2)
     with pytest.raises(StorageUnavailableError):
         await repo.merge(keep=keep, duplicate=dup)
     assert col.docs[dup]["snapshot_state"] == "merging"
@@ -606,7 +614,7 @@ async def test_startup_resumes_an_interrupted_merge():
 async def test_resolution_during_an_interrupted_merge_attaches_to_the_target():
     repo, col = make_repo(FailingCollection())
     keep, dup = await _two_properties(repo)
-    col.arm(2)
+    col.arm(3)  # step 2 (write 1 marks `keep`, C2)
     with pytest.raises(StorageUnavailableError):
         await repo.merge(keep=keep, duplicate=dup)
 
@@ -685,7 +693,7 @@ async def test_chained_merge_interrupted_then_reload_and_retry_converge(failing_
     a, b, c = await _three(repo)
     await repo.merge(keep=b, duplicate=a)
 
-    col.arm(failing_step)
+    col.arm(failing_step + 1)  # write 1 is step 0: `keep` marked as absorbing (C2)
     with pytest.raises(StorageUnavailableError):
         await repo.merge(keep=c, duplicate=b)
 
@@ -708,17 +716,18 @@ async def test_chained_merge_interrupted_then_reload_and_retry_converge(failing_
     assert (await repo.get(a)).property_id == c
 
 
-async def test_pending_merge_whose_target_was_merged_resumes_into_the_canonical_property():
-    """A → B interrupted (A merging into B); then B → C completes; resume must finish A into C."""
+async def test_pending_merge_into_a_property_blocks_merging_it_until_resumed():
+    """A → B interrupted (A merging into B, B marked). B → C is refused until the pending merge completes (C2: C must
+    not be bindable while A is still on its way to it); after resume, B → C lands everything on C."""
     repo, col = make_repo(FailingCollection())
     a, b, c = await _three(repo)
-    col.arm(2)
+    col.arm(3)  # step 2 (write 1 marks `keep`, C2)
     with pytest.raises(StorageUnavailableError):
         await repo.merge(keep=b, duplicate=a)
-    await repo.merge(keep=c, duplicate=b)
-    assert (await repo.get(a)).property_id == c
-
+    with pytest.raises(ValueError, match="pending merge"):
+        await repo.merge(keep=c, duplicate=b)
     assert await repo.resume_pending_merges() == 1
+    await repo.merge(keep=c, duplicate=b)
     _assert_canonical(col, c, [a, b], ["ChIJ-A", "ChIJ-B", "ChIJ-C"])
 
 
@@ -862,3 +871,30 @@ async def test_many_concurrent_saves_during_a_chained_merge_converge(merge_posit
     _assert_canonical(col, c, [a, b], expected)
     for alias in expected:
         assert await repo._owner_of(alias, [alias]) == c
+
+
+async def test_merge_interrupted_after_marking_keep_converges_and_clears_the_mark():
+    """C2: the kept property is marked first; an interruption there leaves it without identity (fail-closed for a
+    VERIFIED commit) until the merge is re-run, which converges and clears the mark."""
+    repo, col = make_repo(FailingCollection())
+    keep, dup = await _two_properties(repo)
+    col.arm(2)  # write 1 marks keep; write 2 (marking the duplicate) fails
+    with pytest.raises(StorageUnavailableError):
+        await repo.merge(keep=keep, duplicate=dup)
+    assert col.docs[keep]["absorbing"] == [dup] and await repo.identity(keep) is None
+    await repo.merge(keep=keep, duplicate=dup)
+    _assert_merged(col, keep, dup)
+    assert not col.docs[keep].get("absorbing") and await repo.identity(keep) is not None
+
+
+async def test_startup_resumes_a_merge_interrupted_right_after_marking_keep():
+    """Codex binding review round 3 (P2): the kept property is not left unbindable after a restart."""
+    repo, col = make_repo(FailingCollection())
+    keep, dup = await _two_properties(repo)
+    col.arm(2)
+    with pytest.raises(StorageUnavailableError):
+        await repo.merge(keep=keep, duplicate=dup)
+    assert await repo.identity(keep) is None
+    assert await repo.resume_pending_merges() == 1
+    _assert_merged(col, keep, dup)
+    assert await repo.identity(keep) is not None and await repo.resume_pending_merges() == 0

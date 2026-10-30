@@ -17,6 +17,7 @@ Configuration comes from the repo-root `.env` (git-ignored) or the process envir
 | Variable | Needed for | Without it |
 |---|---|---|
 | `GOOGLE_MAPS_API_KEY` | Geocoding (server key) | `POST /api/property/resolve-location` returns `503 service_not_configured` |
+| `MAPS_STATIC_API_KEY` | PDF location maps (Maps Static API); falls back to `GOOGLE_MAPS_API_KEY` | the PDF shows "Location maps unavailable" and no image |
 | `MONGODB_URI` | Persisting properties | Startup fails, unless `ALLOW_EPHEMERAL_STORAGE=true` (local dev/tests: in-memory store) |
 | `BACKEND_CORS_ORIGINS` | Browser access | Defaults to `http://localhost:3000` |
 | `META_API_KEY` | Permit Intelligence (Muse Spark) | `/api/permit/*/continue` returns `503 service_not_configured`; `/api/permit/status` reports `available: false` |

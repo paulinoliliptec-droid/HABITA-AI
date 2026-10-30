@@ -1,0 +1,287 @@
+"""HR-003 MU-9 Phase 2, item 1 (C2): a VERIFIED commit is bound to the property the final gate read.
+
+Every write to a property document increments ``identity_version``; the commit writes the property in its own
+transaction on ``identity_filter`` (same version, active, no merge in flight). ACC-BIND-01..06: a save, a merge on
+either side, a pending merge, a purge or a missing identity after the gate ⇒ the commit is refused and nothing is
+written; the workflow re-runs the gate."""
+
+from datetime import timedelta
+
+import pytest
+from pymongo.errors import OperationFailure
+
+from app.db.property_repository import PropertyIdentity
+from tests import test_permit_commit_durability as durability
+from tests.permit_fakes import ScriptedModel, make_client
+from tests.test_permit_official_sources import ingest_regulamento, run_matter
+from tests.test_property_repository import T0, make_repo, snapshot
+
+PID = durability.IDENT.property_id
+
+
+# --- every write moves the identity --------------------------------------------------------------------------------
+
+async def test_every_write_to_a_property_increments_its_identity_version():
+    repo, collection = make_repo()
+    saved = await repo.save(snapshot(), {"ChIJ-a"})
+    pid = saved.property_id
+    versions = [(await repo.identity(pid)).version]
+    await repo.save(snapshot(resolved_at=T0 + timedelta(hours=1)), {"ChIJ-a"}, property_id=pid)  # refresh
+    versions.append((await repo.identity(pid)).version)
+    await repo.save(snapshot(resolved_at=T0 + timedelta(hours=2)), {"ChIJ-a", "ChIJ-b"}, property_id=pid)  # alias
+    versions.append((await repo.identity(pid)).version)
+    assert versions[0] == 0 and versions == sorted(set(versions))  # strictly increasing
+
+
+async def test_a_merge_moves_both_sides_and_the_duplicate_loses_its_identity():
+    repo, collection = make_repo()
+    keep = (await repo.save(snapshot(place_id="ChIJ-k"), {"ChIJ-k"})).property_id
+    dup = (await repo.save(snapshot(place_id="ChIJ-d", address="Rua X 1, Cascais", lat=38.70), {"ChIJ-d"})).property_id
+    before = (await repo.identity(keep)).version
+    await repo.merge(keep=keep, duplicate=dup)
+    assert (await repo.identity(keep)).version > before  # the kept property received aliases
+    assert await repo.identity(dup) is None  # merged: no identity to bind a commit to
+
+
+async def test_a_purge_moves_the_identity_and_leaves_none_to_bind():
+    repo, collection = make_repo()
+    pid = (await repo.save(snapshot(), {"ChIJ-a"})).property_id
+    assert await repo.purge_expired(T0 + timedelta(days=60)) == 1
+    assert collection.docs[pid]["identity_version"] == 1 and await repo.identity(pid) is None
+
+
+async def test_an_unversioned_document_has_no_identity_until_backfilled():
+    repo, collection = make_repo()
+    pid = (await repo.save(snapshot(), {"ChIJ-a"})).property_id
+    del collection.docs[pid]["identity_version"]
+    assert await repo.identity(pid) is None  # fail closed: nothing to bind a commit to
+
+
+# --- ACC-BIND-01..06: the commit refuses a property that moved after the gate ------------------------------------
+
+def _moved(case, docs):
+    doc = docs[PID]
+    if case == "save":  # ACC-BIND-01 (and -03: the kept side of a merge receives aliases: a write)
+        doc["identity_version"] += 1
+    elif case == "merged-as-duplicate":  # ACC-BIND-02
+        doc.update(merged_into="prp_other", snapshot_state="merged")
+    elif case == "merge-pending":  # ACC-BIND-04
+        doc.update(merging_into="prp_other", snapshot_state="merging")
+    elif case == "purged":  # ACC-BIND-05
+        doc.update(snapshot_state="purged")
+    elif case == "deleted":
+        del docs[PID]
+
+
+@pytest.mark.parametrize("case", ["save", "merged-as-duplicate", "merge-pending", "purged", "deleted"])
+async def test_a_property_that_moved_after_the_gate_refuses_the_commit(case):
+    client, permit, src = durability.stores()
+    _moved(case, client.collection("properties").docs)
+    m, r = durability.verified()
+    assert await permit.commit_verified(m, r, durability.PIN, src, durability.IDENT, durability.props(client)) is False
+    assert client.commits_applied == 0 and "pv_1" not in permit._verifications.docs
+    assert permit._matters.docs["pm_1"]["state"] == "VERIFYING"
+
+
+@pytest.mark.parametrize("identity", [None, PropertyIdentity("prp_ffffffffffffffff", 0)], ids=["none", "other"])
+async def test_no_identity_or_another_propertys_identity_fails_closed(identity):
+    """ACC-BIND-06: the commit binds the matter's own property document, or nothing."""
+    client, permit, src = durability.stores()
+    m, r = durability.verified()
+    assert await permit.commit_verified(m, r, durability.PIN, src, identity, durability.props(client)) is False
+    assert client.commits_applied == 0
+
+
+async def test_a_concurrent_property_write_is_a_refused_commit():
+    """The commit writes the property, so a concurrent write is a write conflict: retried as a whole, then refused."""
+    client, permit, src = durability.stores()
+    conflict = OperationFailure("WriteConflict")
+    conflict._add_error_label("TransientTransactionError")
+    client.fail_on["properties.update_one"] = conflict
+    m, r = durability.verified()
+    assert await permit.commit_verified(m, r, durability.PIN, src, durability.IDENT, durability.props(client)) is False
+    assert "pv_1" not in permit._verifications.docs
+
+
+async def test_the_commit_marks_the_property_without_moving_its_identity():
+    client, permit, src = durability.stores()
+    m, r = durability.verified()
+    assert await permit.commit_verified(m, r, durability.PIN, src, durability.IDENT, durability.props(client)) is True
+    doc = client.collection("properties").docs[PID]
+    assert "last_verified_commit_at" in doc and doc["identity_version"] == 0
+
+
+# --- end to end: a property write between the gate and the commit -------------------------------------------------
+
+def test_a_property_write_after_the_gate_is_never_committed_and_the_gate_re_runs():
+    with make_client(ScriptedModel()) as client:
+        ingest_regulamento(client)
+        workflow = client.app.state.permit_workflow
+        repo, properties = workflow._repo, workflow._properties.repository
+        original, results = repo.commit_verified, []
+
+        async def commit(matter, report, pin, sources, identity, props):
+            if not results:
+                properties.touch(matter.property_id)  # a save lands after the gate's read
+            results.append(await original(matter, report, pin, sources, identity, props))
+            return results[-1]
+        repo.commit_verified = commit
+        mid, _ = run_matter(client)
+        state = repo.matters[mid].state
+    assert results[0] is False  # bound to the stale read: refused, nothing written
+    assert results[-1] is True and state == "VERIFIED"  # the gate re-ran on the current property
+
+
+# --- Codex Phase 2 binding review, round 1 (2026-10-29): exact cases ----------------------------------------------
+
+async def test_a_merge_without_aliases_still_moves_the_kept_identity():
+    repo, collection = make_repo()
+    keep = (await repo.save(snapshot(place_id="ChIJ-k"), {"ChIJ-k"})).property_id
+    collection.docs["prp_legacy"] = {"_id": "prp_legacy", "place_id": "ChIJ-old", "identity_version": 0,
+                                     "snapshot_state": "current", "created_at": T0}  # a legacy duplicate, no place_ids
+    before = await repo.identity(keep)
+    await repo.merge(keep=keep, duplicate="prp_legacy")
+    assert (await repo.identity(keep)).version > before.version
+
+
+async def test_an_older_in_memory_save_that_attaches_an_alias_moves_the_identity():
+    from app.db.property_repository import InMemoryPropertyRepository
+    repo = InMemoryPropertyRepository()
+    pid = (await repo.save(snapshot(resolved_at=T0 + timedelta(hours=1)), {"ChIJ-a"})).property_id
+    captured = await repo.identity(pid)
+    await repo.save(snapshot(), {"ChIJ-a", "ChIJ-late"})  # older snapshot, new alias
+    assert not repo.identity_holds(captured)
+
+
+# --- Codex Phase 2 binding review, round 2 (2026-10-29): exact cases ----------------------------------------------
+
+async def test_a_pending_merge_into_the_property_refuses_the_commit():
+    """The kept side is marked before the duplicate: a commit bound to the identity read before the merge fails."""
+    repo, collection = make_repo()
+    keep = (await repo.save(snapshot(place_id="ChIJ-k"), {"ChIJ-k"})).property_id
+    dup = (await repo.save(snapshot(place_id="ChIJ-d", address="Rua X 1, Cascais", lat=38.70), {"ChIJ-d"})).property_id
+    before = await repo.identity(keep)
+    await repo._collection.update_one({"_id": keep}, {"$addToSet": {"absorbing": {"$each": [dup]}},
+                                                      "$inc": {"identity_version": 1}})  # merge step 0 only
+    assert await repo.identity(keep) is None  # no identity while absorbing
+    client, permit, src = durability.stores()
+    doc = client.collection("properties").docs[PID]
+    doc.update(absorbing=[dup], identity_version=before.version + 1)
+    m, r = durability.verified()
+    assert await permit.commit_verified(m, r, durability.PIN, src, durability.IDENT, durability.props(client)) is False
+
+
+async def test_an_in_memory_identity_needs_the_property_to_exist():
+    from app.db.property_repository import InMemoryPropertyRepository
+    repo = InMemoryPropertyRepository()
+    pid = (await repo.save(snapshot(), {"ChIJ-a"})).property_id
+    captured = await repo.identity(pid)
+    del repo._items[pid]  # deleted
+    assert not repo.identity_holds(captured) and await repo.identity(pid) is None
+
+
+async def test_the_commit_filter_refuses_an_absorbing_property_even_at_the_same_version():
+    """Defence in depth: the filter itself refuses a merge in flight into the property."""
+    client, permit, src = durability.stores()
+    client.collection("properties").docs[PID]["absorbing"] = ["prp_dup"]
+    m, r = durability.verified()
+    assert await permit.commit_verified(m, r, durability.PIN, src, durability.IDENT, durability.props(client)) is False
+
+
+# --- Codex Phase 2 binding review, round 3 (2026-10-29): exact case -----------------------------------------------
+
+async def test_finishing_one_merge_keeps_another_merges_mark():
+    repo, collection = make_repo()
+    keep = (await repo.save(snapshot(place_id="ChIJ-k"), {"ChIJ-k"})).property_id
+    a = (await repo.save(snapshot(place_id="ChIJ-a", address="Rua A 1, Cascais", lat=38.70), {"ChIJ-a"})).property_id
+    b = (await repo.save(snapshot(place_id="ChIJ-b", address="Rua B 1, Cascais", lat=38.71), {"ChIJ-b"})).property_id
+    await collection.update_one({"_id": keep}, {"$addToSet": {"absorbing": {"$each": [b]}},
+                                                "$inc": {"identity_version": 1}})  # merge B started (step 0)
+    await repo.merge(keep=keep, duplicate=a)  # merge A runs to the end
+    assert collection.docs[keep]["absorbing"] == [b] and await repo.identity(keep) is None  # B still in flight
+    assert await repo.resume_pending_merges() == 1  # B completes at startup
+    assert not collection.docs[keep]["absorbing"] and await repo.identity(keep) is not None
+
+
+# --- Codex Phase 2 binding review, round 4 (2026-10-29): exact cases ----------------------------------------------
+
+async def _three(repo):
+    ids = []
+    for n, (place, lat) in enumerate((("ChIJ-a", 38.70), ("ChIJ-b", 38.71), ("ChIJ-c", 38.72))):
+        ids.append((await repo.save(snapshot(place_id=place, address=f"Rua {n} 1, Cascais", lat=lat), {place})).property_id)
+    return ids
+
+
+async def test_a_superseded_merge_leaves_no_mark_behind():
+    repo, collection = make_repo()
+    a, b, c = await _three(repo)
+    await collection.update_one({"_id": b}, {"$addToSet": {"absorbing": {"$each": [a]}}})  # B → A started (step 0)
+    await repo.merge(keep=c, duplicate=a)  # A went to C instead
+    await repo.resume_pending_merges()  # B's attempt is superseded: logged, not raised
+    assert not collection.docs[b].get("absorbing") and await repo.identity(b) is not None
+
+
+async def test_a_chained_merge_clears_the_former_kept_mark_and_settles():
+    """A → B left at step 1, B → C refused until A → B is resumed (containment, round 5); then everything settles and
+    a further resume moves nothing."""
+    repo, collection = make_repo()
+    a, b, c = await _three(repo)
+    await collection.update_one({"_id": b}, {"$addToSet": {"absorbing": {"$each": [a]}}})  # A → B, step 0 …
+    await collection.update_one({"_id": a}, {"$set": {"merging_into": b, "snapshot_state": "merging",
+                                                      "merged_aliases": ["ChIJ-a"]}, "$unset": {"place_ids": ""}})
+    with pytest.raises(ValueError, match="pending merge"):
+        await repo.merge(keep=c, duplicate=b)
+    assert await repo.resume_pending_merges() == 1
+    await repo.merge(keep=c, duplicate=b)
+    version = collection.docs[c]["identity_version"]
+    assert await repo.resume_pending_merges() == 0 and collection.docs[c]["identity_version"] == version
+    assert not collection.docs[b].get("absorbing")
+
+
+# --- containment after the binding review's last round (Codex round 5; not re-reviewed) ---------------------------
+
+async def test_a_property_with_a_merge_into_it_pending_is_not_merged_away():
+    """P1: merging B (absorbing A) into C would leave C bindable while A → B is pending. Refused until resumed."""
+    repo, collection = make_repo()
+    a, b, c = await _three(repo)
+    await collection.update_one({"_id": b}, {"$addToSet": {"absorbing": {"$each": [a]}},
+                                             "$inc": {"identity_version": 1}})
+    with pytest.raises(ValueError, match="pending merge"):
+        await repo.merge(keep=c, duplicate=b)
+    assert not collection.docs[c].get("absorbing") and await repo.identity(c) is not None  # C untouched
+    assert await repo.resume_pending_merges() == 1  # A → B completes
+    await repo.merge(keep=c, duplicate=b)  # then the chain can be merged
+    assert collection.docs[b]["merged_into"] == c
+
+
+async def test_a_mark_for_a_deleted_duplicate_is_removed():
+    """P2: resume no longer strands the kept property's mark when the duplicate is gone."""
+    repo, collection = make_repo()
+    keep = (await repo.save(snapshot(place_id="ChIJ-k"), {"ChIJ-k"})).property_id
+    await collection.update_one({"_id": keep}, {"$addToSet": {"absorbing": {"$each": ["prp_gone"]}}})
+    await repo.resume_pending_merges()
+    assert not collection.docs[keep].get("absorbing") and await repo.identity(keep) is not None
+
+
+# --- Codex backlog review, round 1 (2026-10-29): the pending-merge refusal is atomic --------------------------------
+
+async def test_a_merge_into_the_duplicate_that_starts_after_the_check_still_blocks_merging_it():
+    """merge(C, B) reads B (no mark), then merge(B, A) marks B; merge(C, B) must not merge B away: its write is
+    conditional on B carrying no mark, and C's own mark is removed."""
+    repo, collection = make_repo()
+    a, b, c = await _three(repo)
+    real_find = collection.find_one
+    raced = []
+
+    async def find_one(flt, *args, **kwargs):
+        doc = await real_find(flt, *args, **kwargs)
+        if flt == {"_id": b} and not raced:  # merge(C, B)'s read of B; merge(B, A) starts right after it
+            raced.append(True)
+            await collection.update_one({"_id": b}, {"$addToSet": {"absorbing": {"$each": [a]}},
+                                                     "$inc": {"identity_version": 1}})
+        return doc
+    collection.find_one = find_one
+    with pytest.raises(ValueError, match="pending merge"):
+        await repo.merge(keep=c, duplicate=b)
+    collection.find_one = real_find
+    assert "merging_into" not in collection.docs[b] and not collection.docs[c].get("absorbing")

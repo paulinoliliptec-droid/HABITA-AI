@@ -11,6 +11,7 @@ authority and when the sources were verified. The model never supplies zoning.
 without one because no official machine-readable zoning service has been verified.
 """
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -72,14 +73,16 @@ def decide(
     reasons: list[ManualReason] = []
     if precision not in PRECISE:
         reasons.append("low_geocode_precision")
-    classes = {f.classification.code or f.classification.label for f in result.features}
     if not result.features:
         reasons.append("no_feature_at_point")
-    elif len(classes) > 1:
+    elif len(result.features) > 1:
+        # CX-5: exactly one feature, not one class: two overlapping features (even of the same class) leave the
+        # reference ambiguous, so the first one is never picked as the determination.
         reasons.append("multiple_features")
-    if result.boundary_distance_m is None:
-        reasons.append("boundary_distance_unknown")
-    elif result.boundary_distance_m < tolerance_m:
+    distance = result.boundary_distance_m
+    if distance is None or not math.isfinite(distance) or distance < 0:
+        reasons.append("boundary_distance_unknown")  # CX-5: NaN, ±Infinity or negative is not a distance
+    elif distance < tolerance_m:
         reasons.append("near_class_boundary")
     return reasons, (result.features[0] if not reasons else None)
 

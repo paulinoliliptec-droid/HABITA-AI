@@ -16,6 +16,7 @@ The template is in [`/.env.example`](../.env.example) and holds placeholders onl
 | `META_TRANSCRIBE_MODEL` | backend | No | `muse-voice-transcribe-1.0` |
 | `META_SEGMENTATION_MODEL` | backend | No | `sam-3.1` |
 | `GOOGLE_MAPS_API_KEY` | backend | **Yes** | Server-side key for Geocoding/Places. Restrict to required APIs. |
+| `MAPS_STATIC_API_KEY` | backend | No | Key for the Maps Static API (HR-006 PDF location maps). Unset: `GOOGLE_MAPS_API_KEY` is tried; without a key allowed to call the Static API the PDF says the maps are unavailable. Restrict to the Maps Static API and set a daily quota. |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | frontend | Public by design | Browser key for the Maps JavaScript API. Restrict by HTTP referrer **and** API. Keep it separate from the server key. |
 | `GOOGLE_CLOUD_PROJECT` | infra | No | GCP project ID used for Cloud Run, Artifact Registry and Secret Manager. |
 | `GOOGLE_CLOUD_REGION` | infra | No | Deployment region, e.g. `us-central1`. |

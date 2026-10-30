@@ -29,7 +29,13 @@ CIVIL_TEXT = ("Only autonomous units can be the object of horizontal property: u
               "isolated from each other, with their own exit to a common part of the building or to the public way.")
 PDM_TEXT = ("Princípios gerais do solo urbano 1 - Em solo urbano os espaços destinam-se predominantemente à "
             "urbanização e edificação, designadamente de habitação, comércio e serviços.")
-PDM_QUOTE = "Em solo urbano os espaços destinam-se predominantemente à urbanização e edificação"
+#: PDM_TEXT's rule in its own wording: the only form in which a restatement of it verifies, and the whole sentence a
+#: quote must be (owner decision after ACC-QO-09 / ACC-ROLE-01).
+#: Its header ("Princípios gerais do solo urbano") adds to the body, so it stays bound to the rule (ACC-NRM-44): a quote
+#: is shown with it, and a transcription carries it.
+PDM_HEADER, PDM_BODY = PDM_TEXT.split(" 1 - ", 1)
+PDM_SENTENCE = f"{PDM_HEADER} {PDM_BODY}"
+PDM_QUOTE = PDM_BODY.rstrip(".")
 FAQ_TEXT = ("Q: Que entidades é necessário registar no MyCascais para iniciar um pedido de licenciamento ou "
             "comunicação prévia? R: Todas as entidades do pedido deverão estar registadas e validadas no MyCascais.")
 PLANNING_TEXT = "Planning classification requires confirmation against the official map(s)."
@@ -111,7 +117,7 @@ def claim(text: str, *ids: str, basis="none", quote=None) -> Claim:
 
 def rule_claim(eid="E3") -> Claim:
     """A general planning rule in the structured form: HABITA's text is the official passage itself."""
-    return claim(PDM_QUOTE, eid, basis="general_rule", quote=PDM_QUOTE)
+    return claim(f"{PDM_HEADER} {PDM_QUOTE}", eid, basis="general_rule", quote=PDM_QUOTE)  # as HABITA renders it
 
 
 SECTIONS = ("conclusion", "claim", "procedure", "risk", "next action")
@@ -209,7 +215,7 @@ async def test_rendering_replaces_model_wording_with_habita_content(section):
     """The structured bases are rendered by HABITA: the paraphrase disappears; what verifies is HABITA's text."""
     paraphrase = ADVERSARIAL[0]
     for basis, ids, quote, expected in (
-        ("general_rule", ["E3"], PDM_QUOTE, PDM_QUOTE),
+        ("general_rule", ["E3"], PDM_QUOTE, f"{PDM_HEADER} {PDM_QUOTE}"),
         ("authority_confirmation", ["E2"], None, CONDITION_TEXT),
     ):
         rendered = render_draft(in_section(section, paraphrase, ids, basis=basis, quote=quote), MANUAL_RECORDS, matter())
@@ -272,9 +278,8 @@ async def test_the_reviewer_flag_is_enforced_by_code():
     ("The Câmara Municipal de Cascais is the competent authority.", ["E9"]),
     ("Each new unit must be autonomous with its own exit.", ["E7"]),
     ("You state each floor has its own street door.", ["E8"]),
-    ("Building works and alterations need municipal prior control under the RJUE.", ["E1"]),
-    ("A licence or prior communication may be required, depending on the operation.", ["E1"]),
     ("Confirm the conditions with the Câmara Municipal de Cascais before you apply.", ["E9"]),
+    ("Confirm with the Câmara whether the works need a licence or prior communication.", ["E1"]),
 ])
 @pytest.mark.parametrize("section", SECTIONS)
 async def test_grounded_non_planning_statements_verify(text, cites, section):
@@ -283,6 +288,18 @@ async def test_grounded_non_planning_statements_verify(text, cites, section):
     report = await verify(render_draft(in_section(section, text, cites, step="Apply"), MANUAL_RECORDS, matter()))
     expected = "REJECTED" if cites == ["E8"] and section != "claim" else "VERIFIED"
     assert report.outcome == expected, (section, report.issues)
+
+
+@pytest.mark.parametrize("text", [
+    "Building works and alterations need municipal prior control under the RJUE.",
+    "A licence or prior communication may be required, depending on the operation.",
+])
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_a_legal_requirement_resting_on_a_curated_summary_is_not_verified(text, section):
+    """MU-9 (C1): a curated summary is context only, and a paraphrase of a legal requirement needs an official passage
+    that supports it in the direction stated. Until 98af6af these verified with the curated RJUE (E1) alone."""
+    report = await verify(render_draft(in_section(section, text, ["E1"], step="Apply"), MANUAL_RECORDS, matter()))
+    assert report.outcome == "REJECTED" and "unsupported_legal_claim" in codes(report.issues), report.issues
 
 
 def test_the_property_address_is_a_case_fact_not_a_zone():
@@ -527,7 +544,7 @@ GENERAL_EXPLANATIONS = [
     "Urban parameters must be checked against the applicable plan.",
     "Housing use may depend on the applicable plan.",
     "Each zone or district defined by a municipal plan has specific land-use rules.",
-    "Urban land is intended mainly for building, including housing, commerce and services.",
+    PDM_SENTENCE,
     "O PDM classifica e qualifica o solo do município.",
     "Os parâmetros urbanísticos têm de ser verificados no plano aplicável.",
     "O uso habitacional pode depender da categoria de espaço definida no plano.",
@@ -609,9 +626,9 @@ async def test_a_parcel_assertion_with_a_trusted_admissible_determination_procee
 
 @pytest.mark.parametrize("section", SECTIONS)
 @pytest.mark.parametrize("text", [
-    "Housing may be admissible, depending on the land category set by the plan.",
+    "Housing use may depend on the land category set by the plan.",
     "A second dwelling may depend on the urban zone and its parameters.",
-    "A habitação pode ser admissível consoante a categoria de solo definida no plano.",
+    "O uso habitacional pode depender da categoria de solo definida no plano.",
 ])
 async def test_ambiguous_general_wording_stays_conditional_never_parcel_zoning(text, section):
     """Hedged, subject-less wording passes only as a framed general explanation: the matter stays conditional, the
@@ -702,20 +719,38 @@ async def test_reclassification_opens_no_path_for_the_earlier_paraphrases(text, 
 
 # A. General explanation + official source; E. the same vocabulary is not, by itself, a reason to reject.
 GENERAL_A_E = [
-    "Under the PDM, urban land is intended mainly for building, including housing, commerce and services.",
-    "Zoning in a municipal plan sets which uses each district or zone admits.",
+    PDM_SENTENCE,
+    "Zoning in a municipal plan sets the rules of each district or zone.",
     "Housing use in urban land may depend on the urban parameters of the applicable plan.",
-    "Segundo o PDM, em solo urbano os espaços destinam-se sobretudo à urbanização e à habitação.",
-    "O zonamento do plano municipal define os usos admitidos em cada distrito ou zona urbanística.",
+    PDM_SENTENCE.rstrip("."),
+    "O zonamento do plano municipal define as regras de cada distrito ou zona urbanística.",
     "A habitação em solo urbano depende dos parâmetros urbanísticos do plano aplicável.",
 ]
+# A restatement of PDM_TEXT in other words (translated, reordered, abridged, attributed) is quote-only: its words can
+# be checked, not their roles (owner decision after ACC-QO-09 / ACC-ROLE-01).
+RESTATEMENTS = [
+    "Urban land is intended mainly for building, including housing, commerce and services.",
+    "Under the PDM, urban land is intended mainly for building, including housing, commerce and services.",
+    "Segundo o PDM, em solo urbano os espaços destinam-se sobretudo à urbanização e à habitação.",
+    "Under the PDM, urban land is intended mainly for housing.",
+    "Under the PDM, urban land is intended mainly for urbanisation and building, including housing.",
+    "Segundo o PDM, o solo urbano destina-se predominantemente à urbanização e edificação.",
+]
+
+
+@pytest.mark.parametrize("section", SECTIONS)
+@pytest.mark.parametrize("text", RESTATEMENTS)
+async def test_a_restatement_of_an_official_sentence_is_quote_only(text, section):
+    report = await rendered_verify(in_section(section, text, ["E3"], basis="general_planning_explanation"))
+    assert report.outcome != "VERIFIED" and "unsupported_legal_claim" in codes(report.issues), report.issues
+
+
 # B. General explanation + the property's facts (as context) + official source: (text, cited ids).
 GENERAL_WITH_FACTS_B = [
-    ("The property is at Praça 5 de Outubro, Cascais. Under the PDM, urban land is intended mainly for housing.",
-     ["E6", "E3"]),
+    ("The property is at Praça 5 de Outubro, Cascais. " + PDM_SENTENCE, ["E6", "E3"]),
     # The user's answer may accompany the rule as context (HR-003 MU-3: never restated in HABITA's voice).
     ("Housing use may depend on the urban parameters of the plan.", ["E8", "E3"]),
-    ("The parcel's planning classification must be confirmed; zoning rules set the uses each district admits.",
+    ("The parcel's planning classification must be confirmed; zoning rules differ by district.",
      ["E6", "E3"]),
     ("O imóvel fica na Praça 5 de Outubro, em Cascais. Em solo urbano, a habitação depende dos parâmetros do plano.",
      ["E6", "E3"]),
@@ -812,12 +847,12 @@ async def test_g_a_valid_official_parcel_determination_supports_the_category(tex
 # into a statement about "the land-use category of the parcel". (Reconstructed in EN and PT from the run's report.)
 
 K_GENERAL = [
-    "The PDM classifies municipal land as urban or rustic and qualifies it into categories of space.",
-    "Each land-use category sets the admissible uses and the urban parameters for building.",
-    "Under the PDM, urban land is intended mainly for urbanisation and building, including housing.",
-    "O PDM classifica o solo como urbano ou rústico e qualifica-o em categorias de espaço.",
-    "Cada categoria de uso do solo define os usos admissíveis e os parâmetros urbanísticos.",
-    "Segundo o PDM, o solo urbano destina-se predominantemente à urbanização e edificação.",
+    "The PDM classifies municipal land and qualifies it into categories of space.",
+    "Each land-use category sets the urban parameters for building.",
+    PDM_SENTENCE,
+    "O PDM classifica o solo e qualifica-o em categorias de espaço.",
+    "Cada categoria de uso do solo define os parâmetros urbanísticos.",
+    PDM_SENTENCE.rstrip("."),
 ]
 K_PARCEL = [
     "The land-use category of the parcel conditions the admissible uses and urban parameters.",

@@ -290,6 +290,23 @@ _UNASSERTED = re.compile(
     r"\b(?:if|whether|unless)\b[^,;:.!?]*"
     r"|(?:^|(?<=[,;:.!?]))\s*(?:se|caso)\b[^,;:.!?]*"
     r"|\b(?:confirmar|verificar|apurar|saber|avaliar|confirme|verifique|concluir|decidir|determinar)\s+se\b[^,;:.!?]*")
+#: The same questions, but ending at a coordinator: after a deferral, "… must be confirmed whether X *and* the
+#: property is approved" asserts the second clause. ("or" stays inside: alternatives are part of the question.)
+_UNASSERTED_BOUNDED = re.compile(_UNASSERTED.pattern.replace(
+    "[^,;:.!?]*", r"(?:(?!\b(?:and|but|e|mas|nem|yet|porem|contudo)\b)[^,;:.!?])*"))
+
+
+def asserted(sentence: str) -> str:
+    """A folded sentence without what it doesn't assert: the deferral itself ("must be confirmed"), a question before
+    it (deferred whole: "Whether X and Y must be confirmed") and a question after it, up to a coordinator. Anything
+    else, including a clause coordinated after the deferral, is asserted (FP-4 review)."""
+    d = _DEFERRAL.search(sentence)
+    if d is None:
+        return _DEFERRAL.sub(" ", _UNASSERTED_BOUNDED.sub(" ", sentence))
+    prefix, suffix = sentence[:d.start()], sentence[d.end():]
+    return f"{_UNASSERTED.sub(' ', prefix)} {_DEFERRAL.sub(' ', _UNASSERTED_BOUNDED.sub(' ', suffix))}"
+
+
 _ABBREVIATIONS = {"art", "arts", "n", "no", "al", "cf", "eg", "ie", "etc", "p", "pp", "dr", "sr", "min", "max"}
 
 
@@ -357,7 +374,7 @@ def read_planning(text: str, cited: list[Evidence], case_facts: list[Evidence], 
     general = deferral = False
     for sentence in sentences:
         deferred = bool(_DEFERRAL.search(sentence))
-        rest = _WORD.findall(_UNASSERTED.sub(" ", _DEFERRAL.sub(" ", sentence)))
+        rest = _WORD.findall(asserted(sentence))
         refs = _references(rest, names, named)
         planning = has_planning_content(" ".join(rest))
         # The reference's own words don't count (folded PT "esta" is both "this" and "is").
@@ -396,8 +413,51 @@ def case_restatement(text: str, cited: list[Evidence]) -> bool:
         return False
     corpus = {_stem(w) for e in cited for w in _tokens(" ".join((e.excerpt, e.source_title, e.source_reference)))}
     corpus |= {_stem(w) for w in _META}
+    authorities = [e for e in cited if e.source_type == "authority_record"]
     words = _tokens(text)
+    if (authorities and not _NEGATED.search(fold(text))
+            and all(_competence_oriented(_tokens(x), authorities, restating=True) for x in _sentences(text))):
+        # "… is handled by the Câmara" restating the authority's own competence record (FP-3): the neutral competence
+        # predicate is grounded by that record; every other word still has to be.
+        corpus |= {_stem(w) for w in _COMPETENCE_PREDICATES}
     return bool(words) and all(_stem(w) in corpus for w in words)
+
+
+#: Words a competence restatement may add around the record's own run ("is handled by", "é responsável por").
+_GLUE = {"is", "are", "be", "by", "for", "e", "sao", "por", "pela", "pelo", "the"}
+
+
+def _in_order_run(words: list[str], record: list[str]) -> bool:
+    return bool(words) and any(record[i:i + len(words)] == words for i in range(len(record) - len(words) + 1))
+
+
+#: A negation anywhere: a competence restatement states the record, never its opposite ("No licensing … is handled by
+#: the Câmara"; FP review round 5).
+_NEGATED = re.compile(r"\b(?:no|not|never|none|nor|without|nao|nunca|nenhum|nenhuma|nem|sem)\b")
+
+
+def _competence_oriented(words: list[str], authorities: list[Evidence], restating: bool = False) -> bool:
+    """Whether a competence predicate keeps the record's orientation: the authority is the agent of "handled"
+    ("… is handled by the Câmara", "… tratado pela Câmara") or the subject of "responsible / competent" ("The Câmara is
+    responsible for …"). A reversed relation ("The Câmara is handled by licensing") is not the record's (FP-3 review)."""
+    names = {w for e in authorities for w in _tokens(e.source_title)}
+    if not any(w in _COMPETENCE_PREDICATES for w in words):
+        return True
+    # ``restating`` (the FP-3 admission path): what the authority handles must be a run of its record, in the
+    # record's order ("building permits, including licensing of urban operations" reverses its inclusion).
+    activity = [w for w in words if w not in names and w not in _COMPETENCE_PREDICATES and w not in _GLUE]
+    if restating and not any(_in_order_run(activity, [w for w in _tokens(e.excerpt) if w not in names])
+                             for e in authorities):
+        return False
+    for i, w in enumerate(words):
+        if w not in _COMPETENCE_PREDICATES:
+            continue
+        before, after = set(words[:i]), set(words[i + 1:])
+        agent = w in ("handled", "tratado", "tratada")
+        if agent and names <= after and not names & before or not agent and names <= before and not names & after:
+            continue
+        return False
+    return True
 
 
 def case_fact_problem(text: str, cited: list[Evidence], case_facts: list[Evidence]) -> str | None:
@@ -466,7 +526,10 @@ def _quoted_record(quote: str | None, cited: list[Evidence]) -> Evidence | None:
 def rendered_text(basis: str, quote: str | None, cited: list[Evidence], matter: PermitMatter, conditions) -> str | None:
     """The HABITA-derived text a structured statement must consist of, or None if it can't be derived."""
     if basis == "general_rule":
-        return re.sub(r"\s+", " ", quote).strip() if quote and _quoted_record(quote, cited) else None
+        if not quote or (record := _quoted_record(quote, cited)) is None:
+            return None
+        from app.services.permit.claims import bound_quote  # claims builds on this module
+        return bound_quote(record, quote)
     if basis == "authority_confirmation":
         return planning_condition(conditions)
     if basis == "parcel_determination":
@@ -479,6 +542,47 @@ def rendered_text(basis: str, quote: str | None, cited: list[Evidence], matter: 
 #: when it cites HABITA's own location evidence (jurisdiction or property record), and they ground nothing else.
 _LOCATION_PREDICATES = ("located", "situated", "localizado", "localizada", "situado", "situada")
 _LOCATION_RECORDS = ("jurisdiction_record", "property_record")
+#: Neutral competence predicates (EN + PT): usable only when restating a cited authority record.
+_COMPETENCE_PREDICATES = ("handled", "handles", "responsible", "competent", "competence", "trata", "tratado",
+                          "tratada", "competente", "responsavel")
+
+
+_NEGATION_WORDS = re.compile(r"\b(?:no|not|never|none|nor|nobody|nothing|cannot|nao|nunca|nenhum|nenhuma|nem|ninguem|nada)\b"
+                             r"|\b\w+n['’]t\b")
+_RESTRICTIVE_WORDS = re.compile(r"\b(?:only|exclusively|solely|unless|except\w*|apenas|somente|exclusivamente|"
+                                r"salvo|exceto|excepto)\b")
+_NUMBER = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)?")
+
+
+_STATUS = r"(?:licen\w*|approv\w*|aprov\w*|authori[sz]\w*|autoriz\w*|permit\w*|legal\w*|conform\w*|compliant|valid\w*)"
+#: The one question shape a deferral may leave ungrounded: the matter's legal status, nothing else ("Whether the
+#: property is licensed", "Se o imóvel está licenciado ou não"). Any other question is grounded as written (FP-4).
+_STATUS_QUESTION = re.compile(
+    r"^\s*(?:whether|se)\s+(?:the|this|o|a|este|esta)\s+(?:property|site|works|project|building|imovel|predio|obra|"
+    r"projeto|projecto|edificio|casa)\s+(?:is|was|has been|is already|holds|has|esta|e|foi|tem|possui)\s+"
+    r"(?:(?:a|an|the|um|uma)\s+)?" + _STATUS + r"(?:\s+(?:or|ou)\s+(?:not|nao|" + _STATUS + r"))?\s*$")
+
+
+def _subject_question_removed(sentence: str, authority_names: set[str]) -> str:
+    """The sentence without its status question when the whole sentence is the closed deferral shape: "Whether <the
+    property> <is> <status> must be confirmed [with <the cited authority>]." (FP-4). Any other sentence, including a
+    question with anything more in it ("… although it was approved") or anything after the authority ("…, which
+    confirms this property's permits"), is grounded as written."""
+    d = _DEFERRAL.search(sentence)
+    if d is None or not _STATUS_QUESTION.match(sentence[:d.start()]):
+        return sentence
+    if not set(_tokens(sentence[d.end():])) <= authority_names:
+        return sentence
+    return sentence[d.start():]
+
+
+def _asserted_words(text: str, authority_names: set[str] = frozenset()) -> list[str]:
+    """The words a free-text statement asserts: a question that is the subject of a deferral ("Whether the property is
+    licensed must be confirmed …") is not asserted (FP-4). The object of an instruction to check ("Confirm the
+    full list of … with the Câmara") still is: it presupposes its content ("Confirm the 3 documents …"), so FP-5 stays
+    a known, fail-closed limitation rather than a vocabulary filter."""
+    return [w for sentence in _sentences(fold(text))
+            for w in _tokens(_subject_question_removed(sentence, authority_names))]
 
 
 def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidence]) -> str | None:
@@ -493,7 +597,25 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
         # "The property is located in Cascais …" restating HABITA's own location record: the neutral location verb
         # is grounded by that record; every other word (the place itself) still has to be.
         corpus |= {_stem(w) for w in _LOCATION_PREDICATES}
-    ungrounded = sorted({w for w in words if _stem(w) not in corpus})
+    names = {w for e in cited if e.source_type == "authority_record" and not is_user_declared(e)
+             for w in _tokens(e.source_title)}
+    ungrounded = sorted({w for w in _asserted_words(text, names) if _stem(w) not in corpus})
+    # A negation is a function word for ``_tokens``, so it was never grounded ("The Câmara handles no applications"
+    # against "handles applications"): every negation a free-text statement asserts must be in a cited record.
+    # Only the statement's own cited records can state a negation (an uncited address's PT "no" is not one).
+    cited_text = fold(" ".join(" ".join((e.excerpt, e.source_title)) for e in cited if not is_user_declared(e)))
+    stated = set(_NEGATION_WORDS.findall(cited_text))
+    if _RESTRICTIVE_WORDS.search(cited_text):
+        # "Only autonomous units can …" states that the others can't: a restriction grounds a negation.
+        stated |= set(_NEGATION_WORDS.findall(fold(text)))
+    asserted_text = " ".join(_DEFERRAL.sub(" ", _subject_question_removed(x, names)) for x in _sentences(fold(text)))
+    ungrounded += sorted(set(_NEGATION_WORDS.findall(asserted_text)) - stated)
+    # Numbers aren't words for ``_tokens``, so they were never grounded ("Confirm the 3 documents …"): every number a
+    # free-text statement asserts must be one of its cited records'.
+    numbers = {n for e in [*cited, *case_facts] if not is_user_declared(e)
+               for n in _NUMBER.findall(" ".join((e.excerpt, e.source_title, e.source_reference)))}
+    ungrounded += sorted({n for sentence in _sentences(fold(text))
+                          for n in _NUMBER.findall(_subject_question_removed(sentence, names))} - numbers)
     if len(ungrounded) > UNGROUNDED_ALLOWED:
         return f"is not grounded in its cited evidence (unsupported words: {', '.join(ungrounded)})"
     return None
@@ -536,7 +658,7 @@ def _user_attribution_problem(text: str, case_facts: list[Evidence]) -> str | No
     sentences = _sentences(fold(text))
     named = any(_references(_WORD.findall(x), names, False) for x in sentences)
     for sentence in sentences:
-        rest = _WORD.findall(_UNASSERTED.sub(" ", _DEFERRAL.sub(" ", sentence)))
+        rest = _WORD.findall(asserted(sentence))
         refs = _references(rest, names, named)
         own = {i + k for i, ref in refs for k in range(len(ref.split()))}
         verbs = {j for j, w in enumerate(rest) if w in _ATTRIBUTION and j not in own
@@ -619,7 +741,12 @@ def statement_problem(
         return explanation_problem(text[len(EXPLANATION_FRAME):], cited, case_facts)
     if any(is_planning_evidence(e) for e in cited):
         return "cites planning evidence without a structured planning basis"
-    full = " ".join(filter(None, (step, text)))
+    full = ". ".join(filter(None, (step, text)))  # the step name is its own sentence (as claims.assess reads it)
+    authorities = [e for e in cited if e.source_type == "authority_record"]
+    if authorities and not all(_competence_oriented(_tokens(x), authorities) for x in _sentences(full)):
+        # "Licensing … is responsible for the Câmara": a competence relation the record doesn't state (reversed), even
+        # though "responsible" is a generic word (FP-3 review).
+        return "states a competence relation its authority record doesn't (the authority is not its agent or subject)"
     if has_planning_content(full) and case_restatement(full, cited):
         return case_fact_problem(full, cited, case_facts)
     return grounding_problem(full, cited, case_facts)
@@ -647,7 +774,15 @@ def render_draft(draft, evidence: list[Evidence], matter: PermitMatter):
             # claim inside the answer itself is rejected by ``user_claim_problem``.
             if basis == USER_DECLARATION or _restates(" ".join(filter(None, (step, text))), cited_all):
                 return USER_DECLARATION, USER_STEP, render_user_declaration(cited_all)
-        full = " ".join(filter(None, (step, text)))
+        full = ". ".join(filter(None, (step, text)))  # the step name is its own sentence
+        cited_now = [by_id[i] for i in entry.evidence_ids if i in by_id]
+        if (basis == EXPLANATION and not has_planning_content(full)
+                and all(_DEFERRAL.search(x) for x in _sentences(fold(text)))
+                and not any(is_official_text(e) or is_planning_evidence(e) for e in cited_now)):
+            # A deferral to the authority labelled a planning explanation, with no planning content and nothing an
+            # explanation could rest on ("Whether the property is licensed must be confirmed with the Câmara", citing
+            # the authority): free text, held to that contract (FP-4).
+            return "none", step, text
         if basis == "none" and has_planning_content(full) and not case_restatement(
                 full, [by_id[i] for i in entry.evidence_ids if i in by_id]):
             basis = EXPLANATION  # planning prose of the model's own (a restated case record stays a fact)

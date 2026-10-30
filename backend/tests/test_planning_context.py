@@ -114,6 +114,11 @@ async def test_a_trusted_layer_with_one_clear_feature_resolves(cascais_property)
     (found(CENTRAL, distance=4.0), "rooftop", "near_class_boundary"),
     (found(CENTRAL, distance=None), "rooftop", "boundary_distance_unknown"),
     (found(CENTRAL), "approximate", "low_geocode_precision"),
+    # CX-5: one feature, not one class; a distance must be finite and non-negative.
+    (found(CENTRAL, CENTRAL), "rooftop", "multiple_features"),
+    (found(CENTRAL, distance=float("nan")), "rooftop", "boundary_distance_unknown"),
+    (found(CENTRAL, distance=float("inf")), "rooftop", "boundary_distance_unknown"),
+    (found(CENTRAL, distance=-1.0), "rooftop", "boundary_distance_unknown"),
 ])
 async def test_ambiguous_zoning_requires_manual_confirmation(cascais_property, result, precision, reason):
     prop = cascais_property.model_copy(update={"precision": precision})

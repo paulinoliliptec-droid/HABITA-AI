@@ -231,6 +231,20 @@ class FollowUp(BaseModel):
     text: str
 
 
+class ClaimAtom(BaseModel):
+    """One atomic legal claim of a model statement and its deterministic verdict (MU-9)."""
+
+    statement: str
+    text: str
+    kind: str
+    bearer: str
+    supported_by: list[str] = Field(default_factory=list)
+    verdict: Literal["supported", "no_support_needed", "rejected"]
+    #: False: a shadow verdict, recorded for measurement and not (yet) enforced.
+    enforced: bool = True
+    reason: str | None = None
+
+
 class VerificationReport(BaseModel):
     verification_id: str
     matter_id: str
@@ -250,6 +264,14 @@ class VerificationReport(BaseModel):
     #: The registry state the final gate decided on, {source_id: "status@trust_version"}; a VERIFIED report is
     #: committed only while every one of these is unchanged (HR-003 CX-2).
     trust_pin: dict[str, str] = Field(default_factory=dict)
+    #: The verification protocol that produced the report; reports from before MU-9 carry none and read as
+    #: ``statement-v1``.
+    protocol: str = "statement-v1"
+    #: Set by ``raise-protocol-floor`` on a VERIFIED report whose protocol the floor no longer admits: history only,
+    #: the matter must be re-verified.
+    superseded_protocol: str | None = None
+    #: Every atomic legal claim of the draft and its verdict, recomputed by the final gate.
+    claim_atoms: list[ClaimAtom] = Field(default_factory=list)
 
 
 class ProgressEvent(BaseModel):
@@ -286,6 +308,9 @@ class PermitMatter(BaseModel):
     progress: list[ProgressEvent] = Field(default_factory=list)
     error: MatterError | None = None
     latest_verification_id: str | None = None
+    #: Set by ``raise-protocol-floor`` when this VERIFIED matter's report came from a protocol the floor no longer
+    #: admits (MU-9): the matter must be re-verified and is not presented as currently verified.
+    superseded_protocol: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -294,6 +319,8 @@ class PermitMatter(BaseModel):
     @computed_field
     @property
     def assessment_status(self) -> str:
+        if self.state == MatterState.VERIFIED and self.superseded_protocol:
+            return "superseded_assessment"  # MU-9: verified by a protocol no longer admitted; re-verify
         return {
             MatterState.VERIFIED: "verified_assessment",
             MatterState.REJECTED: "assessment_not_verified",
@@ -312,6 +339,10 @@ class PermitMatter(BaseModel):
     def outcome_note(self) -> str | None:
         if self.state != MatterState.VERIFIED:
             return None
+        if self.superseded_protocol:
+            return ("Superseded assessment: it was verified under an earlier verification protocol "
+                    f"({self.superseded_protocol}) that HABITA no longer accepts. It must be verified again before it "
+                    "is relied on. It is not a permit and not an approval by the competent authority.")
         note = ("Verified assessment: HABITA's analysis passed its evidence and verification checks. "
                 "It is not a permit and not an approval by the competent authority.")
         if self.draft and self.draft.conditions:
