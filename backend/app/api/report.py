@@ -36,7 +36,7 @@ async def _matter_report(request: Request, matter_id: str, workflow) -> PermitRe
 
 async def _pdf(request: Request, report: PermitReport, name: str) -> Response:
     p = report.property
-    maps = await request.app.state.static_maps.location_maps(p.lat, p.lng, p.precision)
+    maps = await request.app.state.static_maps.location_maps(p.lat, p.lng, p.precision, place=p.property_id)
     return Response(render_pdf(report, maps), media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="{name}.pdf"', "Cache-Control": "no-store"})
 

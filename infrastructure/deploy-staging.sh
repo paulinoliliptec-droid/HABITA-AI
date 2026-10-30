@@ -14,7 +14,8 @@ BRANCH=mu9/structural-verification
 R=$REGION-docker.pkg.dev/$P/habita-preview
 DB=habita_ai_staging
 MONGO_SECRET=mongodb-uri-staging
-SA_API=habita-staging-api@$P.iam.gserviceaccount.com # reads the three backend secrets, nothing else
+SA_API=habita-staging-api@$P.iam.gserviceaccount.com # reads the four backend secrets, nothing else
+MAPS_SECRET=maps-static-api-key # dedicated key: Maps Static + Street View Static only (HR-006 PDF images)
 SA_WEB=habita-staging-web@$P.iam.gserviceaccount.com # no permissions at all
 BACKEND=habita-backend-staging
 FRONTEND=habita-frontend-staging
@@ -51,6 +52,7 @@ SHA=$(git rev-parse HEAD)
 [ "$SHA" = "$(git rev-parse "origin/$BRANCH")" ] || fail "HEAD is not the pushed head of $BRANCH: push first."
 T=staging-${SHA:0:7}
 run secrets describe "$MONGO_SECRET" --format='value(name)' >/dev/null || fail "secret $MONGO_SECRET missing."
+run secrets describe "$MAPS_SECRET" --format='value(name)' >/dev/null || fail "secret $MAPS_SECRET missing."
 for sa in "$SA_API" "$SA_WEB"; do
   run iam service-accounts describe "$sa" --format='value(email)' >/dev/null || fail "service account $sa missing."
   no_inherited_roles_or_fail "$sa"
@@ -59,7 +61,7 @@ for secret in $(run secrets list --format='value(name.basename())'); do
   policy=$(run secrets get-iam-policy "$secret" --format=json)
   [[ "$policy" != *"$SA_WEB"* ]] || fail "$SA_WEB can read secret $secret: the frontend needs none."
   readers=$(jq -r '.bindings[]? | select(.role == "roles/secretmanager.secretAccessor") | .members[]' <<<"$policy")
-  case "$secret" in "$MONGO_SECRET" | GOOGLE_MAPS_API_KEY | meta-api-key)
+  case "$secret" in "$MONGO_SECRET" | GOOGLE_MAPS_API_KEY | meta-api-key | "$MAPS_SECRET")
     grep -qxF "serviceAccount:$SA_API" <<<"$readers" || fail "$SA_API cannot read secret $secret: the backend needs it." ;;
     *) [[ "$policy" != *"$SA_API"* ]] || fail "$SA_API can read secret $secret (e.g. the preview's mongodb-uri)." ;;
   esac
@@ -102,7 +104,7 @@ COMMON=(--region "$REGION" --no-allow-unauthenticated --invoker-iam-check --ingr
 run run deploy "$BACKEND" --image "$R/backend:$T" --service-account "$SA_API" "${COMMON[@]}" \
   --concurrency 10 --timeout 300 \
   --set-env-vars "APP_ENV=staging,MONGODB_DB_NAME=$DB,SOURCE_INGEST_ON_STARTUP=true,BACKEND_CORS_ORIGINS=http://localhost:$WEB_PORT" \
-  --set-secrets "MONGODB_URI=$MONGO_SECRET:latest,GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY:latest,META_API_KEY=meta-api-key:latest"
+  --set-secrets "MONGODB_URI=$MONGO_SECRET:latest,GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY:latest,META_API_KEY=meta-api-key:latest,MAPS_STATIC_API_KEY=$MAPS_SECRET:latest"
 run run deploy "$FRONTEND" --image "$R/frontend:$T" --service-account "$SA_WEB" "${COMMON[@]}" \
   --concurrency 40 --timeout 60
 

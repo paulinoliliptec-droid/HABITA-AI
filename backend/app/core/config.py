@@ -37,13 +37,16 @@ class Settings(BaseSettings):
     # Enables the maintenance endpoint when set. Unset: the endpoint answers 404.
     maintenance_token: SecretStr | None = None
 
-    # HR-006 PDF location maps (Google Maps Static API). Unset: the geocoding key is tried; when no key may call the
-    # Static API, the PDF says the maps are unavailable and shows no image.
+    # HR-006 PDF location images (Maps Static + Street View Static), with a dedicated server key restricted to those
+    # two APIs (secret maps-static-api-key). Unset: the PDF says the maps are unavailable and shows no image; no other
+    # key is reused.
     maps_static_api_key: SecretStr | None = None
     maps_static_timeout_seconds: float = 8.0
-    maps_static_rate_per_minute: float = 6  # map pairs (two paid loads each) per minute, per process
+    maps_static_rate_per_minute: float = 6  # PDFs with maps (2–3 paid image loads each) per minute, per process
     maps_static_burst: int = 2
     maps_static_daily_limit: int = 200
+    maps_static_per_location_hourly: int = 6
+    maps_street_view: bool = True
 
     resolve_rate_per_minute: float = 30
     resolve_burst: int = 10

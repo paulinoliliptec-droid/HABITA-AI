@@ -24,7 +24,7 @@ from app.db.property_repository import (
 )
 from app.db.staging import confinement_problem
 from app.integrations.maps.geocoding import GeocodingClient
-from app.integrations.maps.static_maps import StaticMapClient
+from app.integrations.maps.static_maps import MemoryDailyUsage, MongoDailyUsage, StaticMapClient
 from app.integrations.meta.client import MetaChatModel
 from app.services.permit.repository import InMemoryPermitRepository, MongoPermitRepository, PermitRepository
 from app.services.permit.sources.base import SourceRegistry
@@ -147,12 +147,14 @@ def create_app(
             api_key = settings.google_maps_api_key.get_secret_value() if settings.google_maps_api_key else None
             app.state.repository = repository
             app.state.settings = settings
-            static_key = settings.maps_static_api_key or settings.google_maps_api_key
             app.state.static_maps = StaticMapClient(
-                http, static_key.get_secret_value() if static_key else None,
+                http, settings.maps_static_api_key.get_secret_value() if settings.maps_static_api_key else None,
                 timeout_seconds=settings.maps_static_timeout_seconds,
                 rate_per_minute=settings.maps_static_rate_per_minute, burst=settings.maps_static_burst,
                 daily_limit=settings.maps_static_daily_limit,
+                per_location_hourly=settings.maps_static_per_location_hourly, street_view=settings.maps_street_view,
+                usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"]) if mongo is not None
+                else MemoryDailyUsage(),
             )
             app.state.property_service = property_service = PropertyLocationService(
                 geocoder=GeocodingClient(http, api_key),

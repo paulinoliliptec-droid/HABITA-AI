@@ -114,21 +114,34 @@ def _location(maps: LocationMaps | None, s) -> list:
         why = maps.unavailable if maps is not None else "Maps were not requested for this report."
         return flow + [_boxed(Paragraph(f"<b>Location maps unavailable.</b> {_t(why)} No image has been substituted; "
                                         "use the coordinates in the property identification.", s["body"]))]
-    width = 150 * mm  # both images and the legend on one page
-    captions = {"roadmap": "A. Road map", "satellite": "B. Satellite image"}
-    for image in maps.images:
+    width = 140 * mm  # both maps and the legend on one page
+    captions = {"roadmap": "A. Road map", "hybrid": "B. Satellite image (with labels)"}
+    for image in (i for i in maps.images if i.kind in captions):
         flow.append(KeepTogether([
             Image(io.BytesIO(image.jpeg), width=width, height=width * HEIGHT / WIDTH),
-            Paragraph(f"<b>{captions.get(image.kind, image.kind)}</b> — centre {maps.lat:.6f}, {maps.lng:.6f}; "
-                      f"zoom {image.zoom}; same centre, zoom and size in both images.", s["small"]),
+            Paragraph(f"<b>{captions[image.kind]}</b> — centre {maps.lat:.6f}, {maps.lng:.6f}; zoom {image.zoom}; "
+                      "same centre, zoom, size and marker in both maps.", s["small"]),
             Spacer(1, 3 * mm),
         ]))
     flow.append(Paragraph(
         f"<b>Legend.</b> Red marker: the geocoded point. Shaded circle (radius about {maps.radius_m} m): "
         f"<b>approximate location</b>, sized from the geocoding precision ({_t(maps.precision)}). It is "
         "<b>not a cadastral or parcel boundary</b>: HABITA holds no verified parcel geometry for this property. "
+        "Google imagery does not prove ownership, parcel limits, zoning or the existence of a municipal licence. "
         f"Source: {_t(ATTRIBUTION)}.", s["small"]))
-    return flow + [PageBreak()]
+    street = next((i for i in maps.images if i.kind == "streetview"), None)
+    if street is not None:
+        flow.append(KeepTogether([
+            Spacer(1, 4 * mm),
+            Image(io.BytesIO(street.jpeg), width=110 * mm, height=110 * mm * HEIGHT / WIDTH),
+            Paragraph(f"<b>C. Street-level view</b> — Google Street View panorama about {street.distance_m} m from "
+                      f"the geocoded point{', facing it' if street.facing else ''}; captured "
+                      f"{_t(street.captured) or 'on an unknown date'}. It shows the surroundings at that date, not the "
+                      "property's current state.", s["small"]),
+        ]))
+    elif maps.street_view_note:
+        flow.append(Paragraph(f"<b>Street-level view:</b> {_t(maps.street_view_note)}", s["small"]))
+    return flow
 
 
 def _refs(ids: list[str]) -> str:
