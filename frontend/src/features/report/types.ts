@@ -7,6 +7,7 @@ export interface ReportEvidence {
   title: string;
   reference: string;
   url: string | null;
+  source_type: string;
   verification_status: string;
   source_id: string | null;
   version: string | null;
@@ -56,6 +57,7 @@ export interface PermitReport {
     statements: ReportStatement[];
     conditions: string[];
     issues: string[];
+    verification?: { outcome: string; current: boolean } | null;
     evidence: ReportEvidence[];
   } | null;
   pending: string[];
