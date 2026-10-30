@@ -142,6 +142,26 @@ MONGODB_URI=$URI APP_ENV=staging MONGODB_DB_NAME=habita_ai_staging .venv/bin/pyt
 unset URI    # the variable lives only in this shell and the command's environment, never on its argv
 ```
 
+### Publication sequence (each step separately authorised; no CI/CD involved)
+1. **Secret** (owner, own interactive terminal): `backend/.venv/bin/python infrastructure/create_staging_secret.py`.
+   Its Atlas check is the first real test of the staging user against `habita-ai-m0`; on STOP, its message names the
+   cause without credentials. Afterwards, metadata only: `gcloud secrets versions list mongodb-uri-staging`.
+2. **IAM** (step 3 of the one-time setup): IAM API, the two service accounts, three per-secret grants for the backend.
+3. **Push the branch only, never `main`** (the commit approved for publication; before it, the read-only checks run
+   from a copy of the preflight without its push check):
+   ```bash
+   git fetch origin && MAIN_BEFORE=$(git rev-parse origin/main)
+   git status --porcelain                              # must be empty
+   git push origin mu9/structural-verification         # explicit refspec: main is not pushed
+   git fetch origin && [ "$(git rev-parse origin/main)" = "$MAIN_BEFORE" ] && echo "main unchanged"
+   [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/mu9/structural-verification)" ] && echo "HEAD published"
+   ```
+4. **Preflight**: `infrastructure/deploy-staging.sh --preflight` (clean tree, HEAD equal to the pushed head).
+5. **Deploy** (below): images built from `git archive` of that exact commit, tagged `staging-<sha>`, private services,
+   preview revisions compared before and after.
+6. **Real checks**: the script's own checks (401/403 anonymously, ready through IAM, database variable, preview
+   unchanged), then the demo test through the proxies. Staging is operational only after these pass.
+
 ### Deploy, open and test
 ```bash
 git fetch origin && git status          # clean, on mu9/structural-verification, HEAD pushed
@@ -153,6 +173,7 @@ infrastructure/deploy-staging.sh        # tests, build, push, deploy, checks
 gcloud run services proxy habita-backend-staging  --region us-central1 --project habita-ai-512916 --port 8081
 gcloud run services proxy habita-frontend-staging --region us-central1 --project habita-ai-512916 --port 3000
 ```
+The proxies and the browser must run on the same machine, with gcloud signed in as an invoker (the owner is).
 Then in the browser, at `http://localhost:3000`: resolve a public demo address (e.g. "Praça 5 de Outubro, Cascais");
 HR-004: the map loads, post-its appear and follow the current matter version; HR-006: the property report and its PDF
 download. Another evaluator needs `roles/run.invoker` on both services (`gcloud run services add-iam-policy-binding`,
