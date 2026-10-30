@@ -116,11 +116,14 @@ for s in "$BACKEND" "$FRONTEND"; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "$url/")
   [ "$code" = 403 ] || [ "$code" = 401 ] || fail "$s answered $code to an anonymous request (expected 401/403)."
 done
-BACKEND_URL=$(run run services describe "$BACKEND" --region "$REGION" --format='value(status.url)')
-# printf is a shell builtin: the identity token goes to curl on stdin, never on a command line.
-printf 'Authorization: Bearer %s\n' "$(gcloud auth print-identity-token)" | curl -fsS -H @- "$BACKEND_URL/health/ready"
-echo
 [ "$(preview_revisions)" = "$PREVIEW_BEFORE" ] || fail "preview revisions changed during the deploy: investigate."
+BACKEND_URL=$(run run services describe "$BACKEND" --region "$REGION" --format='value(status.url)')
+# The token stays in a shell variable (not exported); printf is a builtin, so it reaches curl on stdin, never argv.
+token=$(gcloud auth print-identity-token) && [ -n "$token" ] || fail "gcloud could not issue an identity token."
+code=$(printf 'Authorization: Bearer %s\n' "$token" | curl -s -o /dev/null -w '%{http_code}' -H @- "$BACKEND_URL/health/ready")
+unset token
+[ "$code" = 200 ] || fail "authenticated /health/ready answered $code: if 401, the gcloud credential's identity tokens are \
+not accepted by Cloud Run (STAGING.md, Troubleshooting); the services are deployed and private."
 
 cat <<EOF
 Staging $T deployed (database $DB). Open it through the local proxies, one terminal each:

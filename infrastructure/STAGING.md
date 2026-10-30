@@ -130,7 +130,20 @@ infrastructure/deploy-staging.sh --preflight
 | 2026-10-30 | `infrastructure/create_staging_secret.py` prepared (owner-run, hidden prompt, Atlas privilege check before creation, never replaces a secret) | Claude | reviewed by Codex (3 rounds, clean); tests and local MongoDB 7/8.0 checks pass. A PTY test with a dummy password made one failed login attempt on habita-ai-m0 (nothing read or changed) |
 | 2026-10-30 | Secret `mongodb-uri-staging` | owner, `create_staging_secret.py` | Created 01:49:37Z, label env=staging, automatic replication; version 1 enabled; no secret-level grants yet (content never displayed) |
 | 2026-10-30 | Atlas check from the secret (read-only, URI piped from Secret Manager) | Claude | Authenticates as `habita-staging-app`; privileges only on `habita_ai_staging`, exactly the readWrite actions (Atlas adds none); `confinement_problem` OK; default database `habita_ai_staging`; listCollections on `habita_ai` refused (AtlasError 8000); no database created |
-| pending | IAM API, service accounts, per-secret grants | separate authorisation | — |
+| 2026-10-30 | IAM API enabled; `habita-staging-api`, `habita-staging-web` created; `secretAccessor` for the API account on `mongodb-uri-staging`, `GOOGLE_MAPS_API_KEY`, `meta-api-key` only | Claude (owner-authorised) | `mongodb-uri-staging` readable only by the API account (plus the owner via roles/owner); preview `mongodb-uri` unchanged; web account has no secret access; neither account has project/ancestor roles or user-managed keys. Codex: staging grants correct, nothing missing for deploy |
+| 2026-10-30 | Push of `mu9/structural-verification` only (334a5bd..1182201) | Claude (owner-authorised) | full tests on 1182201 (backend 6589 passed / 14 skipped / 3 xfailed; frontend 37, lint, typecheck); no credentials in the pushed diff; `origin/main` unchanged at 98af6af; full preflight passed |
+| 2026-10-30 | Deploy `staging-1182201` (images from `git archive` of 1182201) | Claude (owner-authorised) | `habita-backend-staging-00001-djm` (SA habita-staging-api, `APP_ENV=staging`, `MONGODB_DB_NAME=habita_ai_staging`, secrets by reference, max 1 instance, concurrency 10) and `habita-frontend-staging-00001-gcb` (SA habita-staging-web, max 1); no IAM bindings, anonymous requests 403; backend started on Atlas: 7 collections in `habita_ai_staging`, MU-9 validator `moderate`/`error` installed with readWrite only, 27 official sources seeded, no warnings in the logs; preview still 00016/00011 at 100%. The script stopped at its authenticated health check (HTTP 401, see Troubleshooting); the preview comparison was then done by hand |
+| pending | Authenticated access (proxy) and the HR-004/HR-006 demo | owner action, then test | blocked: see Troubleshooting |
+
+### Troubleshooting
+- **Authenticated requests get 401 "access token could not be verified"** (seen 2026-10-30): the stored gcloud
+  credential of the account was issued by another OAuth client (identity token `aud` `681255809395-….apps.googleusercontent.com`
+  instead of the gcloud CLI client `32555940559.apps.googleusercontent.com`), and Cloud Run does not accept it; the
+  proxy uses the same token. Fix: re-authenticate gcloud with the CLI's own client, forcing a new authorisation flow,
+  `gcloud auth login --force paulinoliliptec@gmail.com`, then check (prints only claims): `gcloud auth print-identity-token | python3 -c 'import
+  sys,json,base64;p=sys.stdin.read().split(".")[1];print(json.loads(base64.urlsafe_b64decode(p+"="*(-len(p)%4)))["aud"])'`.
+- **`gcloud run services proxy` asks to install `cloud-run-proxy`**: the SDK here comes from apt, so install the
+  component as a package: `sudo apt-get install google-cloud-cli-cloud-run-proxy`.
 
 ### Migrations (only when needed)
 Needed when the backend logs `MU-9: could not install the permit_verifications validator` after a release, or to raise
@@ -207,7 +220,7 @@ List prices at the time of writing (us-central1); check the billing console befo
 - Cloud Run, request-based billing, scaled to zero when idle: nothing while unused. The free tier per billing account
   (180,000 vCPU-s, 360,000 GiB-s and 2 million requests per month) is shared with the preview; a few hours of
   evaluation stay well inside it.
-- Artifact Registry: about 1.1 GB per staging image pair on top of the existing ~0.75 GB; beyond the free 0.5 GB, about
+- Artifact Registry: the first staging pair added about 0.24 GB compressed (repository 0.75 → 0.99 GB, 2026-10-30); beyond the free 0.5 GB, about
   US$0.10 per GB-month. Remove old staging images as under Rollback (untagging alone keeps them billed).
 - Paid APIs, the only real exposure: Geocoding and Maps JavaScript (each with a monthly free allowance, then a few
   dollars per 1,000 calls) and the Meta Model API (pricing not verified). Private access limits callers to invokers;
