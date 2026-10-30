@@ -90,6 +90,8 @@ def test_a_faithful_translation_passes(source, target):
     ("The parcel is not in the REN.", "A parcela não está na REN (Região de Referência de Energia).", "added explanation"),
     ("You must not change the facade.", "Não se deve alterar a fachada.", "prohibition"),
     ("You must not change the facade.", "Não deve alterar a fachada.", "prohibition"),
+    ("You must not build here. You must not demolish the wall.", "Não deve construir aqui. Não pode demolir o muro.",
+     "prohibition"),
     ("The parcel is in the REN.", "A parcela está na REN: Região de Referência de Energia.", "added explanation"),
     ("The parcel is in the REN.", "A parcela está na REN: região de referência de energia.", "added explanation"),
     ("Works are exempt where the building is classified.",
