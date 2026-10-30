@@ -3,8 +3,8 @@ Property intelligence that knows which rules apply where: resolve an address to 
 authority, ask a permitting question, and get an answer that is shown as **verified** only when every statement is
 backed by an official source that HABITA retrieved, snapshotted and checked.
 
-Built for the Meta Global AI Developer Hackathon. Development happens on the branch `mu9/structural-verification`;
-`main` holds the first vertical slice (HR-001/HR-002) and is updated only by an explicit merge.
+Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (HR-001 … HR-006 as described
+below); development continues on the branch `mu9/structural-verification` and reaches `main` only by an explicit merge.
 
 ## The problem
 Before buying, renovating or extending a property, owners and professionals must work out which municipality and
