@@ -96,8 +96,8 @@ def fidelity_problems(source: str, target: str) -> list[str]:
             problems.append("number word")
     problems += [name for name, en, pt in _CHECKS if en.search(source) and not pt.search(target)]
     # Passages hold several sentences: each prohibition must survive, not just one of them.
-    prohibition = _CHECKS[0]
-    if len(prohibition[2].findall(target)) < len(prohibition[1].findall(source)) and "prohibition" not in problems:
+    _, banned_en, banned_pt = next(check for check in _CHECKS if check[0] == "prohibition")
+    if len(banned_pt.findall(target)) < len(banned_en.findall(source)) and "prohibition" not in problems:
         problems.append("prohibition")
     # Portuguese runs a little longer than English; well beyond that, something was added, whatever the words.
     if any(pt.search(target) and not en.search(source) for pt, en in _ADDED) or (
