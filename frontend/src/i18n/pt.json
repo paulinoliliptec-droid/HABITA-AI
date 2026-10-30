@@ -4,7 +4,7 @@
   "<b>Zoning not verified.</b> No verified zoning layer; HABITA does not determine the classification. It must be confirmed on the official maps or with the competent authority.": "<b>Zonamento não verificado.</b> Não existe camada de zonamento verificada; o HABITA não determina a classificação. Tem de ser confirmada nas plantas oficiais ou junto da autoridade competente.",
   "<b>{classification}</b> (verified official layer)": "<b>{classification}</b> (camada oficial verificada)",
   "A. Road map": "A. Mapa de estradas",
-  "Address lookups use Google Maps Platform.": "As pesquisas de moradas utilizam a plataforma Google Maps.",
+  "Address lookups use Google Maps Platform.": "As pesquisas de moradas usam o Google Maps Platform.",
   "Address suggestions": "Sugestões de morada",
   "Analysis status": "Estado da análise",
   "Answer the required questions to continue.": "Responda às questões necessárias para continuar.",

@@ -86,7 +86,7 @@ def fidelity_problems(source: str, target: str) -> list[str]:
         problems.append("official name")  # "Câmara" is never a parliament here
     # An invented expansion: "REN" became "REN (Região de Referência de Energia)", or the same after a colon or a dash.
     if target.count("(") > source.count("(") or any(
-            re.search(rf"\b{a}\b\s*[:–—-]\s*[A-ZÀ-Ý]", target) and not re.search(rf"\b{a}\b\s*[:–—-]", source)
+            re.search(rf"\b{a}\b\s*[:–—-]\s*\w", target) and not re.search(rf"\b{a}\b\s*[:–—-]", source)
             for a in _acronym.findall(source)):
         problems.append("added explanation")
     if any(symbol in target and symbol not in source for symbol in "™®©"):
@@ -95,7 +95,9 @@ def fidelity_problems(source: str, target: str) -> list[str]:
         if re.search(rf"\b{word}\b", source, re.I) and not re.search(rf"\b(?:{pattern})\b", target, re.I):
             problems.append("number word")
     problems += [name for name, en, pt in _CHECKS if en.search(source) and not pt.search(target)]
-    if any(pt.search(target) and not en.search(source) for pt, en in _ADDED):
+    # Portuguese runs a little longer than English; well beyond that, something was added, whatever the words.
+    if any(pt.search(target) and not en.search(source) for pt, en in _ADDED) or (
+            len(source.split()) >= 6 and len(target.split()) > 1.4 * len(source.split())):
         problems.append("added meaning")
     if _OUTCOME_PT.search(target) and not _OUTCOME_EN.search(source):
         problems.append("legal outcome")
