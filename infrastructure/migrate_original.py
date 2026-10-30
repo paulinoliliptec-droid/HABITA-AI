@@ -16,9 +16,12 @@ Nothing here changes Cloud Run traffic. Output names counts and ids only, never 
 """
 
 import asyncio
+import getpass
 import os
 import pty
 import secrets
+import select
+import signal
 import string
 import subprocess
 import sys
@@ -62,8 +65,11 @@ def atlas_create_user_with_prompt(password: str, delete_after: str) -> int:
     pid, fd = pty.fork()
     if pid == 0:
         os.execvp(cmd[0], cmd)
-    seen, answered, deadline = b"", False, time.time() + 60
+    seen, answered, deadline = b"", False, time.time() + 20
     while time.time() < deadline:
+        ready, _, _ = select.select([fd], [], [], 1)  # never blocks past the deadline
+        if not ready:
+            continue
         try:
             chunk = os.read(fd, 1024)
         except OSError:
@@ -73,7 +79,10 @@ def atlas_create_user_with_prompt(password: str, delete_after: str) -> int:
         seen += chunk
         if not answered and b"assword" in seen:
             os.write(fd, password.encode() + b"\r")
-            answered = True
+            answered, deadline = True, time.time() + 40
+    if os.waitpid(pid, os.WNOHANG) == (0, 0):  # still running: no prompt seen, stop it
+        os.kill(pid, signal.SIGTERM)
+        time.sleep(1)
     _, status = os.waitpid(pid, 0)
     text = seen.decode(errors="replace").replace(password, "<hidden>")
     print("   atlas:", " ".join(line.strip() for line in text.splitlines() if "successfully" in line or "rror" in line))
@@ -122,7 +131,13 @@ def main():
     password = "".join(secrets.choice(alphabet) for _ in range(32))
     delete_after = (datetime.now(UTC) + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
     if atlas_create_user_with_prompt(password, delete_after) != 0:
-        stop("the temporary user could not be created (no password prompt or Atlas error).")
+        print(f"""   The Atlas CLI did not ask for a password. Create the user in the Atlas web interface instead:
+     Database Access -> Add New Database User -> username {USER} -> Autogenerate Secure Password (copy it)
+     -> Database User Privileges: Custom Roles -> {ROLE}
+     -> Restrict Access to Specific Clusters -> {CLUSTER} -> Temporary User: 6 hours -> Add User""")
+        password = getpass.getpass("   Then paste its password here (hidden) and press Enter: ").strip()
+        if not password:
+            stop("no password given (nothing was changed in the data).")
     mig_uri = (f"mongodb+srv://{USER}:{urllib.parse.quote(password, safe='')}@{HOST}/{DB}"
                "?authSource=admin&retryWrites=true&w=majority&appName=habita-migration")
     del password
