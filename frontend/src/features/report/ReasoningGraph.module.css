@@ -1,6 +1,18 @@
-/* The reasoning graph opens over the workspace: quiet, architectural, distinct from the map. */
+/* The reasoning graph is a living brain: neurons that fire, current along the synapses, a holographic panel.
+   Only lines are relations stored in the report. The background is dots on purpose: it never reads as a connection.
+   Movement never carries meaning: without it, every word, line and status is still shown. */
 .overlay {
-  --current: #f2b01e;
+  --current: #39e7ff;
+  --spark: #e9fcff;
+  --color-canvas: #050a14;
+  --color-surface: rgba(13, 26, 44, 0.82);
+  --color-text: #eaf6ff;
+  --color-text-secondary: #a3bccd;
+  --color-border: rgba(57, 231, 255, 0.28);
+  --color-border-strong: rgba(57, 231, 255, 0.5);
+  --color-positive: #3ee8a0;
+  --color-warning: #ffc24b;
+  --color-danger: #ff6b5e;
   position: fixed;
   inset: 0;
   z-index: calc(var(--z-topbar) + 1);
@@ -8,8 +20,42 @@
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-5) var(--gutter);
-  background: var(--color-canvas);
   overflow-y: auto;
+  color: var(--color-text);
+  background:
+    radial-gradient(60rem 36rem at 30% 40%, rgba(40, 110, 190, 0.3), transparent 70%),
+    radial-gradient(44rem 30rem at 78% 62%, rgba(120, 60, 220, 0.24), transparent 70%),
+    var(--color-canvas);
+  animation: wake 900ms ease-out both;
+}
+
+/* The neural field: points of light that drift and breathe behind everything. */
+.overlay::before,
+.overlay::after {
+  content: "";
+  position: fixed;
+  inset: -10%;
+  pointer-events: none;
+  background-size: 140px 140px;
+  animation: drift 40s linear infinite, breathe 7s ease-in-out infinite;
+}
+
+.overlay::before {
+  background-image: radial-gradient(circle, rgba(57, 231, 255, 0.5) 1px, transparent 1.6px);
+}
+
+.overlay::after {
+  background-image: radial-gradient(circle, rgba(170, 130, 255, 0.45) 1px, transparent 1.6px);
+  background-size: 210px 210px;
+  animation-duration: 60s, 9s;
+  animation-direction: reverse, normal;
+}
+
+.header,
+.body,
+.disclaimer {
+  position: relative;
+  z-index: 1;
 }
 
 .header {
@@ -22,8 +68,13 @@
 .title {
   margin: 0;
   font-family: var(--font-serif);
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   font-weight: var(--weight-semibold);
+  background: linear-gradient(90deg, var(--spark), var(--current), #b794ff, var(--spark));
+  background-size: 300% 100%;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 8s linear infinite;
 }
 
 .subtitle,
@@ -45,6 +96,7 @@
 }
 
 .scroller {
+  position: relative;
   flex: 1;
   min-width: 0;
   overflow: auto;
@@ -52,6 +104,17 @@
 
 .canvas {
   position: relative;
+}
+
+/* A slow wave of attention crossing the brain. */
+.canvas::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 120px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(57, 231, 255, 0.1), transparent);
+  animation: sweep 7s ease-in-out infinite;
 }
 
 .column {
@@ -62,12 +125,14 @@
   font-weight: var(--weight-medium);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
-  color: var(--color-text-secondary);
+  color: var(--current);
+  text-shadow: 0 0 8px rgba(57, 231, 255, 0.6);
 }
 
 .edges {
   position: absolute;
   inset: 0;
+  overflow: visible;
   pointer-events: none;
 }
 
@@ -79,25 +144,40 @@
 }
 
 .edge[data-active] {
-  stroke: var(--color-text);
+  stroke: var(--current);
   stroke-width: 1.5;
 }
 
-/* A short bright stretch of line travels each relation slowly, like current; the selected node's lines carry more. */
+/* Evidence is grouped: a dashed line means only part of the group is cited (the panel names the ids). */
+.edge[data-partial] {
+  stroke-dasharray: 4 3;
+}
+
+/* A bright stretch travels each synapse slowly, from source to target. */
 .current {
   fill: none;
   stroke: var(--current);
   stroke-width: 2;
   stroke-linecap: round;
-  stroke-dasharray: 7 93;
+  stroke-dasharray: 6 94;
+  filter: drop-shadow(0 0 3px var(--current));
   animation: flow 5s linear infinite;
 }
 
 .current[data-active] {
+  stroke: var(--spark);
   stroke-width: 3;
-  stroke-dasharray: 14 36;
-  filter: drop-shadow(0 0 4px var(--current));
-  animation-duration: 3s;
+  stroke-dasharray: 12 38;
+  filter: drop-shadow(0 0 6px var(--current));
+  animation-duration: 2.6s;
+}
+
+/* The selected node's lines arc like electricity. */
+.arc {
+  fill: none;
+  stroke: var(--current);
+  stroke-width: 1.5;
+  opacity: 0.75;
 }
 
 .node {
@@ -105,41 +185,57 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 12px);
   overflow: hidden;
   border: var(--border-width) solid var(--color-border);
-  border-left-width: 4px;
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
   text-align: left;
   cursor: pointer;
-  animation: appear 900ms var(--ease-standard) both;
+  backdrop-filter: blur(4px);
+  /* Neurons light up column after column, then the wave keeps travelling through them. */
+  animation:
+    ignite 1100ms var(--ease-standard) calc(var(--column) * 220ms) both,
+    thought 6s ease-in-out calc(var(--column) * 500ms + 1.4s) infinite;
 }
 
-.node[data-tone="positive"] { border-left-color: var(--color-positive); }
-.node[data-tone="danger"] { border-left-color: var(--color-danger); }
-.node[data-tone="warning"] { border-left-color: var(--color-warning); }
+.node { --tone: var(--current); }
+.node[data-tone="positive"] { --tone: var(--color-positive); }
+.node[data-tone="danger"] { --tone: var(--color-danger); }
+.node[data-tone="warning"] { --tone: var(--color-warning); }
 
 .node[data-near] {
-  border-color: var(--color-border-strong);
+  border-color: var(--current);
+  animation:
+    ignite 1100ms var(--ease-standard) calc(var(--column) * 220ms) both,
+    hum 3.2s ease-in-out infinite;
 }
 
 .node[aria-pressed="true"] {
-  outline: 2px solid var(--color-text);
-  outline-offset: -1px;
-  /* Runs after the entrance, then keeps pulsing slowly. */
-  animation: appear 900ms var(--ease-standard) both, charged 2.8s ease-in-out infinite;
-}
-
-.node[data-near] {
-  animation: appear 900ms var(--ease-standard) both, hum 3.6s ease-in-out infinite;
+  border-color: var(--tone);
+  animation:
+    ignite 1100ms var(--ease-standard) calc(var(--column) * 220ms) both,
+    charged 2.6s ease-in-out infinite;
 }
 
 .node:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--spark);
   outline-offset: 2px;
+}
+
+/* The soma: the neuron's core, in the colour of its status. */
+.soma {
+  position: absolute;
+  left: 9px;
+  top: 12px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tone);
+  box-shadow: 0 0 8px var(--tone);
+  animation: fire 3.4s ease-in-out calc(var(--column) * 350ms) infinite;
 }
 
 .nodeTitle {
@@ -156,20 +252,41 @@
   -webkit-line-clamp: 2;
 }
 
+/* The holographic panel: a border of moving light, and a scan passing through the glass. */
 .detail {
-  flex: 0 0 20rem;
+  position: relative;
+  flex: 0 0 21rem;
   overflow-y: auto;
   padding: var(--space-4);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   background: var(--color-surface);
+  box-shadow: 0 0 24px rgba(57, 231, 255, 0.18), inset 0 0 30px rgba(57, 231, 255, 0.06);
   font-size: var(--text-sm);
+  backdrop-filter: blur(8px);
+  animation: hologram 4s ease-in-out infinite;
+}
+
+.detail::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--current), var(--spark), var(--current), transparent);
+  animation: scan 5s linear infinite;
+}
+
+.detail a {
+  color: var(--current);
 }
 
 .detailTitle {
-  margin: 0 0 var(--space-2);
-  font-size: var(--text-sm);
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-base, var(--text-sm));
   font-weight: var(--weight-semibold);
+  color: var(--spark);
+  text-shadow: 0 0 10px var(--current);
 }
 
 .lines,
@@ -186,27 +303,45 @@
   margin-top: var(--space-3);
 }
 
+.letter {
+  display: inline-block;
+  white-space: pre;
+  animation: letter-in 600ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.word {
+  display: inline-block;
+  white-space: pre;
+  animation: word-in 700ms var(--ease-standard) both;
+}
+
 .disclaimer {
   margin: 0;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
 }
 
-.letter {
-  display: inline-block;
-  white-space: pre;
-  animation: letter-in 500ms var(--ease-standard) both;
+@keyframes wake {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.word {
-  display: inline-block;
-  white-space: pre;
-  animation: word-in 650ms var(--ease-standard) both;
+@keyframes drift {
+  to { transform: translate(140px, 70px); }
 }
 
-@keyframes appear {
-  from { opacity: 0; transform: translateY(10px) scale(0.96); }
-  to { opacity: 1; transform: none; }
+@keyframes breathe {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes shimmer {
+  to { background-position: -300% 0; }
+}
+
+@keyframes sweep {
+  0% { transform: translateX(-120px); }
+  100% { transform: translateX(1200px); }
 }
 
 @keyframes flow {
@@ -214,26 +349,53 @@
   to { stroke-dashoffset: 0; }
 }
 
-@keyframes charged {
-  0%, 100% { box-shadow: 0 0 4px 0 var(--current); }
-  50% { box-shadow: 0 0 18px 4px var(--current); }
+@keyframes ignite {
+  from { opacity: 0; transform: scale(0.82); filter: blur(6px) brightness(2); }
+  to { opacity: 1; transform: none; filter: none; }
 }
 
-/* A slow vibration of the nodes wired to the selected one. */
+@keyframes thought {
+  0%, 82%, 100% { box-shadow: 0 0 0 0 transparent; }
+  90% { box-shadow: 0 0 16px 1px var(--tone); }
+}
+
+@keyframes charged {
+  0%, 100% { box-shadow: 0 0 8px 0 var(--tone); }
+  50% { box-shadow: 0 0 26px 6px var(--tone); }
+}
+
+/* A slow vibration of the neurons wired to the selected one. */
 @keyframes hum {
-  0%, 100% { transform: translateX(0); }
+  0%, 100% { transform: translateX(0); box-shadow: 0 0 6px 0 var(--current); }
   25% { transform: translateX(-1px); }
+  50% { box-shadow: 0 0 14px 2px var(--current); }
   75% { transform: translateX(1px); }
 }
 
+@keyframes fire {
+  0%, 70%, 100% { transform: scale(1); }
+  80% { transform: scale(1.7); }
+}
+
+@keyframes hologram {
+  0%, 100% { box-shadow: 0 0 18px rgba(57, 231, 255, 0.14), inset 0 0 26px rgba(57, 231, 255, 0.05); }
+  50% { box-shadow: 0 0 34px rgba(57, 231, 255, 0.3), inset 0 0 36px rgba(57, 231, 255, 0.1); }
+}
+
+@keyframes scan {
+  from { top: 0; opacity: 0; }
+  10%, 90% { opacity: 1; }
+  to { top: 100%; opacity: 0; }
+}
+
 @keyframes letter-in {
-  from { opacity: 0; transform: translateY(-14px) rotate(-8deg); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translateY(-16px) rotate(-10deg) scale(1.5); filter: blur(3px); }
+  to { opacity: 1; transform: none; filter: none; }
 }
 
 @keyframes word-in {
-  from { opacity: 0; transform: translateX(-16px); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translateX(-18px); filter: blur(4px); text-shadow: 0 0 12px var(--current); }
+  to { opacity: 1; transform: none; filter: none; text-shadow: none; }
 }
 
 @media (max-width: 720px) {
@@ -246,26 +408,29 @@
   }
 }
 
-/* Movement never carries meaning here: without it, every word, line and status is still shown. */
 @media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .overlay::before,
+  .overlay::after,
+  .title,
+  .canvas::after,
   .node,
   .node[aria-pressed="true"],
   .node[data-near],
+  .soma,
+  .detail,
+  .detail::before,
   .letter,
   .word {
     animation: none;
   }
 
-  .current {
+  .current,
+  .arc {
     display: none;
   }
 
   .edge {
     transition: none;
   }
-}
-
-/* Evidence is grouped: a dashed line means only part of the group is cited (the panel names the ids). */
-.edge[data-partial] {
-  stroke-dasharray: 4 3;
 }
