@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { useI18n } from "@/i18n/useI18n";
 import {
   getPlanningContext,
   instrumentName,
@@ -17,6 +18,7 @@ import styles from "./JurisdictionSection.module.css";
  * Zoning is shown only when an official layer determined it; otherwise the exact official maps to check.
  */
 export function PlanningContextBlock({ propertyId }: { propertyId: string }) {
+  const { t, locale } = useI18n();
   // Keyed by property, so a previous property's context is never shown while the next one loads.
   const [result, setResult] = useState<{ propertyId: string; data?: PlanningContextResponse } | null>(null);
 
@@ -32,25 +34,25 @@ export function PlanningContextBlock({ propertyId }: { propertyId: string }) {
 
   const current = result?.propertyId === propertyId ? result : null;
   const data = current?.data ?? null;
-  if (current && !data) return <p className={styles.planningQuiet}>Planning context is unavailable right now.</p>;
+  if (current && !data) return <p className={styles.planningQuiet}>{t("Planning context is unavailable right now.")}</p>;
   if (!data) return null;
 
   const context = data.planning_context;
   const status = PLANNING_STATUS[context.status];
   if (context.status === "not_supported" || !context.instrument) {
-    return <p className={styles.planningQuiet}>{context.guidance}</p>;
+    return <p className={styles.planningQuiet}>{t(context.guidance)}</p>;
   }
   const officialText = officialTextSource(data.sources, context.instrument.source_id);
   const dates = [
-    provenanceDate(context.sources_verified_on, "Sources verified"),
-    provenanceDate(officialText?.snapshot_retrieved_at ?? null, "Regulation text retrieved"),
+    provenanceDate(context.sources_verified_on, t("Sources verified"), locale),
+    provenanceDate(officialText?.snapshot_retrieved_at ?? null, t("Regulation text retrieved"), locale),
   ].filter(Boolean);
 
   return (
     <div className={styles.planning}>
       <div className={styles.planningHead}>
-        <p className={styles.authorityLabel}>Planning context</p>
-        <Badge tone={status.tone}>{status.label}</Badge>
+        <p className={styles.authorityLabel}>{t("Planning context")}</p>
+        <Badge tone={status.tone}>{t(status.label)}</Badge>
       </div>
       <p className={styles.planningInstrument}>
         {context.instrument.official_url ? (
@@ -62,11 +64,11 @@ export function PlanningContextBlock({ propertyId }: { propertyId: string }) {
         )}
         {context.classification && <span className={styles.planningClass}> · {context.classification.label}</span>}
       </p>
-      <p className={styles.authorityNote}>{context.guidance}</p>
+      <p className={styles.authorityNote}>{t(context.guidance)}</p>
 
       {context.documents_to_consult.length > 0 && (
         <details className={styles.planningDocs}>
-          <summary>Official maps and documents to check ({context.documents_to_consult.length})</summary>
+          <summary>{t("Official maps and documents to check ({n})", { n: context.documents_to_consult.length })}</summary>
           <ul>
             {context.documents_to_consult.map((doc) => (
               <li key={doc.source_id}>
@@ -77,7 +79,7 @@ export function PlanningContextBlock({ propertyId }: { propertyId: string }) {
                 ) : (
                   (doc.designation ?? doc.title)
                 )}
-                <span className={styles.planningReason}>{doc.reason}</span>
+                <span className={styles.planningReason}>{t(doc.reason)}</span>
               </li>
             ))}
           </ul>

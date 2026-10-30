@@ -137,17 +137,90 @@ infrastructure/deploy-staging.sh --preflight
 | 2026-10-30 | Owner re-authenticated gcloud (`--force`, CLI client) | owner | identity token `aud` 32555940559 (gcloud CLI), `email` paulinoliliptec@gmail.com; authenticated `/health/ready` 200 — the script's last check (it had stopped there on the first run) passes when run by hand; all other post-deploy checks had passed |
 | 2026-10-30 | Demo through `gcloud run services proxy` on the workstation (localhost:8081 / :3000), headless Chromium (libxkbcommon0 installed) | Claude | Backend and frontend 200 via proxies; CORS allows `http://localhost:3000`. Resolve "Praça 5 de Outubro, Cascais" → `prp_96bb6597b61c5c6b`, jurisdiction pt/lisboa/cascais, Câmara Municipal de Cascais. **HR-004**: property page renders the Google map (marker, no map error) and the post-its Property / Zoning "NO VERIFIED LAYER" (official plantas linked) / Official sources (26). **HR-006**: property PDF 4 pages and the UI "PDF report" button download the same file (8906 B): pending-confirmation state, zoning not verified with reasons, official cascais.pt maps, disclaimer on every page. Permit matter `pm_6c61911b229bf32c` (one Meta call): PLANNING → VERIFIED (`pv_466d22a3d5c31fff`, protocol atomic-v1, TrustPin listed in the 7-page PDF, every statement cites existing evidence, "not a permit" note, conditions to confirm). Quality finding: 6 of 9 statements repeat the planning condition and no RJUE procedural evidence is cited (TD-044) |
 
-### PDF location maps (HR-006) — needs owner authorisation
-The PDF embeds a road map and a satellite image from the Google Maps Static API, or states that they are unavailable.
-Today the API is not enabled on the project and the server key allows Geocoding only (TD-047). To enable:
+### PDF location images (HR-006)
+The PDF embeds a road map and a satellite image with labels (`hybrid`) from the Maps Static API, same centre, zoom,
+size and marker, plus a Street View image only when an outdoor panorama exists within 50 m of the point; otherwise it
+states that they are unavailable. Each PDF costs two or three paid image loads (Street View metadata is free).
+- 2026-10-30: the owner enabled the Maps Platform APIs; Claude created the server key `habita-server-static-maps`
+  restricted to `static-maps-backend` and `street-view-image-backend` (no other API), stored as secret
+  `maps-static-api-key` (label purpose=report-maps; value never displayed). The geocoding key is refused by the Static
+  API (403) and the browser key is not used.
+- Real test (local backend, real Google APIs, Cascais): two maps (HTTP 200, 1280×800) with the geocoded centre and a
+  Street View image from a panorama 6 m away (2024-07), embedded in the PDF; pixel-identical to Google's responses
+  (mean difference ≤ 0.22/255); no key in the PDF or logs.
+- **Pending for staging (IAM, needs authorisation):** grant the backend account access to the new secret, then deploy
+  (`deploy-staging.sh` already passes `MAPS_STATIC_API_KEY` and its preflight refuses until the grant exists):
+  ```bash
+  gcloud secrets add-iam-policy-binding maps-static-api-key --project habita-ai-512916 \
+    --member=serviceAccount:habita-staging-api@habita-ai-512916.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor
+  ```
+- Spend bounds in code: 6 PDFs with maps per minute, 200 per day and 6 per location per hour, per process; set a daily
+  quota for both APIs in the Google Cloud console as the hard cap. Attribution is printed; images are not stored.
+
+### Original services updated (2026-10-30, owner-authorised)
+| Step | Result (verified) |
+|---|---|
+| Code and images | branch pushed at `0d3290f` (+ `38081b2`, `28f3c04` for the owner script); images `original-0d3290f` |
+| Migration of `habita_ai` (owner ran `infrastructure/migrate_original.py`) | Atlas role `habitaPreviewMigrate` (readWrite + collMod on habita_ai); temporary user created in the Atlas UI and deleted after use (verified absent); verified backup `~/habita-backups/habita_ai-20261030T065944Z` (466 docs, manifest sha256 `4414921252e3…`); validator `moderate`/`error`; floor `atomic-v1` stored; legacy `pv_cad3f1c1…`, `pv_9bc4e790…` and matters `pm_8f008fee…`, `pm_5a5b5c3b…` flagged `statement-v1`; audit `mig_e40ab9b66eb34792`; same document counts |
+| Maps key | `secretAccessor` on `maps-static-api-key` for `988261836110-compute@` only |
+| No-traffic revisions | backend `habita-backend-preview-00017-vel` (started on Atlas with MU-9 guards), frontend `habita-frontend-preview-00012-xex`; candidate checks: health, Cascais resolve, report (26 sources, zoning not verified), PDF 7 pages with road map + satellite + Street View, no key |
+| Traffic | backend then frontend switched to 100 % on the new revisions; IAM unchanged (public, as before) |
+| Tests on https://habita-frontend-preview-jcyiz2arua-uc.a.run.app | browser: search Cascais → map + Satellite toggle, post-its (Property, "Zoning not verified", Analysis status, Official sources), no console errors, PDF button → 7 pages with the 3 images, PENDING CONFIRMATION, no key; real permit question → VERIFIED under `atomic-v1` (accepted by the validator), 8 statements citing E2–E4, matter PDF 10 pages with the images |
+| Rollback | `gcloud run services update-traffic habita-backend-preview --to-revisions habita-backend-preview-00016-bz8=100` and `habita-frontend-preview … habita-frontend-preview-00011-f77=100` (old code verified compatible with the migrated data) |
+| Staging | unchanged (backend `00002-npj`, frontend `00002-n7p`) |
+
+### Updating the ORIGINAL services — procedure (executed 2026-10-30, kept for reference)
+Inventory (read-only, 2026-10-30): backend `00016-bz8` / frontend `00011-f77` (image `hr003-98af6af`), public
+(`allUsers`), runtime `988261836110-compute@`, `MONGODB_DB_NAME=habita_ai` with user `habita_app` (readWrite only).
+`habita_ai` (replica set): 8 collections, no validator, no stored floor; 6 verifications (2 VERIFIED, 4 REJECTED), none
+with a protocol field; 2 VERIFIED matters verified under statement-v1 (data still changes: the site is public).
+Blockers: the new backend fails closed without the MU-9 validator (no collMod for `habita_app`); without the migration,
+legacy VERIFIED results would need the read-time rule (in the new code) and would stay unflagged in the data.
+
+Rehearsed end to end on a local mongo:8.0 replica set restored from a verified backup of `habita_ai`: indexes identical
+to Atlas; `migrate-floor` dry run, refusal without a verified manifest or after any change since the backup, apply
+(validator, floor, 2 reports + 2 matters flagged and the audit record in one transaction), dry rerun finds nothing;
+new code shows both legacy matters as superseded / PENDING CONFIRMATION with the record as history, on migrated and
+unmigrated copies; the current production image (98af6af) still starts on the migrated copy (traffic rollback viable).
+
 ```bash
-P=habita-ai-512916
-gcloud services enable static-maps-backend.googleapis.com --project $P
-# then either add "static-maps-backend.googleapis.com" to the API restrictions of habita-server-geocoding,
-# or create a dedicated key restricted to it and store it as secret MAPS_STATIC_API_KEY (backend env MAPS_STATIC_API_KEY)
-# and set a daily request quota for the Maps Static API in the console (hard cap; the code caps 200 PDFs/day/process).
+P=habita-ai-512916; R=us-central1-docker.pkg.dev/$P/habita-preview; DIR=/secure/backup-habita_ai-$(date -u +%Y%m%dT%H%M%SZ)
+APP_URI() { gcloud secrets versions access latest --secret mongodb-uri --project $P; }   # habita_app, read-only use here
+# 0. [authorise] Atlas: migration role + temporary user (6 h), never collMod on habita_app:
+atlas customDbRoles create habitaPreviewMigrate --privilege COLL_MOD@habita_ai --inheritedRole readWrite@habita_ai \
+  --projectId 6adfdf61d52b2b35f1de0cf3 -P habita
+#    Atlas UI: user habita-preview-migrate, role habitaPreviewMigrate, cluster habita-ai-m0, "delete after 6 hours",
+#    autogenerated password (never on a command line).
+# 1. Fresh verifiable backup, immediately before the migration (read-only):
+APP_URI | backend/.venv/bin/python infrastructure/db_backup.py export habita_ai $DIR
+APP_URI | backend/.venv/bin/python infrastructure/db_backup.py verify-db habita_ai $DIR
+# 2. [authorise] Migration with the temporary user; its URI typed at a hidden prompt and piped (not argv, not env):
+cd backend
+python3 -c 'import getpass,sys; sys.stdout.write(getpass.getpass("migration URI: ")+"\n")' | \
+  MONGODB_DB_NAME=habita_ai .venv/bin/python -m app.maintenance migrate-floor atomic-v1 <operator> "<reason>" --uri-from-stdin
+python3 -c 'import getpass,sys; sys.stdout.write(getpass.getpass("migration URI: ")+"\n")' | \
+  MONGODB_DB_NAME=habita_ai .venv/bin/python -m app.maintenance migrate-floor atomic-v1 <operator> "<reason>" \
+  --apply --backup-manifest $DIR/manifest.json --uri-from-stdin       # re-verifies the backup against live data first
+cd ..
+# 3. [authorise] PDF images for the original backend (its runtime account only, that one secret only):
+gcloud secrets add-iam-policy-binding maps-static-api-key --project $P \
+  --member=serviceAccount:988261836110-compute@developer.gserviceaccount.com --role=roles/secretmanager.secretAccessor
+# 4. Images from the pushed commit <sha> (git archive), then revisions WITHOUT traffic:
+gcloud run deploy habita-backend-preview --project $P --region us-central1 --image $R/backend:original-<sha> \
+  --no-traffic --tag candidate --update-secrets MAPS_STATIC_API_KEY=maps-static-api-key:latest
+curl -fsS https://candidate---habita-backend-preview-jcyiz2arua-uc.a.run.app/health/ready   # + report/PDF checks
+gcloud run deploy habita-frontend-preview --project $P --region us-central1 --image $R/frontend:original-<sha> \
+  --no-traffic --tag candidate      # built with NEXT_PUBLIC_API_BASE_URL=https://habita-backend-preview-jcyiz2arua-uc.a.run.app
+# 5. [authorise] Traffic, backend first, then frontend; then the tests on the main URL:
+gcloud run services update-traffic habita-backend-preview  --project $P --region us-central1 --to-latest
+gcloud run services update-traffic habita-frontend-preview --project $P --region us-central1 --to-latest
+# Rollback (code): traffic back to the previous revisions — compatible with the migrated data:
+gcloud run services update-traffic habita-backend-preview  --project $P --region us-central1 --to-revisions habita-backend-preview-00016-bz8=100
+gcloud run services update-traffic habita-frontend-preview --project $P --region us-central1 --to-revisions habita-frontend-preview-00011-f77=100
+# Rollback (data, disaster only; the migration deletes nothing): restore the backup with the migration user
+#   db_backup.py restore $DIR habita_ai --replace   (refuses unrelated collections; drops only the backed-up ones)
 ```
-Each PDF costs two Static API loads. Attribution is printed under the images; images are not stored.
+Access policy unchanged (the original stays as public as it is now; TD-051). Staging is not touched.
 
 ### Troubleshooting
 - **Authenticated requests get 401 "access token could not be verified"** (seen 2026-10-30): the stored gcloud
@@ -169,6 +242,15 @@ Each PDF costs two Static API loads. Attribution is printed under the images; im
   chooser, pick `paulinoliliptec@gmail.com` explicitly.
 - **`gcloud run services proxy` asks to install `cloud-run-proxy`** (installed on this workstation 2026-10-30): the SDK here comes from apt, so install the
   component as a package: `sudo apt-get install google-cloud-cli-cloud-run-proxy`.
+
+### Setup log (continued)
+| Date | Step | Done by | Result (verified read-only) |
+|---|---|---|---|
+| 2026-10-30 | `secretAccessor` on `maps-static-api-key` for `habita-staging-api` only (owner-authorised) | Claude | the account reads exactly mongodb-uri-staging, GOOGLE_MAPS_API_KEY, meta-api-key, maps-static-api-key; no project roles |
+| 2026-10-30 | Deploy `staging-5734adc` (full preflight passed) | Claude | backend `00002-npj`, frontend `00002-n7p`, label commit=5734adc; no IAM bindings, anonymous 403; `MAPS_STATIC_API_KEY` by reference; startup on Atlas with guards passing; preview unchanged (00016/00011). Browser test through the proxies: search Cascais → map, Satellite toggle, post-its (Property with location/municipality, "Zoning not verified", Analysis status, Official sources), no console errors; PDF via the button: 7 pages, roadmap + hybrid (1280×800, centre 38.697236,-9.420598) + Street View, legend, PENDING CONFIRMATION, no key; usage log "report maps: roadmap+hybrid+streetview at zoom 16 (1/200 today)" |
+| 2026-10-30 | Remote desktop on the workstation (Xvfb + noVNC, Chromium in guest mode at localhost:3000) | Claude | every listener on 127.0.0.1; viewer at `https://6080-$WEB_HOST/vnc.html` (Workstations sign-in) |
+| 2026-10-30 | Cloud Translation API enabled; key restricted to `translate.googleapis.com`; secret `google-translate-api-key` from it; `secretAccessor` for `habita-staging-api` only (owner-authorised) | Claude | the preflight now also requires this secret; the preview's account has no access, so the preview stays English |
+| 2026-10-30 | Original updated to `5fae732` (bilingual system, Clássico PDF), owner-authorised: `secretAccessor` on `google-translate-api-key` for `988261836110-compute@` only; no data migration (no stored schema changed); candidates without traffic checked, then backend and frontend at 100 % | Claude | backend `00019-kew`, frontend `00014-jiy`, images `original-5fae732`, IAM unchanged. Rollback: `update-traffic` to backend `00017-vel`, frontend `00012-xex` |
 
 ### Migrations (only when needed)
 Needed when the backend logs `MU-9: could not install the permit_verifications validator` after a release, or to raise

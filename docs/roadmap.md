@@ -15,9 +15,29 @@ are not global milestones.
 | HR-002 | Meta-powered Permit Intelligence Foundation | first agentic workflow GOAL → CHECKLIST → TOOLS → EVIDENCE → DRAFT → INDEPENDENT VERIFICATION → FINAL STATE on Muse Spark: persisted states and resume, structured tools, evidence model, regulatory-source abstraction (curated PT/Cascais), independent verifier, MongoDB, API, Permit section (`reviews/HR-002-…`) | review HR-002: Codex ACCEPTED, Muse ACCEPTED | **DONE** (RESOLVED / CLOSED, `main` @ `c556334`) |
 | HR-003 | Official Sources, Zoning & Regulatory Retrieval Foundation | coordinates → jurisdiction → official source registry → planning context → provenance-bearing evidence → Permit workflow, **Cascais only**; owner decisions of 2026-10-28 (manual confirmation without a validated connector; `pypdf`, no OCR; initial trusted corpus) (`reviews/HR-003-…`, `plans/HR-003-official-sources-plan.md`); MU-9 structural verification as its follow-up (`plans/HR-003-MU9-final-candidate.md`) | see below | **IN PROGRESS** |
 | HR-004 | Intelligent Map Experience | interactive map, highlighted property, informative post-its, planning conditions, risks and consultable legal sources; zoning layers only as verified official data, otherwise the absence is stated (owner, 2026-10-29) | AC4.1–AC4.8 below | **MVP COMPLETE** — tested headless on staging; owner's real-browser check pending (TD-049) |
-| HR-005 | — | **PENDING DEFINITION** | **PENDING** | not started |
-| HR-006 | Premium PDF Report | professional export: property identification, analysis summary, conditions, risks, official sources, verifiable references and conclusion status; VERIFIED / REJECTED / pending clearly distinct; evidence provenance and version preserved (owner, 2026-10-29) | AC6.1–AC6.9 below | **IN PROGRESS** — all criteria met in tests; AC6.8 real map images pending the Maps Static API (TD-047) |
-| HR-007 … HR-015 | — | **PENDING DEFINITION** (no approved scope in the repository) | **PENDING** | not started |
+| HR-005 | Visual Reasoning Graph (*proposed*, Drive master roadmap 30/10) | progressive, clickable graph property → jurisdiction/rules → evidence/conditions → conclusion with uncertainty → documents → next steps; relations traceable to sources; no invented causality or authorisation | criteria **PENDING** owner approval | not started |
+| HR-006 | Premium PDF Report | professional export: property identification, analysis summary, conditions, risks, official sources, verifiable references and conclusion status; VERIFIED / REJECTED / pending clearly distinct; evidence provenance and version preserved (owner, 2026-10-29) | AC6.1–AC6.9 below | **MVP COMPLETE** — real Google images validated locally and on the private staging (5734adc); original deploy blocked by the MU-9 migration (TD-038) |
+| HR-007 | Voice Explanation (*proposed*) | audio explanation of results with listen/pause/repeat; audio is not legal proof | criteria **PENDING** | not started |
+| HR-008 | Property Intelligence (*proposed*) | property profile with provenance; official facts, observations and user declarations kept apart | criteria **PENDING** | not started |
+| HR-009 | Intent & Permits (*proposed*) | user intent → procedures by municipality and works type; never a specific licence without proof | criteria **PENDING** | not started |
+| HR-010 | Multimodal Property Understanding (*proposed*) | photos, plans, documents; consent, EXIF, provenance, privacy; segmentation as a conditional sub-capability | criteria **PENDING** | not started |
+| HR-011 | AFFORD / Financial Feasibility (*proposed*) | cost ranges, scenarios, parameterised rates; no financial guarantees | criteria **PENDING** | not started |
+| HR-012 | Visual Transformation (*proposed*) | before/after concepts, never presented as municipal authorisation | criteria **PENDING** | not started |
+| HR-013 | Global Jurisdiction (*proposed*) | jurisdiction adapters with verified sources; Cascais first and stable | criteria **PENDING** | not started |
+| HR-014 | Production Readiness (*proposed*) | reliability, privacy, security, isolation, permissions, costs, observability, accessibility | criteria **PENDING** | not started |
+| HR-015 | Hackathon Submission (*proposed*) | video, narrative, documentation, evidence, official competition rules | criteria **PENDING** | not started |
+
+### Bilingual system (PT/EN) — owner decision 2026-10-30
+
+Cross-cutting, not a milestone: English by default (the jury is international); Portuguese when the permit question is
+in Portuguese or by the EN/PT switch. The address never changes the language.
+
+- Answers (decision B1): the verified text stays the English one in the matter. Portuguese is a labelled reading view
+  from Google Cloud Translation; a text that fails the fidelity checks stays in English. A later native Portuguese
+  drafter (B2) belongs to the final research phase, with the verifier re-evaluated for Portuguese drafts.
+- Fixed texts: generated once with Google Translate into catalogs kept in the repository
+  (`python -m app.services.i18n.generate`). Statuses, warnings, the disclaimer and machine errors are pinned by hand in
+  `backend/app/services/i18n/pinned.json`, which always wins. New user-facing text goes through `t()` or `msg()`.
 
 ### HR-003 acceptance status
 
@@ -29,6 +49,7 @@ are not global milestones.
 | MU-9 Phase 2: C2 identity binding (ACC-BIND), FP-3/FP-4, conclusion gate (ACC-CONC) | met offline | `test_property_identity_binding.py`, `test_permit_false_positives.py`, `test_permit_conclusion_gate.py` |
 | C2 on a real replica set (`test_permit_commit_atlas.py`) | **PENDING** (needs authorisation + credentials) | TD-001 |
 | Shadow measurement on live drafter output | **PENDING** (needs live runs) | TD-031 |
+| **Owner decision 2026-10-30** | remaining HR-003 live validations and semantic research **deferred to a final research phase** (Fable + Astra); HR-003 stays IN PROGRESS, MU-9 protections unchanged | Drive `03-DECISOES-E-APROVACOES` |
 | Pre-demo live gate, preview redeploy and visual QA (MU-1/4/5) | **PENDING** (needs authorisation) | TD-033 |
 | CX-3, CX-4, CX-5 backlog | met offline (Codex backlog review, final NO P1) | TD-016…018; `test_sources_concurrency.py`, `test_sources_ingest_concurrency.py`, `test_planning_context.py` |
 
@@ -85,9 +106,10 @@ REJECTED), **PENDING CONFIRMATION** (anything else; unverified draft content is 
 | AC4.1–AC4.5, AC4.7 | met; **tested on staging** | headless Chromium through the authenticated proxies: map rendered, post-its, no console errors (`infrastructure/STAGING.md` Setup log) |
 | AC4.8 | met; tested | `postits.test.ts`; screenshot of the local frontend against the staging backend (not yet deployed to staging, TD-050) |
 | AC6.1–AC6.7 | met; **tested on staging** | real property PDF and a real VERIFIED matter PDF from staging (text, TrustPin, evidence ids, disclaimer on every page) |
-| AC6.8 | met with a simulated map service | `tests/test_report_maps.py` (16): two embedded JPEGs, same framing, approximate legend, failures → notice, no key leak, daily cap; **real images pending** the Maps Static API (TD-047) |
+| AC6.8 | met; **validated with real Google data locally and on staging** | real Cascais run: roadmap + hybrid (same centre/zoom/marker) + Street View (6 m, 2024-07) embedded, pixel-identical to Google's responses, no key leak; `tests/test_report_maps.py` (28); staging-5734adc PDF via the UI button with the three images |
 | AC6.9 | met | cover rendered and checked (pdftoppm); warning always present |
 | Visual QA in the owner's browser | **pending** | TD-049 |
+| Original update (2026-10-30) | **executed and tested** (backend 00017, frontend 00012, commit 0d3290f); previously prepared and rehearsed | MU-9 migration of `habita_ai` (backup, `migrate-floor`, temporary migration user), read-time legacy classification, no-traffic deploy and rollback — `infrastructure/STAGING.md`; awaits authorisation (TD-038) |
 | Open items | central register | `.ai-review/HABITA-AI-TECHNICAL-DEBT.md` (local, git-ignored): TD-044 … TD-052 |
 
 ## Candidate modules named in the approved architecture (not yet assigned to HR numbers)

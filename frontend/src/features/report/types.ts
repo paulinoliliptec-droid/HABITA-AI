@@ -61,4 +61,6 @@ export interface PermitReport {
   pending: string[];
   demo: boolean;
   disclaimer: string;
+  language?: "en" | "pt";
+  translation?: { available: boolean; kept_original: number; note: string | null } | null;
 }

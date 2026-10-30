@@ -133,7 +133,7 @@ class _Recorder:
     async def replace_one(self, flt, doc, **kw):
         self.log.append((self.name, "replace_one", flt))
 
-    def find(self, flt, projection=None):
+    def find(self, flt, projection=None, session=None):
         self.log.append((self.name, "find", flt))
 
         async def gen():

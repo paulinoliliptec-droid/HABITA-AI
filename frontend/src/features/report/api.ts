@@ -1,3 +1,4 @@
+import type { Lang } from "@/i18n/core";
 import { apiRequest, ApiError, parseErrorResponse } from "@/lib/api";
 import { config } from "@/lib/config";
 import type { MatterCapability } from "@/features/permit/capability";
@@ -10,17 +11,17 @@ function reportPath(propertyId: string, own: MatterCapability | null): { path: s
     : { path: `/api/property/${encodeURIComponent(propertyId)}/report`, init: {} };
 }
 
-export function getReport(propertyId: string, own: MatterCapability | null, signal?: AbortSignal): Promise<PermitReport> {
+export function getReport(propertyId: string, own: MatterCapability | null, lang: Lang, signal?: AbortSignal): Promise<PermitReport> {
   const { path, init } = reportPath(propertyId, own);
-  return apiRequest<PermitReport>(path, { ...init, signal });
+  return apiRequest<PermitReport>(`${path}?lang=${lang}`, { ...init, signal });
 }
 
 /** Downloads the PDF of the same report. The capability travels in the header, never in a URL. */
-export async function downloadReportPdf(propertyId: string, own: MatterCapability | null): Promise<void> {
+export async function downloadReportPdf(propertyId: string, own: MatterCapability | null, lang: Lang): Promise<void> {
   const { path, init } = reportPath(propertyId, own);
   let response: Response;
   try {
-    response = await fetch(`${config.apiBaseUrl}${path}.pdf`, init);
+    response = await fetch(`${config.apiBaseUrl}${path}.pdf?lang=${lang}`, init);
   } catch {
     throw new ApiError("network_error", "HABITA can't reach its server right now. Check your connection and try again.", 0);
   }

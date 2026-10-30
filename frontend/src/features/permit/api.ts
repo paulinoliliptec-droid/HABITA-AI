@@ -1,3 +1,4 @@
+import type { Lang } from "@/i18n/core";
 import { apiRequest } from "@/lib/api";
 import type { Evidence, PermitMatter, VerificationReport } from "./types";
 
@@ -13,7 +14,10 @@ export function permitStatus(): Promise<{ available: boolean; model: string }> {
   return apiRequest(`${base}/status`);
 }
 
-export function createMatter(propertyId: string, question: string): Promise<{ matter: PermitMatter; access_token: string }> {
+export function createMatter(
+  propertyId: string,
+  question: string,
+): Promise<{ matter: PermitMatter; access_token: string; detected_language: Lang | null }> {
   return apiRequest(`${base}/matters`, { method: "POST", body: JSON.stringify({ property_id: propertyId, question }) });
 }
 
@@ -32,6 +36,20 @@ export function supplyInputs(matterId: string, token: string, inputs: Record<str
 
 export function getEvidence(matterId: string, token: string): Promise<Evidence[]> {
   return apiRequest(`${base}/matters/${matterId}/evidence`, withToken(token));
+}
+
+export interface MatterTranslation {
+  lang: Lang;
+  available: boolean;
+  verified: boolean;
+  kept_original: number;
+  note: string | null;
+  texts: Record<string, string>;
+}
+
+/** A labelled reading view of the matter's texts. The verified text stays the English one in the matter. */
+export function getTranslation(matterId: string, token: string, lang: Lang): Promise<MatterTranslation> {
+  return apiRequest(`${base}/matters/${matterId}/translation?lang=${lang}`, withToken(token));
 }
 
 export function getVerification(matterId: string, token: string): Promise<VerificationReport> {

@@ -1,4 +1,5 @@
 import type { BadgeTone } from "@/components/ui/Badge";
+import { msg } from "@/i18n/core";
 import type { Jurisdiction, LocationPrecision } from "./types";
 
 /** "Praça 5 de Outubro, 2750-642 Cascais, Portugal" → headline + remainder. */
@@ -9,10 +10,10 @@ export function splitAddress(formatted: string): { headline: string; remainder: 
 }
 
 export const PRECISION: Record<LocationPrecision, { label: string; tone: BadgeTone; zoom: number }> = {
-  rooftop: { label: "Rooftop precision", tone: "positive", zoom: 18 },
-  interpolated: { label: "Street-level precision", tone: "neutral", zoom: 17 },
-  area_center: { label: "Area centre", tone: "warning", zoom: 15 },
-  approximate: { label: "Approximate location", tone: "warning", zoom: 13 },
+  rooftop: { label: msg("Rooftop precision"), tone: "positive", zoom: 18 },
+  interpolated: { label: msg("Street-level precision"), tone: "neutral", zoom: 17 },
+  area_center: { label: msg("Area centre"), tone: "warning", zoom: 15 },
+  approximate: { label: msg("Approximate location"), tone: "warning", zoom: 13 },
 };
 
 export interface HierarchyLevel {

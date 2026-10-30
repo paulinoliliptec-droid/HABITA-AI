@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { msg } from "@/i18n/core";
+import { useI18n } from "@/i18n/useI18n";
 import { HABITA_MAP_STYLE } from "@/lib/google-maps/mapStyle";
 import { importMapsLibrary, MapsUnavailableError, onMapsAuthFailure } from "@/lib/google-maps/loader";
 import { formatCoordinate } from "./format";
@@ -11,15 +13,16 @@ type MapState = { status: "loading" | "ready" } | { status: "unavailable"; reaso
 type MapMode = "roadmap" | "hybrid";
 
 const UNAVAILABLE_COPY: Record<MapsUnavailableError["reason"], { title: string; devHint?: string }> = {
-  not_configured: { title: "Map not configured", devHint: "Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in frontend/.env.local." },
+  not_configured: { title: msg("Map not configured"), devHint: "Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in frontend/.env.local." },
   auth_failed: {
-    title: "Map access was refused",
+    title: msg("Map access was refused"),
     devHint: "Check the browser key's HTTP-referrer and API restrictions (Maps JavaScript API).",
   },
-  load_failed: { title: "The map couldn't load" },
+  load_failed: { title: msg("The map couldn't load") },
 };
 
 export function PropertyMap({ coordinates, zoom, label }: { coordinates: Coordinates; zoom: number; label: string }) {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const [state, setState] = useState<MapState>({ status: "loading" });
@@ -79,9 +82,9 @@ export function PropertyMap({ coordinates, zoom, label }: { coordinates: Coordin
   if (state.status === "unavailable") {
     const copy = UNAVAILABLE_COPY[state.reason];
     return (
-      <div className={`${styles.frame} ${styles.unavailable}`} role="img" aria-label={`Map unavailable. ${label}`}>
+      <div className={`${styles.frame} ${styles.unavailable}`} role="img" aria-label={t("Map unavailable. {label}", { label })}>
         <div className={styles.unavailableCard}>
-          <p className={styles.unavailableTitle}>{copy.title}</p>
+          <p className={styles.unavailableTitle}>{t(copy.title)}</p>
           <p className={styles.unavailableCoords}>
             {formatCoordinate(coordinates.lat, "lat")} · {formatCoordinate(coordinates.lng, "lng")}
           </p>
@@ -95,9 +98,9 @@ export function PropertyMap({ coordinates, zoom, label }: { coordinates: Coordin
 
   return (
     <div className={styles.frame} data-status={state.status}>
-      <div ref={containerRef} className={styles.map} role="region" aria-label={`Map of ${label}`} />
+      <div ref={containerRef} className={styles.map} role="region" aria-label={t("Map of {label}", { label })} />
       {state.status === "ready" && (
-        <div className={styles.modes} role="radiogroup" aria-label="Map view">
+        <div className={styles.modes} role="radiogroup" aria-label={t("Map view")}>
           {(["roadmap", "hybrid"] as const).map((m) => (
             <button
               key={m}
@@ -107,7 +110,7 @@ export function PropertyMap({ coordinates, zoom, label }: { coordinates: Coordin
               className={styles.mode}
               onClick={() => setMode(m)}
             >
-              {m === "roadmap" ? "Map" : "Satellite"}
+              {m === "roadmap" ? t("Map") : t("Satellite")}
             </button>
           ))}
         </div>

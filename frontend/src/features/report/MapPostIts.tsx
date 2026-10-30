@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { recallMatter, type MatterCapability } from "@/features/permit/capability";
+import type { Lang } from "@/i18n/core";
+import { useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
 import { downloadReportPdf, getReport, onReportChanged } from "./api";
 import { buildPostIts } from "./postits";
@@ -11,8 +13,9 @@ import styles from "./MapPostIts.module.css";
 
 /** HR-004 post-its over the map and the HR-006 PDF download, both from the same report. */
 export function MapPostIts({ propertyId }: { propertyId: string }) {
+  const { lang, t } = useI18n();
   // The report shown and the capability it was read with: the PDF always downloads that same report.
-  const [shown, setShown] = useState<{ report: PermitReport; own: MatterCapability | null; version: number } | null>(null);
+  const [shown, setShown] = useState<{ report: PermitReport; own: MatterCapability | null; version: number; lang: Lang } | null>(null);
   const [version, setVersion] = useState(0);
   const [open, setOpen] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -24,43 +27,43 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
     const controller = new AbortController();
     const own = recallMatter(propertyId);
     // A capability the server no longer accepts still leaves the public property report.
-    getReport(propertyId, own, controller.signal)
-      .then((report) => ({ report, own, version }))
+    getReport(propertyId, own, lang, controller.signal)
+      .then((report) => ({ report, own, version, lang }))
       .catch((err: unknown) => {
         if (own && err instanceof ApiError && [401, 403, 404].includes(err.status)) {
-          return getReport(propertyId, null, controller.signal).then((report) => ({ report, own: null, version }));
+          return getReport(propertyId, null, lang, controller.signal).then((report) => ({ report, own: null, version, lang }));
         }
         throw err;
       })
       .then(setShown)
       .catch(() => !controller.signal.aborted && setShown(null));
     return () => controller.abort();
-  }, [propertyId, version]);
+  }, [propertyId, version, lang]);
 
   // A report read before the matter changed is never shown next to the new matter's PDF.
   if (!shown || shown.version !== version) return null;
-  const { report, own } = shown;
+  const { report, own, lang: reportLang } = shown;
 
   async function download() {
     setDownloading(true);
     setError(null);
     try {
-      await downloadReportPdf(propertyId, own);
+      await downloadReportPdf(propertyId, own, reportLang);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "The report couldn't be generated.");
+      setError(err instanceof ApiError ? err.message : t("The report couldn't be generated."));
     } finally {
       setDownloading(false);
     }
   }
 
   return (
-    <aside className={styles.board} aria-label="Property notes" data-open={open}>
+    <aside className={styles.board} aria-label={t("Property notes")} data-open={open}>
       <div className={styles.header}>
         <button type="button" className={styles.toggle} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-          Notes {open ? "▾" : "▸"}
+          {t("Notes")} {open ? "▾" : "▸"}
         </button>
         <Button variant="secondary" onClick={download} disabled={downloading}>
-          {downloading ? "Preparing…" : "PDF report"}
+          {downloading ? t("Preparing…") : t("PDF report")}
         </Button>
       </div>
       {error && (
@@ -70,8 +73,9 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
       )}
       {open && (
         <ul className={styles.notes}>
-          {report.demo && <li className={styles.demo}>Demonstration data</li>}
-          {buildPostIts(report).map((n) => (
+          {report.demo && <li className={styles.demo}>{t("Demonstration data")}</li>}
+          {report.translation?.note && <li className={styles.demo}>{report.translation.note}</li>}
+          {buildPostIts(report, t).map((n) => (
             <li key={n.id} className={styles.note} data-tone={n.tone}>
               <p className={styles.title}>
                 {n.title}

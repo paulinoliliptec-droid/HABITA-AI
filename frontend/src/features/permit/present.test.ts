@@ -52,3 +52,13 @@ describe("evidenceBasis", () => {
       .toBe("Official planning sources");
   });
 });
+
+describe("MU-9 legacy results", () => {
+  it("never present a superseded VERIFIED matter as a current verified assessment", async () => {
+    const { outcomeOf } = await import("./present");
+    expect(outcomeOf({ state: "VERIFIED", assessment_status: "verified_assessment" }).label).toBe("Verified assessment");
+    const legacy = outcomeOf({ state: "VERIFIED", assessment_status: "superseded_assessment" });
+    expect(legacy.label).toContain("Superseded");
+    expect(legacy.tone).toBe("warning");
+  });
+});

@@ -69,6 +69,7 @@ class PermitRepository(Protocol):
     async def add_evidence(self, evidence: Evidence) -> Evidence: ...
     async def save_verification(self, report: VerificationReport) -> None: ...
     async def latest_verification(self, matter_id: str) -> VerificationReport | None: ...
+    async def get_floor(self) -> Floor: ...
     async def commit_verified(self, matter: PermitMatter, report: VerificationReport, pin: TrustPin,
                               sources: Any, identity: PropertyIdentity | None, properties: Any) -> bool: ...
 
@@ -159,6 +160,9 @@ class InMemoryPermitRepository:
         self._leases: dict[str, datetime] = {}
         #: The persisted protocol floor (MU-9); the Mongo store keeps it in ``verification_policy``.
         self.floor: Floor = DEFAULT_FLOOR
+
+    async def get_floor(self) -> Floor:
+        return self.floor
 
     async def create_matter(self, matter: PermitMatter, access_hash: str) -> None:
         self.matters[matter.matter_id] = matter.model_copy(deep=True)
@@ -343,16 +347,16 @@ class MongoPermitRepository:
     async def get_floor(self) -> Floor:
         return Floor.from_doc(await self._call(self._policy.find_one({"_id": FLOOR_ID})))
 
-    async def store_floor(self, current: Floor, new: Floor) -> bool:
+    async def store_floor(self, current: Floor, new: Floor, session=None) -> bool:
         """Write ``new`` only if the stored floor is still ``current`` (no concurrent change); True if written."""
         if current == DEFAULT_FLOOR and not current.history:
-            exists = await self._call(self._policy.find_one({"_id": FLOOR_ID}))
+            exists = await self._call(self._policy.find_one({"_id": FLOOR_ID}, session=session))
             if exists is None:
-                await self._call(self._policy.insert_one(new.to_doc()))
+                await self._call(self._policy.insert_one(new.to_doc(), session=session))
                 return True
         result = await self._call(self._policy.replace_one(
             {"_id": FLOOR_ID, "min_protocol": current.min_protocol, "known_unsafe": list(current.known_unsafe)},
-            new.to_doc()))
+            new.to_doc(), session=session))
         return result.matched_count == 1
 
     async def apply_validator(self, floor: Floor) -> None:
@@ -385,7 +389,7 @@ class MongoPermitRepository:
         await self.apply_validator(new)
         return await self.store_floor(current, new)
 
-    async def flag_superseded(self, floor: Floor) -> int:
+    async def flag_superseded(self, floor: Floor, session=None) -> int:
         """Mark VERIFIED reports from protocols the floor no longer admits (including pre-MU-9 ones, which have no
         protocol field) as superseded, and their matters with them: both stay as history, flagged for
         re-verification, so no client reads them as currently verified. ``superseded_protocol: None`` matches both
@@ -393,7 +397,7 @@ class MongoPermitRepository:
         stale = {"outcome": "VERIFIED", "superseded_protocol": None,
                  "$or": [{"protocol": {"$exists": False}}, {"protocol": {"$nin": floor.admitted()}}]}
         by_protocol: dict[str, list[str]] = {}
-        async for d in self._verifications.find(stale, {"_id": 1, "protocol": 1}):
+        async for d in self._verifications.find(stale, {"_id": 1, "protocol": 1}, session=session):
             by_protocol.setdefault(d.get("protocol") or "statement-v1", []).append(d["_id"])
         flagged = 0
         for protocol, ids in by_protocol.items():
@@ -401,9 +405,9 @@ class MongoPermitRepository:
             # and repeats both; the matter update is idempotent.
             await self._call(self._matters.update_many(
                 {"state": MatterState.VERIFIED.value, "latest_verification_id": {"$in": ids}},
-                {"$set": {"superseded_protocol": protocol}}))
+                {"$set": {"superseded_protocol": protocol}}, session=session))
             result = await self._call(self._verifications.update_many(
-                {"_id": {"$in": ids}}, {"$set": {"superseded_protocol": protocol}}))
+                {"_id": {"$in": ids}}, {"$set": {"superseded_protocol": protocol}}, session=session))
             flagged += result.modified_count
         return flagged
 

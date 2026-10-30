@@ -370,3 +370,10 @@ a.ref:hover {
   font-size: var(--text-sm);
   color: var(--color-danger);
 }
+
+.translationNote {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-style: italic;
+  opacity: 0.8;
+}

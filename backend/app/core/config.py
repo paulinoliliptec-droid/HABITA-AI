@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -37,13 +38,27 @@ class Settings(BaseSettings):
     # Enables the maintenance endpoint when set. Unset: the endpoint answers 404.
     maintenance_token: SecretStr | None = None
 
-    # HR-006 PDF location maps (Google Maps Static API). Unset: the geocoding key is tried; when no key may call the
-    # Static API, the PDF says the maps are unavailable and shows no image.
+    # HR-006 PDF location images (Maps Static + Street View Static), with a dedicated server key restricted to those
+    # two APIs (secret maps-static-api-key). Unset: the PDF says the maps are unavailable and shows no image; no other
+    # key is reused.
     maps_static_api_key: SecretStr | None = None
     maps_static_timeout_seconds: float = 8.0
-    maps_static_rate_per_minute: float = 6  # map pairs (two paid loads each) per minute, per process
+    maps_static_rate_per_minute: float = 6  # PDFs with maps (2–3 paid image loads each) per minute, per process
     maps_static_burst: int = 2
     maps_static_daily_limit: int = 200
+    maps_static_per_location_hourly: int = 6
+    maps_street_view: bool = True
+    # HR-006 v2 PDF style: "classico" (owner's choice 2026-10-30, WeasyPrint) or "legacy" (reportlab). The premium
+    # renderer falls back to legacy if WeasyPrint or its system libraries are missing, so a PDF is always served.
+    report_pdf_style: Literal["classico", "moderno", "legacy"] = "classico"
+
+    # Bilingual system: Google Cloud Translation, with a dedicated key restricted to that API (secret
+    # google-translate-api-key). Unset: everything still works and is shown in English.
+    google_translate_api_key: SecretStr | None = None
+    translate_timeout_seconds: float = 10.0
+    translate_rate_per_minute: float = 30  # requests, per process
+    translate_burst: int = 10
+    translate_daily_limit: int = 500  # requests per UTC day, across instances
 
     resolve_rate_per_minute: float = 30
     resolve_burst: int = 10

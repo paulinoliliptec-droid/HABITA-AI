@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Notice } from "@/components/ui/Notice";
 import { PermitSection } from "@/features/permit/PermitSection";
 import { MapPostIts } from "@/features/report/MapPostIts";
+import { useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
 import { AddressSearch } from "./AddressSearch";
 import { getCachedProperty, getProperty, subscribeToProperties } from "./api";
@@ -21,6 +22,7 @@ import styles from "./PropertyWorkspace.module.css";
 const noProperty = () => undefined;
 
 export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
+  const { t } = useI18n();
   // Re-renders whenever this property is resolved or fetched again anywhere in the tab.
   const property = useSyncExternalStore(subscribeToProperties, () => getCachedProperty(propertyId), noProperty);
   // undefined: no failure; null: failure without a structured error.
@@ -42,7 +44,7 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
 
   return (
     <div className={styles.workspace}>
-      <aside className={styles.panel} aria-label="Property details">
+      <aside className={styles.panel} aria-label={t("Property details")}>
         <div className={styles.panelSearch}>
           <AddressSearch variant="compact" />
         </div>
@@ -89,34 +91,35 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
 }
 
 function LoadError({ error, onRetry }: { error: ApiError | null; onRetry: () => void }) {
+  const { t } = useI18n();
   // A malformed ID (validation_error) is just as unknown as a missing one.
   if (error?.code === "not_found" || error?.code === "validation_error") {
     return (
       <Notice
-        title="This property isn't in HABITA yet"
+        title={t("This property isn't in HABITA yet")}
         action={
           <ButtonLink href="/" variant="secondary">
             <Icon name="arrowLeft" size={16} />
-            Search for an address
+            {t("Search for an address")}
           </ButtonLink>
         }
       >
-        The link may be out of date. Search for the address to resolve it again.
+        {t("The link may be out of date. Search for the address to resolve it again.")}
       </Notice>
     );
   }
   return (
     <Notice
       tone="danger"
-      title="We couldn't load this property"
+      title={t("We couldn't load this property")}
       live
       action={
         <Button variant="secondary" onClick={onRetry}>
-          Try again
+          {t("Try again")}
         </Button>
       }
     >
-      {error?.message ?? "Something went wrong. Please try again."}
+      {error?.message ?? t("Something went wrong. Please try again.")}
     </Notice>
   );
 }
