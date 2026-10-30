@@ -8,6 +8,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
 import { downloadReportPdf, getReport, onReportChanged } from "./api";
 import { buildPostIts } from "./postits";
+import { ReasoningGraph } from "./ReasoningGraph";
 import type { PermitReport } from "./types";
 import styles from "./MapPostIts.module.css";
 
@@ -19,6 +20,7 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
   const [version, setVersion] = useState(0);
   const [open, setOpen] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [graphOpen, setGraphOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => onReportChanged(() => setVersion((v) => v + 1)), []);
@@ -65,7 +67,11 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
         <Button variant="secondary" onClick={download} disabled={downloading}>
           {downloading ? t("Preparing…") : t("PDF report")}
         </Button>
+        <Button variant="secondary" onClick={() => setGraphOpen(true)}>
+          {t("Reasoning graph")}
+        </Button>
       </div>
+      {graphOpen && <ReasoningGraph report={report} onClose={() => setGraphOpen(false)} />}
       {error && (
         <p className={styles.error} role="alert">
           {error}
