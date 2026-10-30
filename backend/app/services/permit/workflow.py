@@ -169,6 +169,18 @@ class PermitWorkflow:
         matter = await self._repo.get_matter(matter_id)
         if matter is None:
             raise NotFoundError("This permit matter doesn't exist.")
+        return await self._legacy_classified(matter)
+
+    async def _legacy_classified(self, matter: PermitMatter) -> PermitMatter:
+        """MU-9 at read time: a VERIFIED matter whose latest report was verified under a protocol the floor no longer
+        admits (statement-v1 and pre-MU-9 reports included) is presented as superseded — legacy, not revalidated —
+        even before ``flag_superseded`` has run on this database. The stored document is not changed here."""
+        if matter.state != MatterState.VERIFIED or matter.superseded_protocol:
+            return matter
+        report = await self._repo.latest_verification(matter.matter_id)
+        protocol = report.protocol if report is not None else "statement-v1"
+        if report is None or not (await self._repo.get_floor()).admits(protocol):
+            return matter.model_copy(update={"superseded_protocol": protocol})
         return matter
 
     async def checklist(self, matter_id: str) -> Checklist | None:
@@ -181,7 +193,11 @@ class PermitWorkflow:
 
     async def verification(self, matter_id: str):
         await self.get(matter_id)
-        return await self._repo.latest_verification(matter_id)
+        report = await self._repo.latest_verification(matter_id)
+        if (report is not None and report.outcome == "VERIFIED" and not report.superseded_protocol
+                and not (await self._repo.get_floor()).admits(report.protocol)):
+            report = report.model_copy(update={"superseded_protocol": report.protocol})  # same rule as get()
+        return report
 
     async def supply_inputs(self, matter_id: str, inputs: dict[str, str]) -> PermitMatter:
         matter = await self.get(matter_id)

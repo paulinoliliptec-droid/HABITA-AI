@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/Badge";
-import { ANSWER, OUTCOME, evidenceBasis } from "./present";
+import { ANSWER, evidenceBasis, outcomeOf } from "./present";
 import type { Evidence, PermitMatter } from "./types";
 import styles from "./Permit.module.css";
 
@@ -27,20 +27,24 @@ export function PermitResult({
 }) {
   const authority = authorityName ?? "the competent authority";
   const draft = matter.draft;
-  const outcome = OUTCOME[matter.state as keyof typeof OUTCOME];
+  const outcome = outcomeOf(matter);
+  const verified = matter.assessment_status === "verified_assessment";
 
   return (
     <div className={styles.result}>
       <div className={styles.resultHead}>
         {outcome && <Badge tone={outcome.tone}>{outcome.label}</Badge>}
-        {draft && matter.state !== "VERIFIED" && <span className={styles.unverified}>Unverified draft</span>}
+        {draft && !verified && <span className={styles.unverified}>Unverified draft</span>}
       </div>
 
-      {matter.state === "VERIFIED" && (
+      {verified && (
         <p className={styles.meaning}>
           HABITA&apos;s assessment passed its evidence and verification checks. It is not a permit: approval rests
           with {authority}.
         </p>
+      )}
+      {matter.assessment_status === "superseded_assessment" && matter.outcome_note && (
+        <p className={styles.escalation}>{matter.outcome_note}</p>
       )}
 
       {(matter.state === "ESCALATE" || matter.state === "REJECTED") && matter.escalation_reason && (

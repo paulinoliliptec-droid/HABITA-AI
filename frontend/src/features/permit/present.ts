@@ -36,6 +36,15 @@ export const OUTCOME: Record<"VERIFIED" | "ESCALATE" | "REJECTED" | "FAILED" | "
   FAILED: { label: "Interrupted", tone: "warning" },
 };
 
+// MU-9: a VERIFIED state verified under a protocol HABITA no longer accepts is presented as superseded — legacy, not
+// revalidated — never as a current verified assessment. The API's assessment_status decides, not the raw state.
+export const SUPERSEDED = { label: "Superseded: verified under an earlier protocol", tone: "warning" as BadgeTone };
+
+export function outcomeOf(matter: { state: string; assessment_status: string }) {
+  if (matter.assessment_status === "superseded_assessment") return SUPERSEDED;
+  return OUTCOME[matter.state as keyof typeof OUTCOME];
+}
+
 export const ANSWER: Record<ConclusionAnswer, string> = {
   likely_possible: "Likely possible",
   conditional: "Possible, subject to conditions",
