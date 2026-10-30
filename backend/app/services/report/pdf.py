@@ -1,4 +1,5 @@
-"""Render the shared report model as a PDF (HR-006). Presentation only: every word comes from ``PermitReport``."""
+"""Render the shared report model as a PDF (HR-006). Presentation only: every word comes from ``PermitReport``, and
+the location maps are images fetched for this PDF (``LocationMaps``), embedded with their framing and source."""
 
 import io
 from xml.sax.saxutils import escape
@@ -8,8 +9,12 @@ from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.lib.utils import simpleSplit
+from reportlab.platypus import (
+    Image, KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
+)
 
+from app.integrations.maps.static_maps import ATTRIBUTION, HEIGHT, WIDTH, LocationMaps
 from app.schemas.report import PermitReport, ReportStatus
 
 #: Status → (banner colour, words). The words always carry the status; colour only reinforces it.
@@ -38,6 +43,11 @@ def _styles():
                                textColor=_INK),
         "small": ParagraphStyle("small", parent=base["BodyText"], fontName="Helvetica", fontSize=8, leading=10.5,
                                 textColor=_MUTED),
+        "brand": ParagraphStyle("brand", parent=base["Title"], fontName="Helvetica-Bold", fontSize=30, leading=34,
+                                textColor=_INK, alignment=TA_LEFT, spaceAfter=1 * mm),
+        "cover_address": ParagraphStyle("cover_address", parent=base["BodyText"], fontName="Helvetica-Bold",
+                                        fontSize=15, leading=19, textColor=_INK, spaceBefore=14 * mm,
+                                        spaceAfter=2 * mm),
         "banner": ParagraphStyle("banner", parent=base["BodyText"], fontName="Helvetica-Bold", fontSize=11,
                                  leading=14, textColor=colors.white),
     }
@@ -58,13 +68,76 @@ def _banner(status: ReportStatus, reason: str, s):
     return t
 
 
+def _boxed(paragraph, colour=_RULE):
+    t = Table([[paragraph]], colWidths=[174 * mm])
+    t.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.8, colour), ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                           ("RIGHTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 6),
+                           ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
+    return t
+
+
+def _status(report: PermitReport) -> tuple[ReportStatus, str]:
+    a = report.assessment
+    return (a.status, a.status_reason) if a is not None else (
+        "PENDING_CONFIRMATION", "No permit assessment is included in this report.")
+
+
+def _cover(report: PermitReport, s) -> list:
+    p, (status, reason) = report.property, _status(report)
+    municipality = next((x for x in p.jurisdiction if x.startswith("Municipality:")), None)
+    flow = [Spacer(1, 30 * mm), Paragraph("HABITA AI", s["brand"]),
+            Paragraph("Property &amp; Permit Report", s["h2"]),
+            Paragraph(_t(p.address), s["cover_address"])]
+    if report.demo:
+        flow += [_banner("PENDING_CONFIRMATION", "DEMONSTRATION DATA — not a real assessment", s), Spacer(1, 2 * mm)]
+    flow += [_banner(status, reason, s), Spacer(1, 6 * mm), _table([
+        ("Property", _t(p.property_id)),
+        ("Municipality", _t(municipality.split(": ", 1)[1]) if municipality else "—"),
+        ("Competent authority", _t(p.authority) or "Not modelled for this jurisdiction"),
+        ("Zoning", _t(report.planning.classification) + " (verified official layer)" if report.planning.verified_zoning
+         else "<b>Zoning not verified</b>: no classification or boundary is stated."),
+        ("Generated", f"{report.generated_at:%Y-%m-%d %H:%M} UTC"),
+    ], [42 * mm, 132 * mm], s), Spacer(1, 10 * mm)]
+    # Always: no HABITA status, VERIFIED included, records a confirmation by the municipality.
+    flow.append(_boxed(Paragraph(
+        "<b>No municipal confirmation.</b> This report has not been confirmed by the Câmara Municipal or any other "
+        "authority; HABITA's statuses, VERIFIED included, are its own checks. Items marked pending must be confirmed "
+        "with the competent authority before any decision.", s["body"]), colors.HexColor("#8a5a00")))
+    flow.append(Spacer(1, 4 * mm))
+    flow += [Paragraph(_t(report.disclaimer), s["small"]), PageBreak()]
+    return flow
+
+
+def _location(maps: LocationMaps | None, s) -> list:
+    flow = [PageBreak(), Paragraph("Location", s["h2"])]
+    if maps is None or not maps.images:
+        why = maps.unavailable if maps is not None else "Maps were not requested for this report."
+        return flow + [_boxed(Paragraph(f"<b>Location maps unavailable.</b> {_t(why)} No image has been substituted; "
+                                        "use the coordinates in the property identification.", s["body"]))]
+    width = 150 * mm  # both images and the legend on one page
+    captions = {"roadmap": "A. Road map", "satellite": "B. Satellite image"}
+    for image in maps.images:
+        flow.append(KeepTogether([
+            Image(io.BytesIO(image.jpeg), width=width, height=width * HEIGHT / WIDTH),
+            Paragraph(f"<b>{captions.get(image.kind, image.kind)}</b> — centre {maps.lat:.6f}, {maps.lng:.6f}; "
+                      f"zoom {image.zoom}; same centre, zoom and size in both images.", s["small"]),
+            Spacer(1, 3 * mm),
+        ]))
+    flow.append(Paragraph(
+        f"<b>Legend.</b> Red marker: the geocoded point. Shaded circle (radius about {maps.radius_m} m): "
+        f"<b>approximate location</b>, sized from the geocoding precision ({_t(maps.precision)}). It is "
+        "<b>not a cadastral or parcel boundary</b>: HABITA holds no verified parcel geometry for this property. "
+        f"Source: {_t(ATTRIBUTION)}.", s["small"]))
+    return flow + [PageBreak()]
+
+
 def _refs(ids: list[str]) -> str:
     return f" <font color='#5b625e'>[{', '.join(_t(i) for i in ids)}]</font>" if ids else ""
 
 
-def render_pdf(report: PermitReport) -> bytes:
+def render_pdf(report: PermitReport, maps: LocationMaps | None = None) -> bytes:
     s = _styles()
-    flow = []
+    flow = _cover(report, s)
     p = report.property
     flow.append(Paragraph("HABITA AI — Property &amp; Permit Report", s["title"]))
     flow.append(Paragraph(_t(p.address), s["body"]))
@@ -90,10 +163,11 @@ def render_pdf(report: PermitReport) -> bytes:
     ], [42 * mm, 132 * mm], s))
 
     pl = report.planning
+    flow += _location(maps, s)
     flow.append(Paragraph("Planning context", s["h2"]))
     zoning = (f"<b>{_t(pl.classification)}</b> (verified official layer)" if pl.verified_zoning else
-              "<b>No verified zoning layer.</b> HABITA does not determine the classification; it must be confirmed "
-              "on the official maps or with the competent authority.")
+              "<b>Zoning not verified.</b> No verified zoning layer. HABITA does not determine the classification; it "
+              "must be confirmed on the official maps or with the competent authority.")
     rows = [("Zoning", zoning)]
     if pl.instrument:
         rows.append(("Instrument", _t(pl.instrument) + (f" — {_t(pl.instrument_version)}" if pl.instrument_version
@@ -173,13 +247,16 @@ def render_pdf(report: PermitReport) -> bytes:
         canvas.saveState()
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(_MUTED)
-        canvas.drawString(18 * mm, 10 * mm, report.disclaimer[:150])
-        canvas.drawRightString(192 * mm, 10 * mm, f"Page {doc.page}")
+        # The whole disclaimer, wrapped to the footer's width (no truncation).
+        lines = simpleSplit(report.disclaimer.translate(_SAFE), "Helvetica", 7, 150 * mm)
+        for n, line in enumerate(lines[:3]):
+            canvas.drawString(18 * mm, (11 - 3 * n) * mm, line)
+        canvas.drawRightString(192 * mm, 11 * mm, f"Page {doc.page}")
         canvas.restoreState()
 
     buf = io.BytesIO()
     SimpleDocTemplate(buf, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=16 * mm,
-                      bottomMargin=18 * mm, title="HABITA AI report", author="HABITA AI").build(
+                      bottomMargin=22 * mm, title="HABITA AI report", author="HABITA AI").build(
         flow + [Spacer(1, 4 * mm), Paragraph(_t(report.disclaimer), s["small"])],
         onFirstPage=footer, onLaterPages=footer)
     return buf.getvalue()

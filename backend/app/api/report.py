@@ -1,7 +1,8 @@
 """Reports (HR-004 map post-its, HR-006 PDF): one shared model, as JSON or PDF.
 
 The property report is public, like the property; an assessment report needs the matter's capability token, like the
-matter. Both only present stored results: no model, retriever or verifier runs here."""
+matter. Both only present stored results: no model, retriever or verifier runs here. The PDF also embeds two location
+maps fetched for it (road map and satellite, same framing), or says why they are missing."""
 
 from typing import Annotated
 
@@ -33,8 +34,10 @@ async def _matter_report(request: Request, matter_id: str, workflow) -> PermitRe
                                   await workflow.verification(matter_id))
 
 
-def _pdf(report: PermitReport, name: str) -> Response:
-    return Response(render_pdf(report), media_type="application/pdf",
+async def _pdf(request: Request, report: PermitReport, name: str) -> Response:
+    p = report.property
+    maps = await request.app.state.static_maps.location_maps(p.lat, p.lng, p.precision)
+    return Response(render_pdf(report, maps), media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="{name}.pdf"', "Cache-Control": "no-store"})
 
 
@@ -45,7 +48,7 @@ async def property_report(property_id: PropertyId, request: Request) -> PermitRe
 
 @router.get("/api/property/{property_id}/report.pdf")
 async def property_report_pdf(property_id: PropertyId, request: Request) -> Response:
-    return _pdf(await _property_report(request, property_id), f"habita-{property_id}")
+    return await _pdf(request, await _property_report(request, property_id), f"habita-{property_id}")
 
 
 @router.get("/api/permit/matters/{matter_id}/report", response_model=PermitReport)
@@ -55,4 +58,4 @@ async def matter_report(matter_id: MatterId, request: Request, workflow: Workflo
 
 @router.get("/api/permit/matters/{matter_id}/report.pdf")
 async def matter_report_pdf(matter_id: MatterId, request: Request, workflow: Workflow) -> Response:
-    return _pdf(await _matter_report(request, matter_id, workflow), f"habita-{matter_id}")
+    return await _pdf(request, await _matter_report(request, matter_id, workflow), f"habita-{matter_id}")
