@@ -128,7 +128,8 @@ infrastructure/deploy-staging.sh --preflight
 | 2026-10-29 | Atlas user `habita-staging-app` | owner, Atlas UI (generated password) | Only role `readWrite@habita_ai_staging`; scope cluster `habita-ai-m0`; no expiry; password authentication only (no X.509/IAM/LDAP/OIDC); not assigned `habitaStagingMigrate`. `habita_app` unchanged (`readWrite@habita_ai`, `habita-ai-m0`); role and network access unchanged. |
 | 2026-10-30 | Password of `habita-staging-app` replaced in Atlas (the first one appeared in a screenshot) | owner, Atlas UI | roles and scope unchanged (verified read-only) |
 | 2026-10-30 | `infrastructure/create_staging_secret.py` prepared (owner-run, hidden prompt, Atlas privilege check before creation, never replaces a secret) | Claude | reviewed by Codex (3 rounds, clean); tests and local MongoDB 7/8.0 checks pass. A PTY test with a dummy password made one failed login attempt on habita-ai-m0 (nothing read or changed) |
-| pending | Secret `mongodb-uri-staging` | owner, own terminal | — |
+| 2026-10-30 | Secret `mongodb-uri-staging` | owner, `create_staging_secret.py` | Created 01:49:37Z, label env=staging, automatic replication; version 1 enabled; no secret-level grants yet (content never displayed) |
+| 2026-10-30 | Atlas check from the secret (read-only, URI piped from Secret Manager) | Claude | Authenticates as `habita-staging-app`; privileges only on `habita_ai_staging`, exactly the readWrite actions (Atlas adds none); `confinement_problem` OK; default database `habita_ai_staging`; listCollections on `habita_ai` refused (AtlasError 8000); no database created |
 | pending | IAM API, service accounts, per-secret grants | separate authorisation | — |
 
 ### Migrations (only when needed)
