@@ -89,6 +89,8 @@ def test_a_faithful_translation_passes(source, target):
     ("The rules for the category.", "As regras do ™ para a categoria.", "stray symbol"),
     ("The parcel is not in the REN.", "A parcela não está na REN (Região de Referência de Energia).", "added explanation"),
     ("You must not change the facade.", "Não se deve alterar a fachada.", "prohibition"),
+    ("You must not change the facade.", "Não deve alterar a fachada.", "prohibition"),
+    ("The parcel is in the REN.", "A parcela está na REN: Região de Referência de Energia.", "added explanation"),
     ("Works are exempt where the building is classified.", "As obras estão isentas se classificado como património.", "added meaning"),
     ("Each unit must have two rooms.", "Cada unidade deve ter dois quartos.", "added meaning"),
     ("The works comply with the plan.", "As obras foram aprovadas.", "legal outcome"),

@@ -44,8 +44,8 @@ _CHECKS = (  # (what, in the English source, must have one of these in the Portu
     ("negation", re.compile(r"\b(?:not|no|never|cannot|none|without|neither|nor|unless)\b|n't\b", re.I),
      re.compile(r"\b(?:não|nunca|nem|sem|nenhum\w*|nada|a menos|salvo|exceto|ausência|falta\w*|impossível)\b", re.I)),
     ("prohibition", re.compile(r"\b(?:must not|shall not|may not|cannot|can't|prohibited|forbidden)\b", re.I),
-     # "não se deve" is advice: a prohibition must stay one.
-     re.compile(r"\b(?:não pode\w*|não se pode\w*|não deve\w*|não é permitid\w+|não são permitid\w+|proibid\w+|vedad\w+|"
+     # "não deve" and "não se deve" read as advice: a prohibition must stay one.
+     re.compile(r"\b(?:não pode\w*|não se pode\w*|não é permitid\w+|não são permitid\w+|proibid\w+|vedad\w+|"
                 r"interdit\w+|impossível)\b", re.I)),
     ("obligation", re.compile(r"\b(?:must(?! not)|shall(?! not)|required|mandatory|need to|needs to)\b"),
      re.compile(r"\b(?:dev\w+|tem de|têm de|terá de|terão de|tem que|têm que|necess\w+|obrigat\w+|requer\w*|requisit\w*|"
@@ -84,7 +84,10 @@ def fidelity_problems(source: str, target: str) -> list[str]:
         problems.append("official name")
     if re.search(r"Representantes|Deputados|Comuns", target) and not re.search(r"Representatives|Deputies|Commons", source):
         problems.append("official name")  # "Câmara" is never a parliament here
-    if target.count("(") > source.count("("):  # an invented expansion: "REN" became "REN (Região de Referência de Energia)"
+    # An invented expansion: "REN" became "REN (Região de Referência de Energia)", or the same after a colon or a dash.
+    if target.count("(") > source.count("(") or any(
+            re.search(rf"\b{a}\b\s*[:–—-]\s*[A-ZÀ-Ý]", target) and not re.search(rf"\b{a}\b\s*[:–—-]", source)
+            for a in _acronym.findall(source)):
         problems.append("added explanation")
     if any(symbol in target and symbol not in source for symbol in "™®©"):
         problems.append("stray symbol")
