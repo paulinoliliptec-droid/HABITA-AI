@@ -60,6 +60,7 @@
   align-items: stretch;
   align-self: stretch;
   gap: var(--space-6);
+  margin-left: auto;
 }
 
 .navItem {
