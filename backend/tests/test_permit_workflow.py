@@ -381,3 +381,70 @@ def test_model_materiality_labels_are_ignored_when_drafting():
         final = run(client, matter_id)
     assert final["state"] == "REJECTED"
     assert all(c["material"] for c in final["draft"]["claims"])
+
+
+# ── HR-009: request types ─────────────────────────────────────────────────────────────────────────────────────────
+def typed(intent: str):
+    return lambda p: {"intent": intent, "intent_summary": "A request.", "questions": []}
+
+
+def checklist_of(client, matter_id: str) -> dict:
+    return {i["key"]: i for i in client.get(f"/api/permit/matters/{matter_id}/checklist").json()["items"]}
+
+
+def test_a_change_of_use_asks_the_user_and_rests_on_the_official_rule():
+    model = ScriptedModel(checklist=typed("change_of_use"), investigation=lambda r, m: [])
+    with make_client(model) as client:
+        final = run(client, create(client, "Can I change this flat to an office?")["matter_id"])
+        items = checklist_of(client, final["matter_id"])
+    assert final["intent"] == "change_of_use" and final["state"] == "NEEDS_INPUT"
+    assert {m["input_key"] for m in final["missing_inputs"]} == {"current_licensed_use", "intended_use"}
+    assert items["change_of_use"]["owner"] == "SYSTEM_TOOL"
+
+
+def test_interior_works_never_conclude_on_their_own_control():
+    model = ScriptedModel(checklist=typed("interior_works"), investigation=lambda r, m: [])
+    with make_client(model) as client:
+        final = run(client, create(client, "Can I redo the kitchen and bathroom?")["matter_id"])
+        items = checklist_of(client, final["matter_id"])
+    assert final["intent"] == "interior_works"
+    assert [m["input_key"] for m in final["missing_inputs"]] == ["works_description"]
+    assert items["interior_works_control"]["owner"] == "AUTHORITY"
+    assert items["interior_works_control"]["status"] != "satisfied"
+
+
+def test_a_goal_that_is_not_placed_says_so_and_runs_nothing_more():
+    model = ScriptedModel(checklist=typed("out_of_scope"))
+    with make_client(model) as client:
+        final = run(client, create(client, "Can I build something here?")["matter_id"])
+    assert final["state"] == "ESCALATE" and "Choose a type" in final["escalation_reason"]
+    assert model.calls == ["checklist"]
+
+
+def test_the_users_correction_decides_over_the_planner():
+    model = ScriptedModel(checklist=typed("general_overview"), investigation=lambda r, m: [])
+    with make_client(model) as client:
+        pid = resolve_cascais(client)
+        created = client.post("/api/permit/matters", json={"property_id": pid, "question": "Can I change this flat?",
+                                                           "intent": "change_of_use"}).json()
+        client.headers["Authorization"] = f"Bearer {created['access_token']}"
+        final = run(client, created["matter"]["matter_id"])
+    assert final["intent"] == "change_of_use" and final["requested_intent"] == "change_of_use"
+
+
+def test_a_correction_cannot_ask_for_an_unknown_or_uncovered_type():
+    with make_client(ScriptedModel()) as client:
+        pid = resolve_cascais(client)
+        for intent in ("out_of_scope", "demolition"):
+            answer = client.post("/api/permit/matters", json={"property_id": pid, "question": "Can I change it?",
+                                                              "intent": intent})
+            assert answer.status_code == 422
+
+
+def test_a_portuguese_municipality_outside_cascais_is_not_covered_and_costs_no_model_call(monkeypatch):
+    monkeypatch.setattr("app.services.permit.workflow.CASCAIS", "pt/lisboa/elsewhere")
+    model = ScriptedModel()
+    with make_client(model) as client:
+        final = run(client, create(client, CONVERSION_QUESTION)["matter_id"])
+    assert final["state"] == "ESCALATE" and "Cascais only" in final["escalation_reason"]
+    assert model.calls == []

@@ -65,7 +65,7 @@ async def permit_status(request: Request) -> dict[str, object]:
 @router.post("/matters", response_model=CreateMatterResponse, status_code=201)
 async def create_matter(body: CreateMatterRequest, request: Request, workflow: Workflow) -> CreateMatterResponse:
     """Create a private matter. The access token is returned here, once; keep it to resume."""
-    matter, token = await workflow.create(body.property_id, body.question)
+    matter, token = await workflow.create(body.property_id, body.question, body.intent)
     return CreateMatterResponse(matter=matter, access_token=token,
                                 detected_language=await request.app.state.translator.detect(body.question))
 

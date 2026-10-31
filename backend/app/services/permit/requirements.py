@@ -65,6 +65,12 @@ _PROCEDURE = Requirement(
     search_topics=("licensing_procedure", "change_of_use"),
 )
 
+_DOCUMENTS = Requirement(
+    "required_documents", "required_documents", "Which documents would the application need?", "DOCUMENT",
+    required=False,
+    condition="Confirm the documents required for the application with the competent authority before applying.",
+)
+
 CATALOG: dict[str, tuple[Requirement, ...]] = {
     "unit_conversion": (
         _JURISDICTION,
@@ -94,11 +100,45 @@ CATALOG: dict[str, tuple[Requirement, ...]] = {
             "SYSTEM_TOOL", finding_ids=("rgeu-habitability",), search_topics=("habitability",),
         ),
         _PLANNING,
+        _DOCUMENTS,
+    ),
+    "change_of_use": (
+        _JURISDICTION,
+        _AUTHORITY,
         Requirement(
-            "required_documents", "required_documents", "Which documents would the application need?", "DOCUMENT",
-            required=False,
-            condition="Confirm the documents required for the application with the competent authority before applying.",
+            "current_licensed_use", "current_use",
+            "What is the property's current licensed use (for example, housing or commerce)?", "USER",
         ),
+        Requirement(
+            "intended_use", "intended_use", "What use do you want the property to have, and in which part of it?",
+            "USER",
+        ),
+        Requirement(
+            "change_of_use", "restrictions", "What rules apply to changing the use of a building or unit?",
+            "SYSTEM_TOOL", finding_ids=("rjue-use",), search_topics=("change_of_use",),
+        ),
+        _PROCEDURE,
+        _PLANNING,
+        _DOCUMENTS,
+    ),
+    "interior_works": (
+        _JURISDICTION,
+        _AUTHORITY,
+        Requirement(
+            "works_description", "intended_use",
+            "Which works do you plan, and do they touch walls that carry weight, the facades, the roof or the height?",
+            "USER",
+        ),
+        _PROCEDURE,
+        # HABITA holds no reviewed rule on which interior works are exempt, so it never says they are.
+        Requirement(
+            "interior_works_control", "licensing_procedure", "Do these interior works need municipal prior control?",
+            "AUTHORITY",
+            condition="Whether these interior works need a licence, a prior communication or neither must be confirmed "
+                      "with the Câmara Municipal before they start.",
+        ),
+        _PLANNING,
+        _DOCUMENTS,
     ),
     "general_overview": (_JURISDICTION, _AUTHORITY, _PROCEDURE, _PLANNING),
 }

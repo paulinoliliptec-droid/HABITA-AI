@@ -1,6 +1,6 @@
 import type { BadgeTone } from "@/components/ui/Badge";
 import { english, msg, type Translate } from "@/i18n/core";
-import type { ConclusionAnswer, Evidence, MatterState } from "./types";
+import type { ConclusionAnswer, Evidence, MatterState, PermitIntent } from "./types";
 
 export const PHASES = [msg("Goal"), msg("Investigation"), msg("Evidence"), msg("Result")] as const;
 export type Phase = (typeof PHASES)[number];
@@ -94,5 +94,15 @@ export function sourcesLine(checked: number, needed: number, t: Translate = engl
 
 export const SUGGESTED_QUESTIONS = [
   msg("Can I convert this property into two residential units?"),
+  msg("Can I change this property's use?"),
+  msg("Can I do interior works in this property?"),
   msg("What can I do with this property?"),
 ] as const;
+
+/** The closed catalog of request types (HR-009), in the order they are offered. */
+export const INTENT_LABEL: Record<PermitIntent, string> = {
+  unit_conversion: msg("Dividing into units"),
+  change_of_use: msg("Change of use"),
+  interior_works: msg("Interior works"),
+  general_overview: msg("General orientation"),
+};

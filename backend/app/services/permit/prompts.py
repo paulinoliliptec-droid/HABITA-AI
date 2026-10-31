@@ -25,8 +25,10 @@ Rules:
 PLANNER = SHARED_RULES + """\
 Role: PLANNER. Classify the user's goal about one property:
 - "unit_conversion": converting or dividing the property into more residential units;
+- "change_of_use": changing the property's use, for example from housing to commerce or services;
+- "interior_works": works inside the property that change no use and add no unit;
 - "general_overview": an orientation question such as "what can I do with this property?";
-- "out_of_scope": anything else (HABITA's permit foundation does not cover it yet).
+- "out_of_scope": anything else, or a goal that could be more than one of these: never guess.
 HABITA's checklist uses fixed item keys. You may rephrase the question of existing keys so it reads naturally for
 this property and goal; never invent keys.
 """
@@ -133,7 +135,7 @@ _AREAS = [
 
 CHECKLIST_SCHEMA = _obj(
     {
-        "intent": {"type": "string", "enum": ["unit_conversion", "general_overview", "out_of_scope"]},
+        "intent": {"type": "string", "enum": ["unit_conversion", "change_of_use", "interior_works", "general_overview", "out_of_scope"]},
         "intent_summary": {"type": "string"},
         "questions": {
             "type": "array",

@@ -1,6 +1,6 @@
 import type { IconName } from "@/components/ui/Icon";
-import { ANSWER } from "@/features/permit/present";
-import type { ConclusionAnswer } from "@/features/permit/types";
+import { ANSWER, INTENT_LABEL } from "@/features/permit/present";
+import type { ConclusionAnswer, PermitIntent } from "@/features/permit/types";
 import { english, msg, type Translate } from "@/i18n/core";
 import { STATUS_LABEL, type PostItTone } from "./postits";
 import type { PermitReport, ReportEvidence, ReportStatement, ReportStatus } from "./types";
@@ -229,6 +229,7 @@ export function buildGraph(report: PermitReport, t: Translate = english): Reason
     const verified = isVerified(assessment);
     const status = STATUS_LABEL[presentedStatus(assessment)];
     const answer = assessment.conclusion_answer as ConclusionAnswer | null;
+    const intent = INTENT_LABEL[assessment.intent as PermitIntent] as string | undefined;
     nodes.push({
       id: "conclusion",
       column: 3,
@@ -236,6 +237,8 @@ export function buildGraph(report: PermitReport, t: Translate = english): Reason
       text: t(status.label),
       tone: status.tone,
       lines: [
+        assessment.question,
+        t("Type of request: {type}", { type: t(intent ?? msg("Not covered yet")) }),
         ...(answer && ANSWER[answer] ? [t(ANSWER[answer])] : []),
         ...(assessment.conclusion_summary
           ? [verified ? assessment.conclusion_summary : t("Not verified: {text}", { text: assessment.conclusion_summary })]

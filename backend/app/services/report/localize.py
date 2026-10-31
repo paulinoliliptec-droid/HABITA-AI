@@ -56,6 +56,7 @@ async def localize_report(report: PermitReport, lang: str, translator: Translato
     profile = [i.model_copy(update={
         "label": x(i.label) if i.kind == "declaration" else t(i.label), "origin": t(i.origin),
         "precision": t(i.precision) if i.precision else None,
+        "value": t(i.value) if i.key == "request_type" else i.value,  # a fixed label, unlike every other value
     }) for i in report.profile]
     leads = (_split_pending(p) for p in report.pending)
     return report.model_copy(update={

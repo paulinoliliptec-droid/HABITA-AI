@@ -31,7 +31,9 @@ STABLE_STATES = {
     MatterState.NEEDS_INPUT, MatterState.VERIFIED, MatterState.ESCALATE, MatterState.REJECTED, MatterState.FAILED,
 }
 
-Intent = Literal["unit_conversion", "general_overview", "out_of_scope"]
+#: The closed catalog of request types (HR-009). out_of_scope: not placed in any type, so nothing is concluded.
+Intent = Literal["unit_conversion", "change_of_use", "interior_works", "general_overview", "out_of_scope"]
+CoveredIntent = Literal["unit_conversion", "change_of_use", "interior_works", "general_overview"]
 
 ChecklistArea = Literal[
     "current_use",
@@ -292,6 +294,8 @@ class PermitMatter(BaseModel):
     question: str
     state: MatterState
     intent: Intent | None = None
+    #: The type the user chose when correcting a classification; it decides over the planner's.
+    requested_intent: CoveredIntent | None = None
     jurisdiction_id: str
     authority_id: str | None = None
     inputs: dict[str, str] = Field(default_factory=dict)
@@ -356,6 +360,7 @@ class PermitMatter(BaseModel):
 class CreateMatterRequest(BaseModel):
     property_id: str = Field(pattern=r"^prp_[0-9a-f]{16}$")
     question: str = Field(min_length=8, max_length=500)
+    intent: CoveredIntent | None = None
 
     @field_validator("question")
     @classmethod

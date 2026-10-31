@@ -19,7 +19,7 @@ are not global milestones.
 | HR-006 | Premium PDF Report | professional export: property identification, analysis summary, conditions, risks, official sources, verifiable references and conclusion status; VERIFIED / REJECTED / pending clearly distinct; evidence provenance and version preserved (owner, 2026-10-29) | AC6.1–AC6.9 below | **MVP COMPLETE** — Clássico PDF live on the original services since 2026-10-30 (`5fae732`, backend `00019-kew`, frontend `00014-jiy`); real Portuguese run VERIFIED on staging with 3 images; browser QA pending (TD-049) |
 | HR-007 | Voice Explanation | audio explanation of results with listen/pause/repeat; audio is not legal proof | proposed by Claude from the master roadmap, owner approved starting 2026-10-30: spoken only from the report, opens with "not legal proof", same status rule as the PDF, EN/PT, sentence on screen, owner changed 2026-10-31: ElevenLabs behind the backend, one voice per language, browser voice as fallback | **LIVE, acceptance pending** — on the original services since 2026-10-31 (`984750b`, backend `00029-tuq`, frontend `00024-wuw`); real audio in PT and EN from the server; owner's listening test pending |
 | HR-008 | Property Intelligence | property profile with provenance; official facts, observations and user declarations kept apart | AC8.1–AC8.8 below, approved by the owner 2026-10-31 | **LIVE, acceptance pending** — on the original services since 2026-10-31 (`360699b`, backend `00031-ron`, frontend `00026-muj`); panel, PDF and voice |
-| HR-009 | Intent & Permits (*proposed*) | user intent → procedures by municipality and works type; never a specific licence without proof | criteria **PENDING** | not started |
+| HR-009 | Intent & Permits | user intent → procedures by municipality and works type; never a specific licence without proof | AC9.1–AC9.8 below, approved by the owner 2026-10-31 | **IMPLEMENTED locally** — change of use and interior works; tested with a scripted model only, no real Muse run; not deployed |
 | HR-010 | Multimodal Property Understanding (*proposed*) | photos, plans, documents; consent, EXIF, provenance, privacy; segmentation as a conditional sub-capability | criteria **PENDING** | not started |
 | HR-011 | AFFORD / Financial Feasibility (*proposed*) | cost ranges, scenarios, parameterised rates; no financial guarantees | criteria **PENDING** | not started |
 | HR-012 | Visual Transformation (*proposed*) | before/after concepts, never presented as municipal authorisation | criteria **PENDING** | not started |
@@ -41,6 +41,21 @@ are not global milestones.
 | AC8.8 | The profile does not change a VERIFIED status or replace the MU-9 checks. |
 
 Out of scope: photos and plans (HR-010), permits by works type (HR-009).
+
+### HR-009 acceptance criteria (proposed by Claude, approved by the owner 2026-10-31)
+
+| ID | Criterion |
+|---|---|
+| AC9.1 | A closed catalog of works types for Cascais; change of use and interior works first, beside the existing unit division and general overview. |
+| AC9.2 | The system classifies the request into one type and shows what it understood; the user can correct it. |
+| AC9.3 | An ambiguous or uncovered request gets a question or a statement that it is not covered; nothing is guessed. |
+| AC9.4 | Each type shows the likely procedure, documents and questions, always with an official source. |
+| AC9.5 | With no official source to conclude, it says the procedure must be confirmed with the municipality, never a specific licence. |
+| AC9.6 | Rules depend on the municipality: outside Cascais it says the case is not covered. |
+| AC9.7 | The intent appears in the profile as a user declaration, and on the site, PDF, voice and graph, in English and Portuguese. |
+| AC9.8 | MU-9 keeps checking everything; no new path to VERIFIED. |
+
+Out of scope: photos and plans (HR-010), costs (HR-011).
 
 ### Bilingual system (PT/EN) — owner decision 2026-10-30
 

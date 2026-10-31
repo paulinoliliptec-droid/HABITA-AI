@@ -7,7 +7,7 @@ Declarations come from the matter's evidence, so a public property report has no
 
 from collections.abc import Iterable
 
-from app.schemas.permit import Evidence
+from app.schemas.permit import Evidence, PermitMatter
 from app.schemas.property import ResolvedProperty
 from app.schemas.report import ProfileItem
 from app.schemas.sources import OfficialSourceOut, PlanningContext
@@ -18,6 +18,14 @@ _GEOCODER = msg("Google Maps geocoding")
 _RECORD = msg("HABITA jurisdiction record")
 _DECLARED = msg("You stated this in this matter")
 _CONFIRM = msg("Official maps or the competent authority")
+_CHOSEN = msg("Chosen by you")
+_READ = msg("Read from your words; you can correct it")
+_CLASSIFIED = msg("HABITA's reading of your request")
+_INTENTS = {
+    "unit_conversion": msg("Dividing into units"), "change_of_use": msg("Change of use"),
+    "interior_works": msg("Interior works"), "general_overview": msg("General orientation"),
+    "out_of_scope": msg("Not covered yet"),
+}
 _NO_VERSION = msg("Registered source, no version recorded")
 _AREA = msg("Administrative area")
 _REVIEWED = msg("Reviewed reference, not a registered source")
@@ -79,9 +87,23 @@ def _declarations(evidence: Iterable[Evidence]) -> list[ProfileItem]:
     return list(seen.values())
 
 
+def _request(matter: PermitMatter | None) -> list[ProfileItem]:
+    """What the user asked is theirs; which type it is, is HABITA's reading, so it is an observation."""
+    if matter is None:
+        return []
+    day = matter.created_at.date()
+    items = [ProfileItem(key="request", label=msg("Your request"), value=matter.question, kind="declaration",
+                         origin=_DECLARED, as_of=day, precision=_AS_STATED)]
+    if matter.intent:
+        items.append(ProfileItem(key="request_type", label=msg("Type of request"), value=_INTENTS[matter.intent],
+                                 kind="observation", origin=_CLASSIFIED, as_of=day,
+                                 precision=_CHOSEN if matter.requested_intent else _READ))
+    return items
+
+
 def build_profile(prop: ResolvedProperty, context: PlanningContext, sources: Iterable[OfficialSourceOut],
-                  evidence: Iterable[Evidence] = ()) -> list[ProfileItem]:
-    items = [*_official(context, sources), *_observations(prop), *_declarations(evidence)]
+                  evidence: Iterable[Evidence] = (), matter: PermitMatter | None = None) -> list[ProfileItem]:
+    items = [*_official(context, sources), *_observations(prop), *_request(matter), *_declarations(evidence)]
     values: dict[str, set[str]] = {}
     for item in items:
         if item.value is not None:

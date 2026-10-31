@@ -51,6 +51,7 @@ from app.schemas.permit import (
     Risk,
     VerificationReport,
 )
+from app.services.sources.catalog import CASCAIS
 from app.services.permit import prompts, requirements
 from app.services.permit.model import ReasoningModel
 from app.services.permit.repository import (
@@ -136,7 +137,7 @@ class PermitWorkflow:
 
     # --- public operations ----------------------------------------------------------
 
-    async def create(self, property_id: str, question: str) -> tuple[PermitMatter, str]:
+    async def create(self, property_id: str, question: str, intent: str | None = None) -> tuple[PermitMatter, str]:
         """Create a matter; returns it with its capability token (shown once, stored only as a hash)."""
         prop = await self._properties.get(property_id)
         if prop is None:
@@ -147,6 +148,7 @@ class PermitWorkflow:
             matter_id=new_matter_id(),
             property_id=prop.property_id,
             question=question,
+            requested_intent=intent,
             state=MatterState.PLANNING,
             jurisdiction_id=prop.jurisdiction.id,
             authority_id=authority.id if authority else None,
@@ -290,6 +292,10 @@ class PermitWorkflow:
         if not self._sources.covers(chain):
             await self._escalate(matter, "HABITA has no regulatory sources for this jurisdiction yet.")
             return
+        if matter.jurisdiction_id != CASCAIS:  # national law alone never decides a municipal procedure
+            await self._escalate(matter, "HABITA covers procedures for Cascais only so far. Confirm this one with the "
+                                         "competent municipality.")
+            return
         checklist = await self._repo.get_checklist(matter.matter_id)
         if checklist is None:
             prop = await tools.property()
@@ -307,12 +313,14 @@ class PermitWorkflow:
             await self._repo.save_checklist(checklist)
         matter.intent = checklist.intent
         if checklist.intent == "out_of_scope":
-            await self._escalate(matter, "HABITA's permit foundation covers unit conversions and general orientation only.")
+            await self._escalate(matter, "HABITA could not place this request in a type it covers: dividing into units, "
+                                         "change of use, interior works or general orientation. Choose a type or "
+                                         "describe it again.")
             return
         await self._transition(matter, MatterState.INVESTIGATING)
 
     def _checklist_from(self, matter: PermitMatter, result: dict[str, Any]) -> Checklist:
-        intent = result["intent"]
+        intent = matter.requested_intent or result["intent"]
         valid = requirements.requirements_for(intent)
         wording: dict[str, str] = {}
         for q in result.get("questions", []):
