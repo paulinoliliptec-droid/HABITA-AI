@@ -165,17 +165,17 @@ def _page_images(page) -> list:
 
 
 def _decode(xobj) -> Image.Image | None:
-    """One image within the pixel limit. JPEG streams go to Pillow, which checks the size again; other filters use
-    pypdf's own conversion."""
+    """One image within the pixel limit, read only when it is a plain JPEG stream: Pillow reads its real size from the
+    JPEG header and refuses it past the limit before decoding. Any other encoding is not read (the file is still kept),
+    because its decoded size is only what the PDF claims."""
     try:
-        if xobj.get("/Filter") in ("/DCTDecode", ArrayObject([NameObject("/DCTDecode")])):
-            image = Image.open(io.BytesIO(xobj._data))
-            if image.width * image.height > MAX_PIXELS:
-                return None
-            image.load()
-            return image
-        from pypdf.filters import _xobj_to_image
-        return _xobj_to_image(xobj)[2]
+        if xobj.get("/Filter") not in ("/DCTDecode", ArrayObject([NameObject("/DCTDecode")])):
+            return None
+        image = Image.open(io.BytesIO(xobj._data))
+        if image.width * image.height > MAX_PIXELS:
+            return None
+        image.load()
+        return image
     except Exception:  # noqa: BLE001 - an image HABITA can't decode is simply not read
         return None
 
@@ -188,16 +188,16 @@ def _clean_pdf(data: bytes) -> Inspected:
         if len(reader.pages) > MAX_PAGES:
             raise FileRejected(f"PDFs can have at most {MAX_PAGES} pages.")
         # A new document: the catalogue (open actions, scripts, forms, document metadata) is never copied.
+        # Pages are cleaned before they are copied, so what was dropped is never copied at all: no orphaned objects
+        # and no pass over the streams (pruning orphans afterwards made pypdf decode every stream to compare them).
         writer = PdfWriter()
         seen: set[int] = set()
         for source in reader.pages:
-            page = writer.add_page(source)
-            for key in list(page.keys()):
+            for key in list(source.keys()):
                 if key not in _PAGE_KEYS:
-                    del page[key]
-            _scrub(page.get(NameObject("/Resources")), seen)
-        # Objects that only the dropped entries pointed to would still be written: remove them.
-        writer.compress_identical_objects(remove_identicals=False, remove_orphans=True)
+                    del source[key]
+            _scrub(source.get(NameObject("/Resources")), seen)
+            writer.add_page(source)
         out = io.BytesIO()
         writer.write(out)
         # A scanned plan is usually one large image: HABITA reads the largest image of the first pages. Sizes are read

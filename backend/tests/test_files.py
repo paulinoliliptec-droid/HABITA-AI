@@ -505,3 +505,60 @@ def test_an_oversized_pdf_image_is_never_decoded(monkeypatch):
     checked = inspect(out.getvalue())
     assert checked.readable is None and decoded == []
     assert inspect(data).readable is not None and decoded == [64]
+
+
+# --- Codex TD-068 review round 1 regressions ----------------------------------------------------------------------
+
+
+def _image_pdf(data: bytes, w: int, h: int, filters, colorspace="/DeviceGray") -> bytes:
+    from pypdf.generic import ArrayObject, NumberObject, StreamObject
+    writer = PdfWriter()
+    page = writer.add_blank_page(64, 48)
+    img = StreamObject()
+    img._data = data
+    f = ArrayObject([NameObject(x) for x in filters]) if len(filters) > 1 else NameObject(filters[0])
+    img.update({NameObject("/Type"): NameObject("/XObject"), NameObject("/Subtype"): NameObject("/Image"),
+                NameObject("/Width"): NumberObject(w), NameObject("/Height"): NumberObject(h),
+                NameObject("/ColorSpace"): NameObject(colorspace), NameObject("/BitsPerComponent"): NumberObject(8),
+                NameObject("/Filter"): f, NameObject("/Length"): NumberObject(len(data))})
+    content = DecodedStreamObject()
+    content.set_data(b"q 64 0 0 48 0 0 cm /Im0 Do Q")
+    page[NameObject("/Resources")] = DictionaryObject({NameObject("/XObject"): DictionaryObject(
+        {NameObject("/Im0"): writer._add_object(img)})})
+    page[NameObject("/Contents")] = writer._add_object(content)
+    out = io.BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
+def _peak(fn) -> int:
+    import tracemalloc
+    tracemalloc.start()
+    try:
+        fn()
+        return tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+
+
+def test_a_run_length_bomb_is_kept_without_being_decompressed():
+    """A 4000×4000 grey image as run-length data: about 250 KB that would decompress to 16 MB."""
+    bomb = (b"\x81\x00" * (16_000_000 // 128)) + b"\x80"
+    data = _image_pdf(bomb, 4000, 4000, ["/RunLengthDecode"])
+    assert len(data) < 400_000
+    checked = None
+
+    def run():
+        nonlocal checked
+        checked = inspect(data)
+    assert _peak(run) < 8_000_000  # the stream is copied, never expanded
+    assert checked.readable is None
+
+
+def test_a_jpeg_hidden_behind_a_filter_array_with_a_lying_size_is_not_decoded():
+    big = io.BytesIO()
+    Image.new("L", (6000, 6000)).save(big, "JPEG", quality=10)  # small file, 36 million pixels
+    import zlib
+    data = _image_pdf(zlib.compress(big.getvalue()), 1, 1, ["/FlateDecode", "/DCTDecode"])
+    assert _peak(lambda: inspect(data)) < 20_000_000
+    assert inspect(data).readable is None
