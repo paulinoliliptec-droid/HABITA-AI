@@ -20,7 +20,7 @@ are not global milestones.
 | HR-007 | Voice Explanation | audio explanation of results with listen/pause/repeat; audio is not legal proof | proposed by Claude from the master roadmap, owner approved starting 2026-10-30: spoken only from the report, opens with "not legal proof", same status rule as the PDF, EN/PT, sentence on screen, owner changed 2026-10-31: ElevenLabs behind the backend, one voice per language, browser voice as fallback | **LIVE, acceptance pending** — on the original services since 2026-10-31 (`984750b`, backend `00029-tuq`, frontend `00024-wuw`); real audio in PT and EN from the server; owner's listening test pending |
 | HR-008 | Property Intelligence | property profile with provenance; official facts, observations and user declarations kept apart | AC8.1–AC8.8 below, approved by the owner 2026-10-31 | **LIVE, acceptance pending** — on the original services since 2026-10-31 (`360699b`, backend `00031-ron`, frontend `00026-muj`); panel, PDF and voice |
 | HR-009 | Intent & Permits | user intent → procedures by municipality and works type; never a specific licence without proof | AC9.1–AC9.8 below, approved by the owner 2026-10-31 | **LIVE, acceptance pending** — on the original services since 2026-10-31, now `729fa7f` (backend `00039-xes`, frontend `00034-pif`): fixed material warnings per type, next actions written by HABITA; last real run 4 of 5 answered VERIFIED with conditions, answers thin (TD-067); no legal review yet |
-| HR-010 | Multimodal Property Understanding (*proposed*) | photos, plans, documents; consent, EXIF, provenance, privacy; segmentation as a conditional sub-capability | criteria **PENDING** | not started |
+| HR-010 | Multimodal Property Understanding (*proposed*) | photos, plans, documents; consent, EXIF, provenance, privacy; segmentation as a conditional sub-capability | AC10.1–AC10.9 below, **proposed, awaiting the owner** | not started |
 | HR-011 | AFFORD / Financial Feasibility (*proposed*) | cost ranges, scenarios, parameterised rates; no financial guarantees | criteria **PENDING** | not started |
 | HR-012 | Visual Transformation (*proposed*) | before/after concepts, never presented as municipal authorisation | criteria **PENDING** | not started |
 | HR-013 | Global Jurisdiction (*proposed*) | jurisdiction adapters with verified sources; Cascais first and stable | criteria **PENDING** | not started |
@@ -56,6 +56,22 @@ Out of scope: photos and plans (HR-010), permits by works type (HR-009).
 | AC9.8 | MU-9 keeps checking everything; no new path to VERIFIED. |
 
 Out of scope: photos and plans (HR-010), costs (HR-011).
+
+### HR-010 acceptance criteria (proposed by Claude 2026-10-31, awaiting the owner)
+
+| ID | Criterion |
+|---|---|
+| AC10.1 | The user can add photos and plans (JPEG, PNG, PDF) to a matter, only after a consent screen that says what goes to Meta and what HABITA keeps. |
+| AC10.2 | Type and size are checked from the file's content, not its name; at most 10 files of 10 MB per matter. |
+| AC10.3 | Location and device data are removed from the copy HABITA keeps. Capture date and GPS are read first: GPS far from the property is shown as a mismatch, and GPS never proves where a photo was taken. |
+| AC10.4 | Each file keeps its provenance: added by the user, when, its SHA-256 and the kind the user chose (photo, plan, document). |
+| AC10.5 | Muse Spark reads each file and HABITA records what it saw as observations from your file, never as official facts. |
+| AC10.6 | An observation never satisfies an item that needs official evidence and never makes an answer VERIFIED; it can only add a question or a condition. MU-9 keeps checking everything. |
+| AC10.7 | Only whoever can read the matter sees its files; the user can delete a file, and HABITA deletes its copy. |
+| AC10.8 | Observations appear on the site, in the PDF and in the voice, labelled with their file, in English and Portuguese. |
+| AC10.9 | Nothing is measured from a photo or plan (areas, heights) as a fact; any figure read is the user's to confirm. |
+
+Out of scope: segmentation (SAM) and video (conditional sub-capability, later), costs (HR-011), before/after images (HR-012).
 
 ### Bilingual system (PT/EN) — owner decision 2026-10-30
 
