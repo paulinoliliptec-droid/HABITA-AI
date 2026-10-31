@@ -9,6 +9,7 @@ import { ApiError } from "@/lib/api";
 import { downloadReportPdf, getReport, onReportChanged } from "./api";
 import { buildPostIts } from "./postits";
 import { ReasoningGraph } from "./ReasoningGraph";
+import { VoiceExplanation } from "./VoiceExplanation";
 import type { PermitReport } from "./types";
 import styles from "./MapPostIts.module.css";
 
@@ -72,6 +73,7 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
         </Button>
       </div>
       {graphOpen && <ReasoningGraph report={report} onClose={() => setGraphOpen(false)} />}
+      <VoiceExplanation report={report} own={own} />
       {error && (
         <p className={styles.error} role="alert">
           {error}

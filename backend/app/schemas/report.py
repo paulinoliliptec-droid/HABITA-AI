@@ -126,3 +126,11 @@ class PermitReport(BaseModel):
     #: The language this report is shown in. Statuses stay the fields above, whatever the language.
     language: Literal["en", "pt"] = "en"
     translation: ReportTranslation | None = None
+
+
+class VoiceScript(BaseModel):
+    """HR-007: the sentences spoken from a report. ``audio``: synthesised speech exists for this language."""
+
+    version: str
+    lines: list[str]
+    audio: bool

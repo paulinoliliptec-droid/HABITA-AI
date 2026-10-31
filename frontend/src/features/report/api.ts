@@ -2,7 +2,7 @@ import type { Lang } from "@/i18n/core";
 import { apiRequest, ApiError, parseErrorResponse } from "@/lib/api";
 import { config } from "@/lib/config";
 import type { MatterCapability } from "@/features/permit/capability";
-import type { PermitReport } from "./types";
+import type { PermitReport, VoiceScript } from "./types";
 
 /** The matter's report when this browser holds its capability; otherwise the public property report. */
 function reportPath(propertyId: string, own: MatterCapability | null): { path: string; init: RequestInit } {
@@ -32,6 +32,24 @@ export async function downloadReportPdf(propertyId: string, own: MatterCapabilit
   link.download = `habita-${own?.matterId ?? propertyId}.pdf`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+export function getVoiceScript(propertyId: string, own: MatterCapability | null, lang: Lang, signal?: AbortSignal): Promise<VoiceScript> {
+  const { path, init } = reportPath(propertyId, own);
+  return apiRequest<VoiceScript>(`${path}/voice?lang=${lang}`, { ...init, signal });
+}
+
+/** One spoken sentence, by its place in the script. The capability travels in the header, so the audio is fetched here. */
+export async function getVoiceLine(propertyId: string, own: MatterCapability | null, lang: Lang, version: string, line: number): Promise<Blob> {
+  const { path, init } = reportPath(propertyId, own);
+  let response: Response;
+  try {
+    response = await fetch(`${config.apiBaseUrl}${path}/voice/${line}?lang=${lang}&version=${version}`, init);
+  } catch {
+    throw new ApiError("network_error", "HABITA can't reach its server right now. Check your connection and try again.", 0);
+  }
+  if (!response.ok) throw await parseErrorResponse(response);
+  return response.blob();
 }
 
 /** Lets the map refresh its post-its when the permit matter on this page changes. */

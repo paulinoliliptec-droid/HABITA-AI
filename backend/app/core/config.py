@@ -60,6 +60,18 @@ class Settings(BaseSettings):
     translate_burst: int = 10
     translate_daily_limit: int = 500  # requests per UTC day, across instances
 
+    # HR-007 voice: ElevenLabs, one voice per language. Without the key or a language's voice, that language is read by
+    # the browser's own voice. The text said goes to ElevenLabs; zero retention is an enterprise feature.
+    elevenlabs_api_key: SecretStr | None = None
+    elevenlabs_voice_en: str | None = None
+    elevenlabs_voice_pt: str | None = None
+    elevenlabs_model: str = "eleven_multilingual_v2"
+    elevenlabs_timeout_seconds: float = 15.0
+    elevenlabs_rate_per_minute: float = 120  # sentences, per process
+    elevenlabs_burst: int = 20
+    elevenlabs_daily_limit: int = 1000  # sentences per UTC day, across instances, 180 characters at most each
+    elevenlabs_cache_bytes: int = 64_000_000
+
     resolve_rate_per_minute: float = 30
     resolve_burst: int = 10
     resolve_max_concurrency: int = 4
