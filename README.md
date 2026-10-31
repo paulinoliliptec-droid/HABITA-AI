@@ -3,7 +3,7 @@ Property intelligence that knows which rules apply where: resolve an address to 
 authority, ask a permitting question, and get an answer that is shown as **verified** only when every statement is
 backed by an official source that HABITA retrieved, snapshotted and checked.
 
-Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (HR-001 … HR-006 as described
+Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (HR-001 … HR-007 as described
 below); development continues on the branch `mu9/structural-verification` and reaches `main` only by an explicit merge.
 
 ## The problem
@@ -22,6 +22,8 @@ the evidence does not support it.
 | Database | MongoDB Atlas | properties, permit matters, evidence, verifications, official-source snapshots |
 | Maps | Google Maps Platform | Places autocomplete, Geocoding, Maps JavaScript (map), Maps Static and Street View Static (PDF images, see HR-006) |
 | AI | Meta Model API — **Muse Spark** (`muse-spark-1.3`) | planning, tool calls over official sources, drafting, a review that can only make a verdict stricter |
+| Language | Google Cloud Translation | Portuguese reading view of answers; fixed texts in reviewed catalogs |
+| Voice | ElevenLabs | spoken report, one voice per language; the browser's own voice as fallback |
 | Hosting | Google Cloud Run + Artifact Registry + Secret Manager | containers deployed manually; private staging with IAM authentication |
 
 Details: [`docs/architecture.md`](docs/architecture.md), [`docs/environment.md`](docs/environment.md).
@@ -82,6 +84,23 @@ the workspace contains the three images. If the map service is unavailable or un
 no substitute image.
 Code: `backend/app/services/report/`, `backend/app/integrations/maps/static_maps.py`.
 
+### HR-005 · Visual Reasoning Graph — Live; acceptance pending
+A clickable graph from the property through rules, evidence and conditions to the conclusion, documents and next steps,
+built only from relations stored in the report. Selecting a block lights its flow. It never invents causality or
+authorisation.
+Code: `frontend/src/features/report/reasoningGraph.ts`.
+
+### HR-007 · Voice Explanation — Live; owner's listening test pending
+The report can be heard with Listen, Pause, Resume, Repeat and Stop, with the sentence on screen. Audio is an
+explanation, never legal proof: it opens and closes by saying so, follows the report's status rule and says every
+pending item. The script is built on the backend from the stored report, and audio is requested by sentence position,
+so the public endpoint cannot speak a caller's text. Each language has its own ElevenLabs voice. Spend is capped per
+minute and per day, and a sentence already spoken is served from memory. If audio fails, the same sentence continues in
+the browser's voice; if the report changed, the audio stops. The reader is told that the text goes to ElevenLabs.
+Portuguese audio reads machine translation, labelled as such.
+Code: `backend/app/services/report/voice.py`, `backend/app/integrations/speech/client.py`,
+`frontend/src/features/report/VoiceExplanation.tsx`.
+
 ### Feature summary
 | Feature | State |
 |---|---|
@@ -92,11 +111,14 @@ Code: `backend/app/services/report/`, `backend/app/integrations/maps/static_maps
 | Zoning classification from official GIS | Planned (no validated connector; absence stated) |
 | Map with post-its (HR-004) | Done (MVP); owner browser check pending |
 | PDF report with verification record and provenance (HR-006) | Done; tested on staging |
+| Reasoning graph (HR-005) | Live; acceptance pending |
 | PDF road map + satellite (+ Street View) images (HR-006) | Validated with real Google data locally and on the private staging |
+| Spoken report in Portuguese and English with ElevenLabs (HR-007) | Live; real audio generated, full listening test pending |
+| Bilingual site, answers and PDF (Portuguese and English) | Live; Portuguese answers are labelled machine translation |
 | Private staging on Cloud Run | Done (IAM-authenticated, isolated database) |
 | Original (public demo) updated with HR-004/HR-006 and MU-9 | Done (2026-10-30), tested in the browser |
 | SAM 3.1 segmentation, Muse Voice Transcribe, Muse Image | Planned (integration points only) |
-| HR-005, HR-007 … HR-015 | Pending definition |
+| HR-008 … HR-015 | Pending definition |
 
 ## Private staging demo (authenticated)
 A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-staging`) on an isolated database
@@ -104,9 +126,10 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-30 to commit `0d3290f` (backend
-revision `00017`, frontend `00012`) after the MU-9 migration of its database (verified backup, audit, nothing deleted).
-Tested there: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `984750b` (backend
+revision `00029`, frontend `00024`), with the reasoning graph and the spoken report. The MU-9 migration of its database
+ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
+Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
 command (`infrastructure/STAGING.md`). Historical results verified under the old protocol are never shown
 as current VERIFIED: they read as superseded (legacy, not revalidated), with their original provenance.
@@ -142,14 +165,14 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-10-30, branch head before this README): backend **6605 passed, 14 skipped, 3 expected failures**
-(known limitations kept as strict xfail); frontend **38 passed**, lint, typecheck and build clean. Live tests against
+Last full run (2026-10-31, commit `984750b`): backend **6723 passed, 14 skipped, 3 expected failures**
+(known limitations kept as strict xfail); frontend **81 passed**, lint, typecheck and build clean. Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 
 ## Roadmap and technical debt
 - Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002
-  done; HR-003 in controlled validation; HR-004 MVP complete; HR-006 pending the real-map validation; HR-005 and
-  HR-007…HR-015 pending definition.
+  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete; HR-005 and HR-007 live, acceptance pending;
+  HR-008…HR-015 pending definition.
 - Main open items: redeploy staging with the latest HR-004/HR-006 code (including the real PDF images); set Google
   Cloud API quotas and review the Maps Platform terms for imagery in PDFs; improve answers to procedure questions (repeated zoning conditions, missing RJUE
   procedure citations); research semantic verification (entailment, negation scope, deontic logic) without weakening
