@@ -127,3 +127,60 @@ export async function deleteFile(matterId: string, token: string, fileId: string
 export async function fileContent(matterId: string, token: string, fileId: string): Promise<Blob> {
   return (await fileRequest(`${base}/matters/${matterId}/files/${fileId}/content`, token)).blob();
 }
+
+/** HR-011: the user's own figures; every one is optional and labelled as declared. */
+export interface AffordInputs {
+  area_m2: number | null;
+  property_type: "apartment" | "house" | null;
+  quote_low: number | null;
+  quote_high: number | null;
+  budget: number | null;
+  rate_percent: number | null;
+  years: number | null;
+  down_payment: number | null;
+}
+
+export interface AffordFigure {
+  label: string;
+  low: number;
+  high: number;
+  likely: number | null;
+  per_m2_low: number | null;
+  per_m2_high: number | null;
+  source: string;
+  author: string | null;
+  source_kind: "reference_table" | "user_declared" | "official_statistics" | "computed";
+  as_of: string | null;
+  url: string | null;
+}
+
+export interface AffordScenario {
+  key: "lower" | "likely" | "higher";
+  cost: number;
+  monthly_payment: number | null;
+  financed: number | null;
+  within_budget: boolean | null;
+  assumptions: string[];
+  moves_it: string[];
+}
+
+export interface AffordReport {
+  inputs: AffordInputs;
+  costs: AffordFigure[];
+  costs_note: string | null;
+  fees_note: string;
+  scenarios: AffordScenario[];
+  financing_note: string | null;
+  formula: string;
+  valuation: AffordFigure[];
+  valuation_note: string | null;
+  disclaimer: string;
+}
+
+export function getAfford(matterId: string, token: string): Promise<AffordReport> {
+  return apiRequest(`${base}/matters/${matterId}/afford`, withToken(token));
+}
+
+export function saveAfford(matterId: string, token: string, inputs: AffordInputs): Promise<AffordReport> {
+  return apiRequest(`${base}/matters/${matterId}/afford`, withToken(token, { method: "PUT", body: JSON.stringify(inputs) }));
+}

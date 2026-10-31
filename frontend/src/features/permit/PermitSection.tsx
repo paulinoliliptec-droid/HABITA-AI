@@ -18,6 +18,7 @@ import {
   type MatterTranslation,
 } from "./api";
 import { forgetMatter, recallMatter, rememberMatter } from "./capability";
+import { PermitAfford } from "./PermitAfford";
 import { PermitFiles } from "./PermitFiles";
 import { PermitInputs } from "./PermitInputs";
 import { PermitProgress } from "./PermitProgress";
@@ -186,6 +187,7 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
           )}
 
           {token && !running && <PermitFiles matterId={matter.matter_id} token={token} />}
+          {token && !running && <PermitAfford matterId={matter.matter_id} token={token} />}
 
           {STABLE_STATES.has(matter.state) && !running && (choosing || matter.intent === "out_of_scope") && (
             <div className={styles.suggestions}>

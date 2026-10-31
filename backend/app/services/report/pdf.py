@@ -16,6 +16,7 @@ from reportlab.platypus import (
 
 from app.integrations.maps.static_maps import ATTRIBUTION, HEIGHT, WIDTH, LocationMaps
 from app.schemas.report import PermitReport, ReportStatus
+from app.services.report import afford_lines
 from app.services.i18n.translator import translator_for
 
 #: Status → (banner colour, words). The words always carry the status; colour only reinforces it.
@@ -193,6 +194,11 @@ def render_pdf(report: PermitReport, maps: LocationMaps | None = None) -> bytes:
     pl = report.planning
     flow += _location(maps, s)
     flow += _profile(report, s)
+    if report.afford is not None:
+        t = translator_for(report.language)
+        flow += [Paragraph(t(afford_lines.TITLE), s["h2"]),
+                 _table([(a, _t(b)) for a, b in afford_lines.rows(report.afford, report.language)],
+                        [42 * mm, 132 * mm], s)]
     flow.append(Paragraph("Planning context", s["h2"]))
     zoning = (f"<b>{_t(pl.classification)}</b> (verified official layer)" if pl.verified_zoning else
               "<b>Zoning not verified.</b> No verified zoning layer. HABITA does not determine the classification; it "

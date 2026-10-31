@@ -13,7 +13,9 @@ from fastapi import APIRouter, Depends, Header, Path, Query, Request
 from fastapi.responses import Response
 
 from app.core.errors import NotFoundError
+from app.schemas.afford import AffordInputs, AffordReport
 from app.schemas.files import FileKind, MatterFile
+from app.services.afford.compute import afford
 from app.services.files.inspect import MAX_BYTES
 from app.services.files.service import InvalidFileError, MatterFiles
 from app.schemas.permit import (
@@ -185,3 +187,27 @@ async def file_content(matter_id: MatterId, file_id: FileId, files: Files) -> Re
 async def delete_file(matter_id: MatterId, file_id: FileId, files: Files) -> Response:
     await files.delete(matter_id, file_id)
     return Response(status_code=204)
+
+
+# --- HR-011: costs, financing and market price ------------------------------------------------------------------
+
+
+async def afford_report(request: Request, workflow: PermitWorkflow, matter_id: str,
+                        inputs: AffordInputs | None = None) -> AffordReport:
+    """Computed from the matter's type, its property's place and the user's figures; nothing in the matter changes."""
+    matter = await workflow.get(matter_id)
+    prop = await request.app.state.property_service.get(matter.property_id)
+    levels = {lvl.type: lvl.name for lvl in prop.jurisdiction.levels} if prop is not None else {}
+    stored = inputs or await request.app.state.afford_repo.get(matter_id) or AffordInputs()
+    return afford(matter.intent, levels.get("municipality"), levels.get("subdivision"), stored, levels.get("region"))
+
+
+@router.get("/matters/{matter_id}/afford", response_model=AffordReport)
+async def get_afford(matter_id: MatterId, request: Request, workflow: Workflow) -> AffordReport:
+    return await afford_report(request, workflow, matter_id)
+
+
+@router.put("/matters/{matter_id}/afford", response_model=AffordReport)
+async def put_afford(matter_id: MatterId, body: AffordInputs, request: Request, workflow: Workflow) -> AffordReport:
+    await request.app.state.afford_repo.save(matter_id, body)
+    return await afford_report(request, workflow, matter_id, body)

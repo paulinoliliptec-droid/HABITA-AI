@@ -139,6 +139,17 @@ near and far): four Muse Spark readings, labels and figures described as shown a
 mismatch, no metadata left in the bucket copies, and every copy gone after deletion.
 Code: `backend/app/services/files/`, `frontend/src/features/permit/PermitFiles.tsx`.
 
+### HR-011 · AFFORD / Financial Feasibility — Implemented locally; not deployed
+In a matter, the user can enter the area, their own quotes, a budget and a loan's rate, term and down payment. HABITA
+shows the cost of the works as a range (lower, likely, higher), from the user's quotes when given and from a reference
+table built from public price guides, cited, dated and marked as awaiting the owner's approval of its figures. Financing
+uses only the user's own rate and term, with the formula shown; there is no default rate. The market price comes from
+INE official statistics for the municipality and parish (median bank valuation, median sale price over 12 months), from
+a dated snapshot, each source shown apart. A municipality without statistics, or with an ambiguous name, shows no price.
+Municipal fees are left to the Câmara. Every number is computed by code; no model writes one. It is an estimate with no
+financial guarantee and never changes the assessment. Idealista and Casafari are not connected: they need the owner's
+accounts. Code: `backend/app/services/afford/`, `frontend/src/features/permit/PermitAfford.tsx`.
+
 ### Feature summary
 | Feature | State |
 |---|---|
@@ -159,7 +170,8 @@ Code: `backend/app/services/files/`, `frontend/src/features/permit/PermitFiles.t
 | Property profile: official, observed, declared (HR-008) | Live; acceptance pending |
 | Request types with correction by the user (HR-009) | Live; acceptance pending |
 | Photos and plans read as observations (HR-010) | Live; acceptance pending (consent wording not legally reviewed) |
-| HR-011 … HR-015 | Pending definition |
+| Costs, financing and market price (HR-011) | Implemented locally; reference table awaiting the owner |
+| HR-012 … HR-015 | Pending definition |
 
 ## Private staging demo (authenticated)
 A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-staging`) on an isolated database
@@ -206,14 +218,14 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-10-31, commit `0caab9e`): backend **6835 passed, 14 skipped, 3 expected failures**
+Last full run (2026-10-31, HR-011 local commit): backend **6863 passed, 14 skipped, 3 expected failures**
 (known limitations kept as strict xfail); frontend **84 passed**, lint, typecheck and build clean. Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 
 ## Roadmap and technical debt
 - Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002
-  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete; HR-005, HR-007, HR-008 and HR-009 and HR-010 live, acceptance pending;
-  HR-011…HR-015 pending definition.
+  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete; HR-005, HR-007, HR-008 and HR-009 and HR-010 live, acceptance pending; HR-011 implemented locally;
+  HR-012…HR-015 pending definition.
 - Main open items: redeploy staging with the latest HR-004/HR-006 code (including the real PDF images); set Google
   Cloud API quotas and review the Maps Platform terms for imagery in PDFs; improve answers to procedure questions (repeated zoning conditions, missing RJUE
   procedure citations); research semantic verification (entailment, negation scope, deontic logic) without weakening

@@ -1,0 +1,3084 @@
+{
+ "source": {
+  "bank_valuation": {
+   "indicator": "0012248",
+   "title": "Valor mediano de avaliação bancária (€/ m²) por Localização geográfica (Município - 2024) e Tipo de construção; Mensal - INE, Inquérito à avaliação bancária na habitação",
+   "period": "Setembro de 2026",
+   "updated": "2026-10-27",
+   "url": "https://www.ine.pt/xurl/indx/0012248"
+  },
+  "sale_median": {
+   "indicator": "0012246",
+   "title": "Valor mediano das vendas de alojamentos familiares nos últimos 12 meses (Metodologia 2022 - €/ m²) por Localização geográfica (NUTS - 2024) e Domicílio fiscal do comprador; Trimestral - INE, Estatísticas de preços da habitação ao nível local (Metodologia 2022)",
+   "period": "2.º Trimestre de 2026",
+   "updated": "2026-10-23",
+   "url": "https://www.ine.pt/xurl/indx/0012246"
+  },
+  "publisher": "Instituto Nacional de Estatística (INE)",
+  "extracted": "2026-10-31"
+ },
+ "places": {
+  "1111601": {
+   "name": "Arcos de Valdevez",
+   "bank_valuation": {
+    "house": 1228,
+    "total": 1362
+   },
+   "sale_median": 930
+  },
+  "1111602": {
+   "name": "Caminha",
+   "bank_valuation": {
+    "house": 1692,
+    "total": 1735
+   },
+   "sale_median": 1742
+  },
+  "1111603": {
+   "name": "Melgaço",
+   "sale_median": 698
+  },
+  "1111604": {
+   "name": "Monção",
+   "bank_valuation": {
+    "total": 1520
+   },
+   "sale_median": 1200
+  },
+  "1111605": {
+   "name": "Paredes de Coura",
+   "sale_median": 797
+  },
+  "1111606": {
+   "name": "Ponte da Barca",
+   "sale_median": 1180
+  },
+  "1111607": {
+   "name": "Ponte de Lima",
+   "bank_valuation": {
+    "house": 1455,
+    "total": 1561
+   },
+   "sale_median": 1612
+  },
+  "1111608": {
+   "name": "Valença",
+   "bank_valuation": {
+    "total": 1389
+   },
+   "sale_median": 1295
+  },
+  "1111609": {
+   "name": "Viana do Castelo",
+   "bank_valuation": {
+    "house": 1646,
+    "total": 1834,
+    "apartment": 2109
+   },
+   "sale_median": 1938
+  },
+  "1111610": {
+   "name": "Vila Nova de Cerveira",
+   "sale_median": 1196
+  },
+  "1120301": {
+   "name": "Amares",
+   "bank_valuation": {
+    "total": 1667
+   },
+   "sale_median": 1636
+  },
+  "1120302": {
+   "name": "Barcelos",
+   "bank_valuation": {
+    "house": 1576,
+    "total": 1843,
+    "apartment": 2080
+   },
+   "sale_median": 1780
+  },
+  "112030209": {
+   "name": "Arcozelo",
+   "sale_median": 2005
+  },
+  "112030213": {
+   "name": "Barcelinhos",
+   "sale_median": 2328
+  },
+  "112030277": {
+   "name": "Tamel (São Veríssimo)",
+   "sale_median": 1572
+  },
+  "1120302FG": {
+   "name": "União das freguesias de Viatodos, Grimancelos, Minhotães e Monte de Fralães",
+   "sale_median": 1293
+  },
+  "1120303": {
+   "name": "Braga",
+   "bank_valuation": {
+    "house": 1748,
+    "total": 2044,
+    "apartment": 2175
+   },
+   "sale_median": 2199
+  },
+  "112030319": {
+   "name": "Gualtar",
+   "sale_median": 2602
+  },
+  "112030331": {
+   "name": "Palmeira",
+   "sale_median": 1813
+  },
+  "112030349": {
+   "name": "Braga (São Vicente)",
+   "sale_median": 2371
+  },
+  "112030351": {
+   "name": "Braga (São Vítor)",
+   "sale_median": 2250
+  },
+  "112030364": {
+   "name": "União das freguesias de Braga (Maximinos, Sé e Cividade)",
+   "sale_median": 2189
+  },
+  "112030365": {
+   "name": "União das freguesias de Braga (São José de São Lázaro e São João do Souto)",
+   "sale_median": 2157
+  },
+  "112030370": {
+   "name": "União das freguesias de Este (São Pedro e São Mamede)",
+   "sale_median": 2507
+  },
+  "112030371": {
+   "name": "União das freguesias de Ferreiros e Gondizalves",
+   "sale_median": 2134
+  },
+  "112030373": {
+   "name": "União das freguesias de Lomar e Arcos",
+   "sale_median": 2111
+  },
+  "112030374": {
+   "name": "União das freguesias de Merelim (São Paio), Panoias e Parada de Tibães",
+   "sale_median": 1918
+  },
+  "112030375": {
+   "name": "União das freguesias de Merelim (São Pedro) e Frossos",
+   "sale_median": 1407
+  },
+  "112030377": {
+   "name": "União das freguesias de Nogueira, Fraião e Lamaçães",
+   "sale_median": 2422
+  },
+  "112030378": {
+   "name": "União das freguesias de Nogueiró e Tenões",
+   "sale_median": 2534
+  },
+  "112030379": {
+   "name": "União das freguesias de Real, Dume e Semelhe",
+   "sale_median": 2238
+  },
+  "1120306": {
+   "name": "Esposende",
+   "bank_valuation": {
+    "house": 1646,
+    "total": 1950,
+    "apartment": 2240
+   },
+   "sale_median": 2229
+  },
+  "1120310": {
+   "name": "Terras de Bouro",
+   "sale_median": 1144
+  },
+  "1120313": {
+   "name": "Vila Verde",
+   "bank_valuation": {
+    "house": 1429,
+    "total": 1576,
+    "apartment": 1797
+   },
+   "sale_median": 1538
+  },
+  "1190304": {
+   "name": "Cabeceiras de Basto",
+   "bank_valuation": {
+    "total": 1353
+   },
+   "sale_median": 889
+  },
+  "1190307": {
+   "name": "Fafe",
+   "bank_valuation": {
+    "house": 1307,
+    "total": 1391,
+    "apartment": 1644
+   },
+   "sale_median": 1370
+  },
+  "1190308": {
+   "name": "Guimarães",
+   "bank_valuation": {
+    "house": 1450,
+    "total": 1708,
+    "apartment": 1819
+   },
+   "sale_median": 1859
+  },
+  "119030804": {
+   "name": "Azurém",
+   "sale_median": 2651
+  },
+  "119030807": {
+   "name": "Brito",
+   "sale_median": 1631
+  },
+  "119030808": {
+   "name": "Caldelas",
+   "sale_median": 1893
+  },
+  "119030812": {
+   "name": "Costa",
+   "sale_median": 2165
+  },
+  "119030813": {
+   "name": "Creixomil",
+   "sale_median": 2021
+  },
+  "119030815": {
+   "name": "Fermentões",
+   "sale_median": 1907
+  },
+  "119030828": {
+   "name": "Lordelo",
+   "sale_median": 1519
+  },
+  "119030830": {
+   "name": "Mesão Frio",
+   "sale_median": 1765
+  },
+  "119030831": {
+   "name": "Moreira de Cónegos",
+   "sale_median": 1231
+  },
+  "119030838": {
+   "name": "Ponte",
+   "sale_median": 1805
+  },
+  "119030840": {
+   "name": "Ronfe",
+   "sale_median": 1538
+  },
+  "119030854": {
+   "name": "Selho (São Jorge)",
+   "sale_median": 1525
+  },
+  "119030865": {
+   "name": "São Torcato",
+   "sale_median": 1511
+  },
+  "119030871": {
+   "name": "Urgezes",
+   "sale_median": 2100
+  },
+  "119030881": {
+   "name": "União das freguesias de Candoso São Tiago e Mascotelos",
+   "sale_median": 2777
+  },
+  "119030884": {
+   "name": "União das freguesias de Oliveira, São Paio e São Sebastião",
+   "sale_median": 1826
+  },
+  "1190309": {
+   "name": "Póvoa de Lanhoso",
+   "bank_valuation": {
+    "house": 1420,
+    "total": 1453
+   },
+   "sale_median": 1416
+  },
+  "1190311": {
+   "name": "Vieira do Minho",
+   "sale_median": 1135
+  },
+  "1190312": {
+   "name": "Vila Nova de Famalicão",
+   "bank_valuation": {
+    "house": 1610,
+    "total": 1812,
+    "apartment": 1951
+   },
+   "sale_median": 1859
+  },
+  "119031204": {
+   "name": "Bairro",
+   "sale_median": 1497
+  },
+  "119031213": {
+   "name": "Delães",
+   "sale_median": 1740
+  },
+  "119031216": {
+   "name": "Gavião",
+   "sale_median": 2051
+  },
+  "119031219": {
+   "name": "Joane",
+   "sale_median": 1699
+  },
+  "119031224": {
+   "name": "Lousado",
+   "sale_median": 1790
+  },
+  "119031227": {
+   "name": "Nine",
+   "sale_median": 1983
+  },
+  "119031234": {
+   "name": "Riba de Ave",
+   "sale_median": 1555
+  },
+  "119031235": {
+   "name": "Ribeirão",
+   "sale_median": 1884
+  },
+  "119031239": {
+   "name": "Oliveira (Santa Maria)",
+   "sale_median": 1534
+  },
+  "119031247": {
+   "name": "Vermoim",
+   "sale_median": 1574
+  },
+  "119031250": {
+   "name": "União das freguesias de Antas e Abade de Vermoim",
+   "sale_median": 2224
+  },
+  "119031251": {
+   "name": "União das freguesias de Arnoso (Santa Maria e Santa Eulália) e Sezures",
+   "sale_median": 1724
+  },
+  "119031256": {
+   "name": "União das freguesias de Lemenhe, Mouquim e Jesufrei",
+   "sale_median": 1875
+  },
+  "119031260": {
+   "name": "União das freguesias de Vila Nova de Famalicão e Calendário",
+   "sale_median": 2079
+  },
+  "1190314": {
+   "name": "Vizela",
+   "bank_valuation": {
+    "house": 1409,
+    "total": 1696,
+    "apartment": 1731
+   },
+   "sale_median": 1585
+  },
+  "1191705": {
+   "name": "Mondim de Basto",
+   "sale_median": 895
+  },
+  "11A0104": {
+   "name": "Arouca",
+   "bank_valuation": {
+    "total": 1465
+   },
+   "sale_median": 1051
+  },
+  "11A0107": {
+   "name": "Espinho",
+   "bank_valuation": {
+    "total": 2196
+   },
+   "sale_median": 2797
+  },
+  "11A010702": {
+   "name": "Espinho",
+   "sale_median": 3126
+  },
+  "11A010705": {
+   "name": "Silvalde",
+   "sale_median": 1769
+  },
+  "11A0109": {
+   "name": "Santa Maria da Feira",
+   "bank_valuation": {
+    "house": 1502,
+    "total": 1691,
+    "apartment": 1788
+   },
+   "sale_median": 1766
+  },
+  "11A010901": {
+   "name": "Argoncilhe",
+   "sale_median": 2081
+  },
+  "11A010902": {
+   "name": "Arrifana",
+   "sale_median": 1779
+  },
+  "11A010904": {
+   "name": "Escapães",
+   "sale_median": 1683
+  },
+  "11A010907": {
+   "name": "Fiães",
+   "sale_median": 1525
+  },
+  "11A010913": {
+   "name": "Lourosa",
+   "sale_median": 1744
+  },
+  "11A010914": {
+   "name": "Milheirós de Poiares",
+   "sale_median": 1446
+  },
+  "11A010916": {
+   "name": "Mozelos",
+   "sale_median": 1813
+  },
+  "11A010917": {
+   "name": "Nogueira da Regedoura",
+   "sale_median": 1913
+  },
+  "11A010919": {
+   "name": "Paços de Brandão",
+   "sale_median": 1772
+  },
+  "11A010921": {
+   "name": "Rio Meão",
+   "sale_median": 1811
+  },
+  "11A010925": {
+   "name": "Santa Maria de Lamas",
+   "sale_median": 1822
+  },
+  "11A010926": {
+   "name": "São João de Ver",
+   "sale_median": 1880
+  },
+  "11A010935": {
+   "name": "União das freguesias de Santa Maria da Feira, Travanca, Sanfins e Espargo",
+   "sale_median": 1921
+  },
+  "11A0113": {
+   "name": "Oliveira de Azeméis",
+   "bank_valuation": {
+    "house": 1404,
+    "total": 1531,
+    "apartment": 1599
+   },
+   "sale_median": 1507
+  },
+  "11A011304": {
+   "name": "Loureiro",
+   "sale_median": 1229
+  },
+  "11A011318": {
+   "name": "São Roque",
+   "sale_median": 1606
+  },
+  "11A011319": {
+   "name": "Vila de Cucujães",
+   "sale_median": 1499
+  },
+  "11A011321": {
+   "name": "União das freguesias de Oliveira de Azeméis, Santiago de Riba-Ul, Ul, Macinhata da Seixa e Madail",
+   "sale_median": 1662
+  },
+  "11A011322": {
+   "name": "União das freguesias de Pinheiro da Bemposta, Travanca e Palmaz",
+   "sale_median": 1086
+  },
+  "11A0116": {
+   "name": "São João da Madeira",
+   "bank_valuation": {
+    "total": 1800,
+    "apartment": 1800
+   },
+   "sale_median": 1916
+  },
+  "11A011601": {
+   "name": "São João da Madeira",
+   "sale_median": 1916
+  },
+  "11A0119": {
+   "name": "Vale de Cambra",
+   "sale_median": 1200
+  },
+  "11A011902": {
+   "name": "São Pedro de Castelões",
+   "sale_median": 1391
+  },
+  "11A1304": {
+   "name": "Gondomar",
+   "bank_valuation": {
+    "house": 1903,
+    "total": 2222,
+    "apartment": 2293
+   },
+   "sale_median": 2348
+  },
+  "11A130408": {
+   "name": "Rio Tinto",
+   "sale_median": 2509
+  },
+  "11A130412": {
+   "name": "Baguim do Monte (Rio Tinto)",
+   "sale_median": 2320
+  },
+  "11A130413": {
+   "name": "União das freguesias de Fânzeres e São Pedro da Cova",
+   "sale_median": 2299
+  },
+  "11A130414": {
+   "name": "União das freguesias de Foz do Sousa e Covelo",
+   "sale_median": 1681
+  },
+  "11A130415": {
+   "name": "União das freguesias de Gondomar (São Cosme), Valbom e Jovim",
+   "sale_median": 2307
+  },
+  "11A130416": {
+   "name": "União das freguesias de Melres e Medas",
+   "sale_median": 1611
+  },
+  "11A1306": {
+   "name": "Maia",
+   "bank_valuation": {
+    "house": 2042,
+    "total": 2412,
+    "apartment": 2479
+   },
+   "sale_median": 2557
+  },
+  "11A130601": {
+   "name": "Águas Santas",
+   "sale_median": 2548
+  },
+  "11A130608": {
+   "name": "Milheirós",
+   "sale_median": 2089
+  },
+  "11A130609": {
+   "name": "Moreira",
+   "sale_median": 2625
+  },
+  "11A130616": {
+   "name": "Vila Nova da Telha",
+   "sale_median": 2472
+  },
+  "11A130617": {
+   "name": "Pedrouços",
+   "sale_median": 2428
+  },
+  "11A130618": {
+   "name": "Castêlo da Maia",
+   "sale_median": 2359
+  },
+  "11A130619": {
+   "name": "Cidade da Maia",
+   "sale_median": 2698
+  },
+  "11A130620": {
+   "name": "Nogueira e Silva Escura",
+   "sale_median": 2438
+  },
+  "11A1308": {
+   "name": "Matosinhos",
+   "bank_valuation": {
+    "house": 2438,
+    "total": 2955,
+    "apartment": 3122
+   },
+   "sale_median": 3183
+  },
+  "11A1310": {
+   "name": "Paredes",
+   "bank_valuation": {
+    "house": 1544,
+    "total": 1706,
+    "apartment": 1905
+   },
+   "sale_median": 1705
+  },
+  "11A131003": {
+   "name": "Baltar",
+   "sale_median": 1862
+  },
+  "11A131011": {
+   "name": "Gandra",
+   "sale_median": 1912
+  },
+  "11A131013": {
+   "name": "Lordelo",
+   "sale_median": 1659
+  },
+  "11A131018": {
+   "name": "Rebordosa",
+   "sale_median": 1642
+  },
+  "11A131021": {
+   "name": "Sobrosa",
+   "sale_median": 1747
+  },
+  "11A131024": {
+   "name": "Vilela",
+   "sale_median": 1297
+  },
+  "11A131025": {
+   "name": "Paredes",
+   "sale_median": 1752
+  },
+  "11A1312": {
+   "name": "Porto",
+   "bank_valuation": {
+    "house": 3226,
+    "total": 3346,
+    "apartment": 3366
+   },
+   "sale_median": 3631
+  },
+  "11A131202": {
+   "name": "Bonfim",
+   "sale_median": 3378
+  },
+  "11A131203": {
+   "name": "Campanhã",
+   "sale_median": 2836
+  },
+  "11A131210": {
+   "name": "Paranhos",
+   "sale_median": 3401
+  },
+  "11A131211": {
+   "name": "Ramalde",
+   "sale_median": 3636
+  },
+  "11A131216": {
+   "name": "União das freguesias de Aldoar, Foz do Douro e Nevogilde",
+   "sale_median": 4359
+  },
+  "11A131217": {
+   "name": "União das freguesias de Cedofeita, Santo Ildefonso, Sé, Miragaia, São Nicolau e Vitória",
+   "sale_median": 4160
+  },
+  "11A131218": {
+   "name": "União das freguesias de Lordelo do Ouro e Massarelos",
+   "sale_median": 3675
+  },
+  "11A1313": {
+   "name": "Póvoa de Varzim",
+   "bank_valuation": {
+    "house": 1933,
+    "total": 2311,
+    "apartment": 2452
+   },
+   "sale_median": 2472
+  },
+  "11A1314": {
+   "name": "Santo Tirso",
+   "bank_valuation": {
+    "house": 1541,
+    "total": 1820,
+    "apartment": 2048
+   },
+   "sale_median": 1729
+  },
+  "11A131405": {
+   "name": "Aves",
+   "sale_median": 1729
+  },
+  "11A131413": {
+   "name": "Monte Córdova",
+   "sale_median": 1393
+  },
+  "11A131434": {
+   "name": "Vila Nova do Campo",
+   "sale_median": 1626
+  },
+  "11A131437": {
+   "name": "União das freguesias de Santo Tirso, Couto (Santa Cristina e São Miguel) e Burgães",
+   "sale_median": 1867
+  },
+  "11A1315": {
+   "name": "Valongo",
+   "bank_valuation": {
+    "house": 1800,
+    "total": 2185,
+    "apartment": 2323
+   },
+   "sale_median": 2320
+  },
+  "11A131501": {
+   "name": "Alfena",
+   "sale_median": 2222
+  },
+  "11A131503": {
+   "name": "Ermesinde",
+   "sale_median": 2369
+  },
+  "11A131505": {
+   "name": "Valongo",
+   "sale_median": 2361
+  },
+  "11A1316": {
+   "name": "Vila do Conde",
+   "bank_valuation": {
+    "house": 1939,
+    "total": 2149,
+    "apartment": 2367
+   },
+   "sale_median": 2333
+  },
+  "11A131602": {
+   "name": "Árvore",
+   "sale_median": 2482
+  },
+  "11A131604": {
+   "name": "Azurara",
+   "sale_median": 2266
+  },
+  "11A131613": {
+   "name": "Labruge",
+   "sale_median": 2247
+  },
+  "11A131614": {
+   "name": "Macieira da Maia",
+   "sale_median": 1995
+  },
+  "11A131616": {
+   "name": "Mindelo",
+   "sale_median": 2385
+  },
+  "11A131627": {
+   "name": "Vila Chã",
+   "sale_median": 2264
+  },
+  "11A131628": {
+   "name": "Vila do Conde",
+   "sale_median": 2591
+  },
+  "11A131636": {
+   "name": "União das freguesias de Touguinha e Touguinhó",
+   "sale_median": 2004
+  },
+  "11A1317": {
+   "name": "Vila Nova de Gaia",
+   "bank_valuation": {
+    "house": 2109,
+    "total": 2440,
+    "apartment": 2518
+   },
+   "sale_median": 2652
+  },
+  "11A131701": {
+   "name": "Arcozelo",
+   "sale_median": 2439
+  },
+  "11A131702": {
+   "name": "Avintes",
+   "sale_median": 2271
+  },
+  "11A131703": {
+   "name": "Canelas",
+   "sale_median": 2300
+  },
+  "11A131704": {
+   "name": "Canidelo",
+   "sale_median": 3543
+  },
+  "11A131709": {
+   "name": "Madalena",
+   "sale_median": 2646
+  },
+  "11A131712": {
+   "name": "Oliveira do Douro",
+   "sale_median": 2681
+  },
+  "11A131717": {
+   "name": "São Félix da Marinha",
+   "sale_median": 2473
+  },
+  "11A131723": {
+   "name": "Vilar de Andorinho",
+   "sale_median": 2251
+  },
+  "11A1318": {
+   "name": "Trofa",
+   "bank_valuation": {
+    "house": 1635,
+    "total": 1975,
+    "apartment": 2052
+   },
+   "sale_median": 1959
+  },
+  "11A131810": {
+   "name": "União das freguesias de Bougado (São Martinho e Santiago)",
+   "sale_median": 2033
+  },
+  "11A131811": {
+   "name": "União das freguesias de Coronado (São Romão e São Mamede)",
+   "sale_median": 1989
+  },
+  "11B1702": {
+   "name": "Boticas",
+   "sale_median": 396
+  },
+  "11B1703": {
+   "name": "Chaves",
+   "bank_valuation": {
+    "house": 1159,
+    "total": 1314,
+    "apartment": 1393
+   },
+   "sale_median": 1205
+  },
+  "11B1706": {
+   "name": "Montalegre",
+   "sale_median": 682
+  },
+  "11B1709": {
+   "name": "Ribeira de Pena",
+   "sale_median": 313
+  },
+  "11B1712": {
+   "name": "Valpaços",
+   "sale_median": 699
+  },
+  "11B1713": {
+   "name": "Vila Pouca de Aguiar",
+   "sale_median": 744
+  },
+  "11C0106": {
+   "name": "Castelo de Paiva",
+   "sale_median": 909
+  },
+  "11C0305": {
+   "name": "Celorico de Basto",
+   "bank_valuation": {
+    "total": 1179
+   },
+   "sale_median": 979
+  },
+  "11C1301": {
+   "name": "Amarante",
+   "bank_valuation": {
+    "house": 1302,
+    "total": 1493,
+    "apartment": 1837
+   },
+   "sale_median": 1211
+  },
+  "11C1302": {
+   "name": "Baião",
+   "sale_median": 881
+  },
+  "11C1303": {
+   "name": "Felgueiras",
+   "bank_valuation": {
+    "house": 1326,
+    "total": 1448,
+    "apartment": 1570
+   },
+   "sale_median": 1222
+  },
+  "11C1305": {
+   "name": "Lousada",
+   "bank_valuation": {
+    "house": 1420,
+    "total": 1504,
+    "apartment": 1619
+   },
+   "sale_median": 1453
+  },
+  "11C1307": {
+   "name": "Marco de Canaveses",
+   "bank_valuation": {
+    "house": 1308,
+    "total": 1447,
+    "apartment": 1653
+   },
+   "sale_median": 1370
+  },
+  "11C1309": {
+   "name": "Paços de Ferreira",
+   "bank_valuation": {
+    "house": 1528,
+    "total": 1584,
+    "apartment": 1797
+   },
+   "sale_median": 1525
+  },
+  "11C1311": {
+   "name": "Penafiel",
+   "bank_valuation": {
+    "house": 1522,
+    "total": 1564,
+    "apartment": 1636
+   },
+   "sale_median": 1520
+  },
+  "11C1804": {
+   "name": "Cinfães",
+   "sale_median": 772
+  },
+  "11C1813": {
+   "name": "Resende",
+   "sale_median": 584
+  },
+  "11D0403": {
+   "name": "Carrazeda de Ansiães",
+   "sale_median": 310
+  },
+  "11D0404": {
+   "name": "Freixo de Espada à Cinta",
+   "sale_median": 287
+  },
+  "11D0409": {
+   "name": "Torre de Moncorvo",
+   "sale_median": 448
+  },
+  "11D0914": {
+   "name": "Vila Nova de Foz Côa",
+   "sale_median": 448
+  },
+  "11D1701": {
+   "name": "Alijó",
+   "sale_median": 492
+  },
+  "11D1704": {
+   "name": "Mesão Frio",
+   "sale_median": 729
+  },
+  "11D1707": {
+   "name": "Murça",
+   "sale_median": 559
+  },
+  "11D1708": {
+   "name": "Peso da Régua",
+   "sale_median": 1078
+  },
+  "11D1710": {
+   "name": "Sabrosa",
+   "sale_median": 757
+  },
+  "11D1711": {
+   "name": "Santa Marta de Penaguião",
+   "sale_median": 533
+  },
+  "11D1714": {
+   "name": "Vila Real",
+   "bank_valuation": {
+    "house": 1259,
+    "total": 1597,
+    "apartment": 1811
+   },
+   "sale_median": 1761
+  },
+  "11D1801": {
+   "name": "Armamar",
+   "sale_median": 403
+  },
+  "11D1805": {
+   "name": "Lamego",
+   "bank_valuation": {
+    "total": 1314
+   },
+   "sale_median": 1007
+  },
+  "11D1807": {
+   "name": "Moimenta da Beira",
+   "sale_median": 543
+  },
+  "11D1812": {
+   "name": "Penedono",
+   "sale_median": 454
+  },
+  "11D1815": {
+   "name": "São João da Pesqueira",
+   "sale_median": 460
+  },
+  "11D1818": {
+   "name": "Sernancelhe",
+   "sale_median": 373
+  },
+  "11D1819": {
+   "name": "Tabuaço",
+   "sale_median": 489
+  },
+  "11D1820": {
+   "name": "Tarouca",
+   "sale_median": 750
+  },
+  "11E0401": {
+   "name": "Alfândega da Fé",
+   "sale_median": 538
+  },
+  "11E0402": {
+   "name": "Bragança",
+   "bank_valuation": {
+    "house": 841,
+    "total": 1205,
+    "apartment": 1349
+   },
+   "sale_median": 1199
+  },
+  "11E0405": {
+   "name": "Macedo de Cavaleiros",
+   "sale_median": 854
+  },
+  "11E0406": {
+   "name": "Miranda do Douro",
+   "sale_median": 455
+  },
+  "11E0407": {
+   "name": "Mirandela",
+   "bank_valuation": {
+    "total": 1253,
+    "apartment": 1255
+   },
+   "sale_median": 1000
+  },
+  "11E0408": {
+   "name": "Mogadouro",
+   "sale_median": 358
+  },
+  "11E0410": {
+   "name": "Vila Flor",
+   "sale_median": 519
+  },
+  "11E0411": {
+   "name": "Vimioso",
+   "sale_median": 490
+  },
+  "11E0412": {
+   "name": "Vinhais",
+   "sale_median": 325
+  },
+  "1500801": {
+   "name": "Albufeira",
+   "bank_valuation": {
+    "house": 2838,
+    "total": 3136,
+    "apartment": 3195
+   },
+   "sale_median": 3490
+  },
+  "150080102": {
+   "name": "Guia",
+   "sale_median": 3660
+  },
+  "150080103": {
+   "name": "Paderne",
+   "sale_median": 2511
+  },
+  "150080104": {
+   "name": "Ferreiras",
+   "sale_median": 2840
+  },
+  "150080106": {
+   "name": "Albufeira e Olhos de Água",
+   "sale_median": 3539
+  },
+  "1500802": {
+   "name": "Alcoutim",
+   "sale_median": 1016
+  },
+  "150080206": {
+   "name": "União das freguesias de Alcoutim e Pereiro",
+   "sale_median": 1035
+  },
+  "1500803": {
+   "name": "Aljezur",
+   "sale_median": 3234
+  },
+  "150080301": {
+   "name": "Aljezur",
+   "sale_median": 3508
+  },
+  "1500804": {
+   "name": "Castro Marim",
+   "sale_median": 2710
+  },
+  "150080402": {
+   "name": "Castro Marim",
+   "sale_median": 2552
+  },
+  "150080404": {
+   "name": "Altura",
+   "sale_median": 3687
+  },
+  "1500805": {
+   "name": "Faro",
+   "bank_valuation": {
+    "house": 2853,
+    "total": 2921,
+    "apartment": 2983
+   },
+   "sale_median": 3150
+  },
+  "150080503": {
+   "name": "Santa Bárbara de Nexe",
+   "sale_median": 3728
+  },
+  "150080506": {
+   "name": "Montenegro",
+   "sale_median": 3572
+  },
+  "150080508": {
+   "name": "União das freguesias de Faro (Sé e São Pedro)",
+   "sale_median": 3132
+  },
+  "1500806": {
+   "name": "Lagoa",
+   "bank_valuation": {
+    "total": 2988,
+    "apartment": 2936
+   },
+   "sale_median": 3371
+  },
+  "150080602": {
+   "name": "Ferragudo",
+   "sale_median": 3667
+  },
+  "150080604": {
+   "name": "Porches",
+   "sale_median": 3715
+  },
+  "150080607": {
+   "name": "União das freguesias de Estômbar e Parchal",
+   "sale_median": 3281
+  },
+  "150080608": {
+   "name": "União das freguesias de Lagoa e Carvoeiro",
+   "sale_median": 3257
+  },
+  "1500807": {
+   "name": "Lagos",
+   "bank_valuation": {
+    "total": 3170,
+    "apartment": 3235
+   },
+   "sale_median": 3949
+  },
+  "150080703": {
+   "name": "Luz",
+   "sale_median": 4291
+  },
+  "150080708": {
+   "name": "São Gonçalo de Lagos",
+   "sale_median": 3876
+  },
+  "1500808": {
+   "name": "Loulé",
+   "bank_valuation": {
+    "house": 3179,
+    "total": 3438,
+    "apartment": 3542
+   },
+   "sale_median": 4137
+  },
+  "150080801": {
+   "name": "Almancil",
+   "sale_median": 5617
+  },
+  "150080802": {
+   "name": "Alte",
+   "sale_median": 1642
+  },
+  "150080804": {
+   "name": "Boliqueime",
+   "sale_median": 2741
+  },
+  "150080805": {
+   "name": "Quarteira",
+   "sale_median": 4482
+  },
+  "150080807": {
+   "name": "Salir",
+   "sale_median": 1250
+  },
+  "150080808": {
+   "name": "Loulé (São Clemente)",
+   "sale_median": 3156
+  },
+  "150080809": {
+   "name": "Loulé (São Sebastião)",
+   "sale_median": 2899
+  },
+  "1500809": {
+   "name": "Monchique",
+   "sale_median": 1628
+  },
+  "150080903": {
+   "name": "Monchique",
+   "sale_median": 1592
+  },
+  "1500810": {
+   "name": "Olhão",
+   "bank_valuation": {
+    "total": 2711,
+    "apartment": 2719
+   },
+   "sale_median": 2771
+  },
+  "150081003": {
+   "name": "Olhão",
+   "sale_median": 2757
+  },
+  "150081004": {
+   "name": "Pechão",
+   "sale_median": 2792
+  },
+  "150081005": {
+   "name": "Quelfes",
+   "sale_median": 2660
+  },
+  "1500811": {
+   "name": "Portimão",
+   "bank_valuation": {
+    "house": 2649,
+    "total": 2941,
+    "apartment": 2989
+   },
+   "sale_median": 3259
+  },
+  "150081101": {
+   "name": "Alvor",
+   "sale_median": 3425
+  },
+  "150081102": {
+   "name": "Mexilhoeira Grande",
+   "sale_median": 2662
+  },
+  "150081103": {
+   "name": "Portimão",
+   "sale_median": 3248
+  },
+  "1500812": {
+   "name": "São Brás de Alportel",
+   "sale_median": 2452
+  },
+  "150081201": {
+   "name": "São Brás de Alportel",
+   "sale_median": 2452
+  },
+  "1500813": {
+   "name": "Silves",
+   "bank_valuation": {
+    "house": 2577,
+    "total": 2830,
+    "apartment": 2858
+   },
+   "sale_median": 2860
+  },
+  "150081303": {
+   "name": "Armação de Pêra",
+   "sale_median": 3656
+  },
+  "150081305": {
+   "name": "São Bartolomeu de Messines",
+   "sale_median": 1889
+  },
+  "150081306": {
+   "name": "São Marcos da Serra",
+   "sale_median": 1193
+  },
+  "150081307": {
+   "name": "Silves",
+   "sale_median": 2604
+  },
+  "1500814": {
+   "name": "Tavira",
+   "bank_valuation": {
+    "total": 2781,
+    "apartment": 2836
+   },
+   "sale_median": 3282
+  },
+  "150081404": {
+   "name": "Santa Catarina da Fonte do Bispo",
+   "sale_median": 2206
+  },
+  "150081408": {
+   "name": "Santa Luzia",
+   "sale_median": 3762
+  },
+  "150081412": {
+   "name": "União das freguesias de Tavira (Santa Maria e Santiago)",
+   "sale_median": 3270
+  },
+  "1500815": {
+   "name": "Vila do Bispo",
+   "sale_median": 3189
+  },
+  "150081502": {
+   "name": "Budens",
+   "sale_median": 3169
+  },
+  "1500816": {
+   "name": "Vila Real de Santo António",
+   "bank_valuation": {
+    "total": 2937,
+    "apartment": 2907
+   },
+   "sale_median": 3116
+  },
+  "150081601": {
+   "name": "Vila Nova de Cacela",
+   "sale_median": 3390
+  },
+  "150081602": {
+   "name": "Vila Real de Santo António",
+   "sale_median": 2725
+  },
+  "150081603": {
+   "name": "Monte Gordo",
+   "sale_median": 3465
+  },
+  "1910101": {
+   "name": "Águeda",
+   "bank_valuation": {
+    "house": 1242,
+    "total": 1441,
+    "apartment": 1737
+   },
+   "sale_median": 1410
+  },
+  "1910102": {
+   "name": "Albergaria-a-Velha",
+   "bank_valuation": {
+    "house": 1479,
+    "total": 1565
+   },
+   "sale_median": 1488
+  },
+  "1910103": {
+   "name": "Anadia",
+   "bank_valuation": {
+    "house": 1059,
+    "total": 1375,
+    "apartment": 1544
+   },
+   "sale_median": 1048
+  },
+  "1910105": {
+   "name": "Aveiro",
+   "bank_valuation": {
+    "house": 1515,
+    "total": 2083,
+    "apartment": 2329
+   },
+   "sale_median": 2391
+  },
+  "1910108": {
+   "name": "Estarreja",
+   "bank_valuation": {
+    "house": 1377,
+    "total": 1517
+   },
+   "sale_median": 1327
+  },
+  "1910110": {
+   "name": "Ílhavo",
+   "bank_valuation": {
+    "house": 1618,
+    "total": 1806,
+    "apartment": 2298
+   },
+   "sale_median": 2260
+  },
+  "1910112": {
+   "name": "Murtosa",
+   "sale_median": 1427
+  },
+  "1910114": {
+   "name": "Oliveira do Bairro",
+   "bank_valuation": {
+    "house": 1378,
+    "total": 1435
+   },
+   "sale_median": 1389
+  },
+  "1910115": {
+   "name": "Ovar",
+   "bank_valuation": {
+    "house": 1799,
+    "total": 1923,
+    "apartment": 2051
+   },
+   "sale_median": 1937
+  },
+  "1910117": {
+   "name": "Sever do Vouga",
+   "sale_median": 825
+  },
+  "1910118": {
+   "name": "Vagos",
+   "bank_valuation": {
+    "total": 1793
+   },
+   "sale_median": 1731
+  },
+  "1920111": {
+   "name": "Mealhada",
+   "bank_valuation": {
+    "total": 1299
+   },
+   "sale_median": 1134
+  },
+  "1920601": {
+   "name": "Arganil",
+   "sale_median": 708
+  },
+  "1920602": {
+   "name": "Cantanhede",
+   "bank_valuation": {
+    "house": 1114,
+    "total": 1149
+   },
+   "sale_median": 1100
+  },
+  "1920603": {
+   "name": "Coimbra",
+   "bank_valuation": {
+    "house": 1609,
+    "total": 2122,
+    "apartment": 2456
+   },
+   "sale_median": 2295
+  },
+  "192060311": {
+   "name": "Ceira",
+   "sale_median": 1050
+  },
+  "192060312": {
+   "name": "Cernache",
+   "sale_median": 1084
+  },
+  "192060318": {
+   "name": "Santo António dos Olivais",
+   "sale_median": 3072
+  },
+  "192060333": {
+   "name": "União das freguesias de Assafarge e Antanhol",
+   "sale_median": 1886
+  },
+  "192060334": {
+   "name": "União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu)",
+   "sale_median": 2734
+  },
+  "192060335": {
+   "name": "União das freguesias de Eiras e São Paulo de Frades",
+   "sale_median": 2108
+  },
+  "192060336": {
+   "name": "União das freguesias de Santa Clara e Castelo Viegas",
+   "sale_median": 2341
+  },
+  "192060338": {
+   "name": "União das freguesias de São Martinho do Bispo e Ribeira de Frades",
+   "sale_median": 1988
+  },
+  "192060339": {
+   "name": "União das freguesias de Souselas e Botão",
+   "sale_median": 1038
+  },
+  "192060340": {
+   "name": "União das freguesias de Taveiro, Ameal e Arzila",
+   "sale_median": 1036
+  },
+  "1920604": {
+   "name": "Condeixa-a-Nova",
+   "bank_valuation": {
+    "total": 1589,
+    "apartment": 1920
+   },
+   "sale_median": 1669
+  },
+  "1920605": {
+   "name": "Figueira da Foz",
+   "bank_valuation": {
+    "house": 1345,
+    "total": 1754,
+    "apartment": 2058
+   },
+   "sale_median": 1897
+  },
+  "1920606": {
+   "name": "Góis",
+   "sale_median": 681
+  },
+  "1920607": {
+   "name": "Lousã",
+   "bank_valuation": {
+    "total": 1470,
+    "apartment": 1536
+   },
+   "sale_median": 1476
+  },
+  "1920608": {
+   "name": "Mira",
+   "sale_median": 1563
+  },
+  "1920609": {
+   "name": "Miranda do Corvo",
+   "bank_valuation": {
+    "total": 1235
+   },
+   "sale_median": 760
+  },
+  "1920610": {
+   "name": "Montemor-o-Velho",
+   "bank_valuation": {
+    "house": 1208,
+    "total": 1440
+   },
+   "sale_median": 1283
+  },
+  "1920611": {
+   "name": "Oliveira do Hospital",
+   "bank_valuation": {
+    "house": 787,
+    "total": 834
+   },
+   "sale_median": 775
+  },
+  "1920612": {
+   "name": "Pampilhosa da Serra",
+   "sale_median": 467
+  },
+  "1920613": {
+   "name": "Penacova",
+   "sale_median": 600
+  },
+  "1920614": {
+   "name": "Penela",
+   "sale_median": 781
+  },
+  "1920615": {
+   "name": "Soure",
+   "bank_valuation": {
+    "house": 1184,
+    "total": 1220
+   },
+   "sale_median": 881
+  },
+  "1920616": {
+   "name": "Tábua",
+   "sale_median": 788
+  },
+  "1920617": {
+   "name": "Vila Nova de Poiares",
+   "sale_median": 1059
+  },
+  "1921808": {
+   "name": "Mortágua",
+   "sale_median": 811
+  },
+  "1931002": {
+   "name": "Alvaiázere",
+   "sale_median": 680
+  },
+  "1931003": {
+   "name": "Ansião",
+   "sale_median": 750
+  },
+  "1931004": {
+   "name": "Batalha",
+   "bank_valuation": {
+    "total": 1352
+   },
+   "sale_median": 1442
+  },
+  "1931007": {
+   "name": "Castanheira de Pêra",
+   "sale_median": 714
+  },
+  "1931008": {
+   "name": "Figueiró dos Vinhos",
+   "sale_median": 656
+  },
+  "1931009": {
+   "name": "Leiria",
+   "bank_valuation": {
+    "house": 1385,
+    "total": 1663,
+    "apartment": 1812
+   },
+   "sale_median": 1990
+  },
+  "193100907": {
+   "name": "Caranguejeira",
+   "sale_median": 1826
+  },
+  "193100909": {
+   "name": "Coimbrão",
+   "sale_median": 1721
+  },
+  "193100913": {
+   "name": "Maceira",
+   "sale_median": 1402
+  },
+  "193100932": {
+   "name": "União das freguesias de Colmeias e Memória",
+   "sale_median": 967
+  },
+  "193100933": {
+   "name": "União das freguesias de Leiria, Pousos, Barreira e Cortes",
+   "sale_median": 2297
+  },
+  "193100934": {
+   "name": "União das freguesias de Marrazes e Barosa",
+   "sale_median": 2073
+  },
+  "193100935": {
+   "name": "União das freguesias de Monte Real e Carvide",
+   "sale_median": 1492
+  },
+  "193100937": {
+   "name": "União das freguesias de Parceiros e Azoia",
+   "sale_median": 2269
+  },
+  "193100938": {
+   "name": "União das freguesias de Santa Catarina da Serra e Chainça",
+   "sale_median": 1149
+  },
+  "193100939": {
+   "name": "União das freguesias de Santa Eufémia e Boa Vista",
+   "sale_median": 1982
+  },
+  "1931010": {
+   "name": "Marinha Grande",
+   "bank_valuation": {
+    "house": 1369,
+    "total": 1590,
+    "apartment": 1632
+   },
+   "sale_median": 1531
+  },
+  "1931013": {
+   "name": "Pedrógão Grande",
+   "sale_median": 576
+  },
+  "1931015": {
+   "name": "Pombal",
+   "bank_valuation": {
+    "house": 1007,
+    "total": 1389,
+    "apartment": 1786
+   },
+   "sale_median": 1360
+  },
+  "1931016": {
+   "name": "Porto de Mós",
+   "bank_valuation": {
+    "house": 1378,
+    "total": 1382
+   },
+   "sale_median": 1313
+  },
+  "1940901": {
+   "name": "Aguiar da Beira",
+   "sale_median": 484
+  },
+  "1941802": {
+   "name": "Carregal do Sal",
+   "sale_median": 774
+  },
+  "1941803": {
+   "name": "Castro Daire",
+   "sale_median": 733
+  },
+  "1941806": {
+   "name": "Mangualde",
+   "bank_valuation": {
+    "house": 831,
+    "total": 917
+   },
+   "sale_median": 848
+  },
+  "1941809": {
+   "name": "Nelas",
+   "bank_valuation": {
+    "total": 1155
+   },
+   "sale_median": 772
+  },
+  "1941810": {
+   "name": "Oliveira de Frades",
+   "sale_median": 923
+  },
+  "1941811": {
+   "name": "Penalva do Castelo",
+   "sale_median": 435
+  },
+  "1941814": {
+   "name": "Santa Comba Dão",
+   "sale_median": 776
+  },
+  "1941816": {
+   "name": "São Pedro do Sul",
+   "sale_median": 942
+  },
+  "1941817": {
+   "name": "Sátão",
+   "sale_median": 715
+  },
+  "1941821": {
+   "name": "Tondela",
+   "bank_valuation": {
+    "house": 916,
+    "total": 981
+   },
+   "sale_median": 840
+  },
+  "1941822": {
+   "name": "Vila Nova de Paiva",
+   "sale_median": 409
+  },
+  "1941823": {
+   "name": "Viseu",
+   "bank_valuation": {
+    "house": 1161,
+    "total": 1462,
+    "apartment": 1821
+   },
+   "sale_median": 1627
+  },
+  "1941824": {
+   "name": "Vouzela",
+   "sale_median": 623
+  },
+  "1950502": {
+   "name": "Castelo Branco",
+   "bank_valuation": {
+    "house": 879,
+    "total": 1180,
+    "apartment": 1318
+   },
+   "sale_median": 1065
+  },
+  "1950505": {
+   "name": "Idanha-a-Nova",
+   "sale_median": 368
+  },
+  "1950506": {
+   "name": "Oleiros",
+   "sale_median": 493
+  },
+  "1950507": {
+   "name": "Penamacor",
+   "sale_median": 402
+  },
+  "1950508": {
+   "name": "Proença-a-Nova",
+   "sale_median": 617
+  },
+  "1950509": {
+   "name": "Sertã",
+   "sale_median": 968
+  },
+  "1950510": {
+   "name": "Vila de Rei",
+   "sale_median": 1022
+  },
+  "1950511": {
+   "name": "Vila Velha de Ródão",
+   "sale_median": 462
+  },
+  "1960501": {
+   "name": "Belmonte",
+   "sale_median": 489
+  },
+  "1960503": {
+   "name": "Covilhã",
+   "bank_valuation": {
+    "house": 874,
+    "total": 1424,
+    "apartment": 1502
+   },
+   "sale_median": 1124
+  },
+  "1960504": {
+   "name": "Fundão",
+   "bank_valuation": {
+    "house": 927,
+    "total": 1094
+   },
+   "sale_median": 848
+  },
+  "1960902": {
+   "name": "Almeida",
+   "sale_median": 414
+  },
+  "1960903": {
+   "name": "Celorico da Beira",
+   "sale_median": 507
+  },
+  "1960904": {
+   "name": "Figueira de Castelo Rodrigo",
+   "sale_median": 315
+  },
+  "1960905": {
+   "name": "Fornos de Algodres",
+   "sale_median": 502
+  },
+  "1960906": {
+   "name": "Gouveia",
+   "sale_median": 578
+  },
+  "1960907": {
+   "name": "Guarda",
+   "bank_valuation": {
+    "house": 1123,
+    "total": 1239,
+    "apartment": 1249
+   },
+   "sale_median": 917
+  },
+  "1960908": {
+   "name": "Manteigas",
+   "sale_median": 438
+  },
+  "1960909": {
+   "name": "Mêda",
+   "sale_median": 365
+  },
+  "1960910": {
+   "name": "Pinhel",
+   "sale_median": 425
+  },
+  "1960911": {
+   "name": "Sabugal",
+   "sale_median": 417
+  },
+  "1960912": {
+   "name": "Seia",
+   "bank_valuation": {
+    "house": 947,
+    "total": 1122
+   },
+   "sale_median": 741
+  },
+  "1960913": {
+   "name": "Trancoso",
+   "sale_median": 550
+  },
+  "1A01105": {
+   "name": "Cascais",
+   "bank_valuation": {
+    "house": 3981,
+    "total": 4048,
+    "apartment": 4112
+   },
+   "sale_median": 4889
+  },
+  "1A0110501": {
+   "name": "Alcabideche",
+   "sale_median": 4412
+  },
+  "1A0110506": {
+   "name": "São Domingos de Rana",
+   "sale_median": 4068
+  },
+  "1A0110507": {
+   "name": "União das freguesias de Carcavelos e Parede",
+   "sale_median": 5071
+  },
+  "1A0110508": {
+   "name": "União das freguesias de Cascais e Estoril",
+   "sale_median": 5623
+  },
+  "1A01106": {
+   "name": "Lisboa",
+   "bank_valuation": {
+    "house": 4821,
+    "total": 4779,
+    "apartment": 4773
+   },
+   "sale_median": 5192
+  },
+  "1A0110601": {
+   "name": "Ajuda",
+   "sale_median": 5255
+  },
+  "1A0110602": {
+   "name": "Alcântara",
+   "sale_median": 4965
+  },
+  "1A0110607": {
+   "name": "Beato",
+   "sale_median": 4880
+  },
+  "1A0110608": {
+   "name": "Benfica",
+   "sale_median": 4792
+  },
+  "1A0110610": {
+   "name": "Campolide",
+   "sale_median": 5580
+  },
+  "1A0110611": {
+   "name": "Carnide",
+   "sale_median": 4690
+  },
+  "1A0110618": {
+   "name": "Lumiar",
+   "sale_median": 4877
+  },
+  "1A0110621": {
+   "name": "Marvila",
+   "sale_median": 4952
+  },
+  "1A0110633": {
+   "name": "Olivais",
+   "sale_median": 4399
+  },
+  "1A0110639": {
+   "name": "São Domingos de Benfica",
+   "sale_median": 5323
+  },
+  "1A0110654": {
+   "name": "Alvalade",
+   "sale_median": 5152
+  },
+  "1A0110655": {
+   "name": "Areeiro",
+   "sale_median": 5150
+  },
+  "1A0110656": {
+   "name": "Arroios",
+   "sale_median": 4734
+  },
+  "1A0110657": {
+   "name": "Avenidas Novas",
+   "sale_median": 6144
+  },
+  "1A0110658": {
+   "name": "Belém",
+   "sale_median": 5889
+  },
+  "1A0110659": {
+   "name": "Campo de Ourique",
+   "sale_median": 6055
+  },
+  "1A0110660": {
+   "name": "Estrela",
+   "sale_median": 5770
+  },
+  "1A0110661": {
+   "name": "Misericórdia",
+   "sale_median": 6014
+  },
+  "1A0110662": {
+   "name": "Parque das Nações",
+   "sale_median": 6269
+  },
+  "1A0110663": {
+   "name": "Penha de França",
+   "sale_median": 4659
+  },
+  "1A0110664": {
+   "name": "Santa Clara",
+   "sale_median": 3850
+  },
+  "1A0110665": {
+   "name": "Santa Maria Maior",
+   "sale_median": 5200
+  },
+  "1A0110666": {
+   "name": "Santo António",
+   "sale_median": 7254
+  },
+  "1A0110667": {
+   "name": "São Vicente",
+   "sale_median": 5045
+  },
+  "1A01107": {
+   "name": "Loures",
+   "bank_valuation": {
+    "house": 2704,
+    "total": 3247,
+    "apartment": 3325
+   },
+   "sale_median": 3421
+  },
+  "1A0110702": {
+   "name": "Bucelas",
+   "sale_median": 1859
+  },
+  "1A0110707": {
+   "name": "Loures",
+   "sale_median": 3573
+  },
+  "1A0110726": {
+   "name": "União das freguesias de Moscavide e Portela",
+   "sale_median": 3818
+  },
+  "1A0110727": {
+   "name": "União das freguesias de Sacavém e Prior Velho",
+   "sale_median": 3750
+  },
+  "1A0110728": {
+   "name": "União das freguesias de Santa Iria de Azoia, São João da Talha e Bobadela",
+   "sale_median": 3180
+  },
+  "1A0110729": {
+   "name": "União das freguesias de Santo Antão e São Julião do Tojal",
+   "sale_median": 2297
+  },
+  "1A0110730": {
+   "name": "União das freguesias de Santo António dos Cavaleiros e Frielas",
+   "sale_median": 3704
+  },
+  "1A0110731": {
+   "name": "União das freguesias de Camarate, Unhos e Apelação",
+   "sale_median": 2752
+  },
+  "1A01109": {
+   "name": "Mafra",
+   "bank_valuation": {
+    "house": 2624,
+    "total": 2727,
+    "apartment": 2833
+   },
+   "sale_median": 3006
+  },
+  "1A0110902": {
+   "name": "Carvoeira",
+   "sale_median": 3598
+  },
+  "1A0110904": {
+   "name": "Encarnação",
+   "sale_median": 2809
+  },
+  "1A0110906": {
+   "name": "Ericeira",
+   "sale_median": 4033
+  },
+  "1A0110909": {
+   "name": "Mafra",
+   "sale_median": 3205
+  },
+  "1A0110911": {
+   "name": "Milharado",
+   "sale_median": 2475
+  },
+  "1A0110913": {
+   "name": "Santo Isidoro",
+   "sale_median": 3364
+  },
+  "1A0110918": {
+   "name": "União das freguesias de Azueira e Sobral da Abelheira",
+   "sale_median": 2226
+  },
+  "1A0110919": {
+   "name": "União das freguesias de Enxara do Bispo, Gradil e Vila Franca do Rosário",
+   "sale_median": 2146
+  },
+  "1A0110920": {
+   "name": "União das freguesias de Igreja Nova e Cheleiros",
+   "sale_median": 2652
+  },
+  "1A0110921": {
+   "name": "União das freguesias de Malveira e São Miguel de Alcainça",
+   "sale_median": 2615
+  },
+  "1A0110922": {
+   "name": "União das freguesias de Venda do Pinheiro e Santo Estêvão das Galés",
+   "sale_median": 2843
+  },
+  "1A01110": {
+   "name": "Oeiras",
+   "bank_valuation": {
+    "house": 4016,
+    "total": 4004,
+    "apartment": 4001
+   },
+   "sale_median": 4438
+  },
+  "1A0111002": {
+   "name": "Barcarena",
+   "sale_median": 3827
+  },
+  "1A0111009": {
+   "name": "Porto Salvo",
+   "sale_median": 4340
+  },
+  "1A0111012": {
+   "name": "União das freguesias de Algés, Linda-a-Velha e Cruz Quebrada-Dafundo",
+   "sale_median": 4742
+  },
+  "1A0111013": {
+   "name": "União das freguesias de Carnaxide e Queijas",
+   "sale_median": 4175
+  },
+  "1A0111014": {
+   "name": "União das freguesias de Oeiras e São Julião da Barra, Paço de Arcos e Caxias",
+   "sale_median": 4498
+  },
+  "1A01111": {
+   "name": "Sintra",
+   "bank_valuation": {
+    "house": 2991,
+    "total": 3017,
+    "apartment": 3022
+   },
+   "sale_median": 3068
+  },
+  "1A0111102": {
+   "name": "Algueirão-Mem Martins",
+   "sale_median": 2919
+  },
+  "1A0111105": {
+   "name": "Colares",
+   "sale_median": 3818
+  },
+  "1A0111108": {
+   "name": "Rio de Mouro",
+   "sale_median": 2966
+  },
+  "1A0111115": {
+   "name": "Casal de Cambra",
+   "sale_median": 3126
+  },
+  "1A0111122": {
+   "name": "União das freguesias de Agualva e Mira-Sintra",
+   "sale_median": 3031
+  },
+  "1A0111124": {
+   "name": "União das freguesias do Cacém e São Marcos",
+   "sale_median": 3171
+  },
+  "1A0111125": {
+   "name": "União das freguesias de Massamá e Monte Abraão",
+   "sale_median": 3111
+  },
+  "1A0111128": {
+   "name": "União das freguesias de Sintra (Santa Maria e São Miguel, São Martinho e São Pedro de Penaferrim)",
+   "sale_median": 3509
+  },
+  "1A01114": {
+   "name": "Vila Franca de Xira",
+   "bank_valuation": {
+    "house": 2373,
+    "total": 2823,
+    "apartment": 2878
+   },
+   "sale_median": 2983
+  },
+  "1A0111408": {
+   "name": "Vialonga",
+   "sale_median": 2991
+  },
+  "1A0111409": {
+   "name": "Vila Franca de Xira",
+   "sale_median": 2763
+  },
+  "1A0111412": {
+   "name": "União das freguesias de Alhandra, São João dos Montes e Calhandriz",
+   "sale_median": 2639
+  },
+  "1A0111413": {
+   "name": "União das freguesias de Alverca do Ribatejo e Sobralinho",
+   "sale_median": 3064
+  },
+  "1A0111414": {
+   "name": "União das freguesias de Castanheira do Ribatejo e Cachoeiras",
+   "sale_median": 2564
+  },
+  "1A0111415": {
+   "name": "União das freguesias de Póvoa de Santa Iria e Forte da Casa",
+   "sale_median": 3176
+  },
+  "1A01115": {
+   "name": "Amadora",
+   "bank_valuation": {
+    "total": 3367,
+    "apartment": 3376
+   },
+   "sale_median": 3315
+  },
+  "1A0111512": {
+   "name": "Alfragide",
+   "sale_median": 3322
+  },
+  "1A0111513": {
+   "name": "Águas Livres",
+   "sale_median": 3423
+  },
+  "1A0111514": {
+   "name": "Encosta do Sol",
+   "sale_median": 3196
+  },
+  "1A0111515": {
+   "name": "Falagueira-Venda Nova",
+   "sale_median": 3421
+  },
+  "1A0111516": {
+   "name": "Mina de Água",
+   "sale_median": 3212
+  },
+  "1A0111517": {
+   "name": "Venteira",
+   "sale_median": 3237
+  },
+  "1A01116": {
+   "name": "Odivelas",
+   "bank_valuation": {
+    "house": 2490,
+    "total": 3333,
+    "apartment": 3433
+   },
+   "sale_median": 3595
+  },
+  "1A0111603": {
+   "name": "Odivelas",
+   "sale_median": 3678
+  },
+  "1A0111608": {
+   "name": "União das freguesias de Pontinha e Famões",
+   "sale_median": 3634
+  },
+  "1A0111609": {
+   "name": "União das freguesias de Póvoa de Santo Adrião e Olival Basto",
+   "sale_median": 3384
+  },
+  "1A0111610": {
+   "name": "União das freguesias de Ramada e Caneças",
+   "sale_median": 3528
+  },
+  "1B01502": {
+   "name": "Alcochete",
+   "bank_valuation": {
+    "total": 3064,
+    "apartment": 3171
+   },
+   "sale_median": 2963
+  },
+  "1B0150201": {
+   "name": "Alcochete",
+   "sale_median": 2976
+  },
+  "1B0150202": {
+   "name": "Samouco",
+   "sale_median": 2663
+  },
+  "1B0150203": {
+   "name": "São Francisco",
+   "sale_median": 3016
+  },
+  "1B01503": {
+   "name": "Almada",
+   "bank_valuation": {
+    "house": 3039,
+    "total": 3254,
+    "apartment": 3306
+   },
+   "sale_median": 3387
+  },
+  "1B0150303": {
+   "name": "Costa da Caparica",
+   "sale_median": 4520
+  },
+  "1B0150312": {
+   "name": "União das freguesias de Almada, Cova da Piedade, Pragal e Cacilhas",
+   "sale_median": 3346
+  },
+  "1B0150313": {
+   "name": "União das freguesias de Caparica e Trafaria",
+   "sale_median": 3253
+  },
+  "1B0150314": {
+   "name": "União das freguesias de Charneca de Caparica e Sobreda",
+   "sale_median": 3435
+  },
+  "1B0150315": {
+   "name": "União das freguesias de Laranjeiro e Feijó",
+   "sale_median": 3144
+  },
+  "1B01504": {
+   "name": "Barreiro",
+   "bank_valuation": {
+    "total": 2949,
+    "apartment": 2950
+   },
+   "sale_median": 2882
+  },
+  "1B0150407": {
+   "name": "Santo António da Charneca",
+   "sale_median": 2551
+  },
+  "1B0150409": {
+   "name": "União das freguesias de Alto do Seixalinho, Santo André e Verderena",
+   "sale_median": 2996
+  },
+  "1B0150410": {
+   "name": "União das freguesias de Barreiro e Lavradio",
+   "sale_median": 2889
+  },
+  "1B0150411": {
+   "name": "União das freguesias de Palhais e Coina",
+   "sale_median": 2151
+  },
+  "1B01506": {
+   "name": "Moita",
+   "bank_valuation": {
+    "house": 2553,
+    "total": 2552,
+    "apartment": 2552
+   },
+   "sale_median": 2538
+  },
+  "1B0150601": {
+   "name": "Alhos Vedros",
+   "sale_median": 2476
+  },
+  "1B0150603": {
+   "name": "Moita",
+   "sale_median": 2466
+  },
+  "1B0150607": {
+   "name": "União das freguesias de Baixa da Banheira e Vale da Amoreira",
+   "sale_median": 2594
+  },
+  "1B0150608": {
+   "name": "União das freguesias de Gaio-Rosário e Sarilhos Pequenos",
+   "sale_median": 2670
+  },
+  "1B01507": {
+   "name": "Montijo",
+   "bank_valuation": {
+    "house": 2406,
+    "total": 2576,
+    "apartment": 2586
+   },
+   "sale_median": 2740
+  },
+  "1B0150709": {
+   "name": "União das freguesias de Atalaia e Alto Estanqueiro-Jardia",
+   "sale_median": 2591
+  },
+  "1B0150710": {
+   "name": "União das freguesias de Montijo e Afonsoeiro",
+   "sale_median": 2782
+  },
+  "1B0150711": {
+   "name": "União das freguesias de Pegões",
+   "sale_median": 1979
+  },
+  "1B01508": {
+   "name": "Palmela",
+   "bank_valuation": {
+    "house": 2558,
+    "total": 2522,
+    "apartment": 2496
+   },
+   "sale_median": 2522
+  },
+  "1B0150802": {
+   "name": "Palmela",
+   "sale_median": 2463
+  },
+  "1B0150803": {
+   "name": "Pinhal Novo",
+   "sale_median": 2526
+  },
+  "1B0150804": {
+   "name": "Quinta do Anjo",
+   "sale_median": 2609
+  },
+  "1B0150806": {
+   "name": "União das freguesias de Poceirão e Marateca",
+   "sale_median": 2426
+  },
+  "1B01510": {
+   "name": "Seixal",
+   "bank_valuation": {
+    "house": 2686,
+    "total": 2935,
+    "apartment": 2986
+   },
+   "sale_median": 2957
+  },
+  "1B0151002": {
+   "name": "Amora",
+   "sale_median": 2804
+  },
+  "1B0151005": {
+   "name": "Corroios",
+   "sale_median": 3041
+  },
+  "1B0151006": {
+   "name": "Fernão Ferro",
+   "sale_median": 2949
+  },
+  "1B01511": {
+   "name": "Sesimbra",
+   "bank_valuation": {
+    "house": 2763,
+    "total": 2815,
+    "apartment": 2853
+   },
+   "sale_median": 3065
+  },
+  "1B0151101": {
+   "name": "Sesimbra (Castelo)",
+   "sale_median": 2837
+  },
+  "1B0151102": {
+   "name": "Sesimbra (Santiago)",
+   "sale_median": 4380
+  },
+  "1B0151103": {
+   "name": "Quinta do Conde",
+   "sale_median": 3009
+  },
+  "1B01512": {
+   "name": "Setúbal",
+   "bank_valuation": {
+    "house": 2613,
+    "total": 2763,
+    "apartment": 2782
+   },
+   "sale_median": 2760
+  },
+  "1B0151205": {
+   "name": "Setúbal (São Sebastião)",
+   "sale_median": 2583
+  },
+  "1B0151207": {
+   "name": "Gâmbia-Pontes-Alto da Guerra",
+   "sale_median": 2767
+  },
+  "1B0151208": {
+   "name": "Sado",
+   "sale_median": 2616
+  },
+  "1B0151209": {
+   "name": "União das freguesias de Azeitão (São Lourenço e São Simão)",
+   "sale_median": 2979
+  },
+  "1B0151210": {
+   "name": "União das freguesias de Setúbal (São Julião, Nossa Senhora da Anunciada e Santa Maria da Graça)",
+   "sale_median": 2944
+  },
+  "1C10211": {
+   "name": "Odemira",
+   "bank_valuation": {
+    "total": 2416
+   },
+   "sale_median": 1800
+  },
+  "1C11501": {
+   "name": "Alcácer do Sal",
+   "sale_median": 1956
+  },
+  "1C11505": {
+   "name": "Grândola",
+   "bank_valuation": {
+    "total": 2869
+   },
+   "sale_median": 2543
+  },
+  "1C11509": {
+   "name": "Santiago do Cacém",
+   "bank_valuation": {
+    "total": 2254,
+    "apartment": 2211
+   },
+   "sale_median": 2184
+  },
+  "1C11513": {
+   "name": "Sines",
+   "bank_valuation": {
+    "total": 2849
+   },
+   "sale_median": 2591
+  },
+  "1C20201": {
+   "name": "Aljustrel",
+   "sale_median": 919
+  },
+  "1C20202": {
+   "name": "Almodôvar",
+   "sale_median": 1077
+  },
+  "1C20203": {
+   "name": "Alvito",
+   "sale_median": 925
+  },
+  "1C20204": {
+   "name": "Barrancos"
+  },
+  "1C20205": {
+   "name": "Beja",
+   "bank_valuation": {
+    "house": 1127,
+    "total": 1488,
+    "apartment": 1713
+   },
+   "sale_median": 1277
+  },
+  "1C20206": {
+   "name": "Castro Verde",
+   "sale_median": 1171
+  },
+  "1C20207": {
+   "name": "Cuba",
+   "sale_median": 689
+  },
+  "1C20208": {
+   "name": "Ferreira do Alentejo",
+   "sale_median": 785
+  },
+  "1C20209": {
+   "name": "Mértola",
+   "sale_median": 703
+  },
+  "1C20210": {
+   "name": "Moura",
+   "bank_valuation": {
+    "house": 1181,
+    "total": 1140
+   },
+   "sale_median": 814
+  },
+  "1C20212": {
+   "name": "Ourique",
+   "sale_median": 993
+  },
+  "1C20213": {
+   "name": "Serpa",
+   "sale_median": 703
+  },
+  "1C20214": {
+   "name": "Vidigueira",
+   "sale_median": 800
+  },
+  "1C31201": {
+   "name": "Alter do Chão",
+   "sale_median": 488
+  },
+  "1C31202": {
+   "name": "Arronches",
+   "sale_median": 848
+  },
+  "1C31203": {
+   "name": "Avis",
+   "sale_median": 840
+  },
+  "1C31204": {
+   "name": "Campo Maior",
+   "bank_valuation": {
+    "total": 872
+   },
+   "sale_median": 680
+  },
+  "1C31205": {
+   "name": "Castelo de Vide",
+   "sale_median": 664
+  },
+  "1C31206": {
+   "name": "Crato",
+   "sale_median": 531
+  },
+  "1C31207": {
+   "name": "Elvas",
+   "bank_valuation": {
+    "house": 1157,
+    "total": 1163,
+    "apartment": 1212
+   },
+   "sale_median": 970
+  },
+  "1C31208": {
+   "name": "Fronteira",
+   "sale_median": 690
+  },
+  "1C31209": {
+   "name": "Gavião",
+   "sale_median": 451
+  },
+  "1C31210": {
+   "name": "Marvão",
+   "sale_median": 649
+  },
+  "1C31211": {
+   "name": "Monforte",
+   "sale_median": 554
+  },
+  "1C31212": {
+   "name": "Nisa",
+   "sale_median": 463
+  },
+  "1C31213": {
+   "name": "Ponte de Sor",
+   "sale_median": 990
+  },
+  "1C31214": {
+   "name": "Portalegre",
+   "bank_valuation": {
+    "total": 1186,
+    "apartment": 1290
+   },
+   "sale_median": 1107
+  },
+  "1C31215": {
+   "name": "Sousel",
+   "sale_median": 644
+  },
+  "1C40701": {
+   "name": "Alandroal",
+   "sale_median": 846
+  },
+  "1C40702": {
+   "name": "Arraiolos",
+   "sale_median": 1236
+  },
+  "1C40703": {
+   "name": "Borba",
+   "sale_median": 915
+  },
+  "1C40704": {
+   "name": "Estremoz",
+   "bank_valuation": {
+    "total": 1383
+   },
+   "sale_median": 841
+  },
+  "1C40705": {
+   "name": "Évora",
+   "bank_valuation": {
+    "house": 2203,
+    "total": 2284,
+    "apartment": 2331
+   },
+   "sale_median": 2327
+  },
+  "1C40706": {
+   "name": "Montemor-o-Novo",
+   "bank_valuation": {
+    "total": 1659
+   },
+   "sale_median": 1493
+  },
+  "1C40707": {
+   "name": "Mora",
+   "sale_median": 1066
+  },
+  "1C40708": {
+   "name": "Mourão",
+   "sale_median": 853
+  },
+  "1C40709": {
+   "name": "Portel",
+   "sale_median": 720
+  },
+  "1C40710": {
+   "name": "Redondo",
+   "sale_median": 1060
+  },
+  "1C40711": {
+   "name": "Reguengos de Monsaraz",
+   "bank_valuation": {
+    "total": 1434
+   },
+   "sale_median": 1096
+  },
+  "1C40712": {
+   "name": "Vendas Novas",
+   "bank_valuation": {
+    "total": 1947
+   },
+   "sale_median": 1673
+  },
+  "1C40713": {
+   "name": "Viana do Alentejo",
+   "sale_median": 1045
+  },
+  "1C40714": {
+   "name": "Vila Viçosa",
+   "sale_median": 844
+  },
+  "1D11001": {
+   "name": "Alcobaça",
+   "bank_valuation": {
+    "house": 1505,
+    "total": 1725,
+    "apartment": 1989
+   },
+   "sale_median": 1876
+  },
+  "1D11005": {
+   "name": "Bombarral",
+   "bank_valuation": {
+    "house": 1741,
+    "total": 1746
+   },
+   "sale_median": 1700
+  },
+  "1D11006": {
+   "name": "Caldas da Rainha",
+   "bank_valuation": {
+    "house": 1726,
+    "total": 2018,
+    "apartment": 2164
+   },
+   "sale_median": 2188
+  },
+  "1D11011": {
+   "name": "Nazaré",
+   "bank_valuation": {
+    "total": 2065
+   },
+   "sale_median": 2656
+  },
+  "1D11012": {
+   "name": "Óbidos",
+   "bank_valuation": {
+    "house": 1970,
+    "total": 1815
+   },
+   "sale_median": 2249
+  },
+  "1D11014": {
+   "name": "Peniche",
+   "bank_valuation": {
+    "total": 2083,
+    "apartment": 2208
+   },
+   "sale_median": 2332
+  },
+  "1D11101": {
+   "name": "Alenquer",
+   "bank_valuation": {
+    "house": 1865,
+    "total": 2230,
+    "apartment": 2348
+   },
+   "sale_median": 2035
+  },
+  "1D11102": {
+   "name": "Arruda dos Vinhos",
+   "bank_valuation": {
+    "total": 2077
+   },
+   "sale_median": 2256
+  },
+  "1D11104": {
+   "name": "Cadaval",
+   "bank_valuation": {
+    "house": 1672,
+    "total": 1690
+   },
+   "sale_median": 1534
+  },
+  "1D11108": {
+   "name": "Lourinhã",
+   "bank_valuation": {
+    "house": 1938,
+    "total": 2023
+   },
+   "sale_median": 2083
+  },
+  "1D11112": {
+   "name": "Sobral de Monte Agraço",
+   "bank_valuation": {
+    "total": 1961
+   },
+   "sale_median": 1893
+  },
+  "1D11113": {
+   "name": "Torres Vedras",
+   "bank_valuation": {
+    "house": 2083,
+    "total": 2318,
+    "apartment": 2679
+   },
+   "sale_median": 2411
+  },
+  "1D21401": {
+   "name": "Abrantes",
+   "bank_valuation": {
+    "house": 1454,
+    "total": 1565,
+    "apartment": 1599
+   },
+   "sale_median": 1053
+  },
+  "1D21402": {
+   "name": "Alcanena",
+   "bank_valuation": {
+    "total": 1189
+   },
+   "sale_median": 862
+  },
+  "1D21408": {
+   "name": "Constância",
+   "sale_median": 862
+  },
+  "1D21410": {
+   "name": "Entroncamento",
+   "bank_valuation": {
+    "total": 1696,
+    "apartment": 1712
+   },
+   "sale_median": 1749
+  },
+  "1D21411": {
+   "name": "Ferreira do Zêzere",
+   "sale_median": 887
+  },
+  "1D21413": {
+   "name": "Mação",
+   "sale_median": 355
+  },
+  "1D21417": {
+   "name": "Sardoal",
+   "sale_median": 706
+  },
+  "1D21418": {
+   "name": "Tomar",
+   "bank_valuation": {
+    "house": 1330,
+    "total": 1753,
+    "apartment": 2017
+   },
+   "sale_median": 1361
+  },
+  "1D21419": {
+   "name": "Torres Novas",
+   "bank_valuation": {
+    "house": 1419,
+    "total": 1609,
+    "apartment": 1840
+   },
+   "sale_median": 1201
+  },
+  "1D21420": {
+   "name": "Vila Nova da Barquinha",
+   "sale_median": 1564
+  },
+  "1D21421": {
+   "name": "Ourém",
+   "bank_valuation": {
+    "house": 1040,
+    "total": 1257,
+    "apartment": 1887
+   },
+   "sale_median": 1411
+  },
+  "1D31103": {
+   "name": "Azambuja",
+   "bank_valuation": {
+    "total": 2228
+   },
+   "sale_median": 2045
+  },
+  "1D31403": {
+   "name": "Almeirim",
+   "bank_valuation": {
+    "house": 1607,
+    "total": 1744,
+    "apartment": 1844
+   },
+   "sale_median": 1589
+  },
+  "1D31404": {
+   "name": "Alpiarça",
+   "sale_median": 1374
+  },
+  "1D31405": {
+   "name": "Benavente",
+   "bank_valuation": {
+    "house": 1655,
+    "total": 2045,
+    "apartment": 2148
+   },
+   "sale_median": 2171
+  },
+  "1D31406": {
+   "name": "Cartaxo",
+   "bank_valuation": {
+    "house": 1707,
+    "total": 1725
+   },
+   "sale_median": 1621
+  },
+  "1D31407": {
+   "name": "Chamusca",
+   "sale_median": 911
+  },
+  "1D31409": {
+   "name": "Coruche",
+   "bank_valuation": {
+    "house": 1491,
+    "total": 1500
+   },
+   "sale_median": 1377
+  },
+  "1D31412": {
+   "name": "Golegã",
+   "sale_median": 1307
+  },
+  "1D31414": {
+   "name": "Rio Maior",
+   "bank_valuation": {
+    "house": 1344,
+    "total": 1622
+   },
+   "sale_median": 1357
+  },
+  "1D31415": {
+   "name": "Salvaterra de Magos",
+   "bank_valuation": {
+    "house": 1888,
+    "total": 1901
+   },
+   "sale_median": 1853
+  },
+  "1D31416": {
+   "name": "Santarém",
+   "bank_valuation": {
+    "house": 1536,
+    "total": 1814,
+    "apartment": 1937
+   },
+   "sale_median": 1593
+  },
+  "2004101": {
+   "name": "Vila do Porto"
+  },
+  "2004201": {
+   "name": "Lagoa (R.A.A.)"
+  },
+  "2004202": {
+   "name": "Nordeste"
+  },
+  "2004203": {
+   "name": "Ponta Delgada",
+   "bank_valuation": {
+    "house": 1941,
+    "total": 2100,
+    "apartment": 2546
+   }
+  },
+  "2004204": {
+   "name": "Povoação"
+  },
+  "2004205": {
+   "name": "Ribeira Grande",
+   "bank_valuation": {
+    "house": 1595,
+    "total": 1717
+   }
+  },
+  "2004206": {
+   "name": "Vila Franca do Campo"
+  },
+  "2004301": {
+   "name": "Angra do Heroísmo",
+   "bank_valuation": {
+    "house": 1434,
+    "total": 1451
+   }
+  },
+  "2004302": {
+   "name": "Vila da Praia da Vitória",
+   "bank_valuation": {
+    "house": 1384,
+    "total": 1379
+   }
+  },
+  "2004401": {
+   "name": "Santa Cruz da Graciosa"
+  },
+  "2004501": {
+   "name": "Calheta (R.A.A.)"
+  },
+  "2004502": {
+   "name": "Velas"
+  },
+  "2004601": {
+   "name": "Lajes do Pico"
+  },
+  "2004602": {
+   "name": "Madalena"
+  },
+  "2004603": {
+   "name": "São Roque do Pico"
+  },
+  "2004701": {
+   "name": "Horta",
+   "bank_valuation": {
+    "total": 1552
+   }
+  },
+  "2004801": {
+   "name": "Lajes das Flores"
+  },
+  "2004802": {
+   "name": "Santa Cruz das Flores"
+  },
+  "2004901": {
+   "name": "Corvo"
+  },
+  "3003101": {
+   "name": "Calheta (R.A.M.)",
+   "bank_valuation": {
+    "house": 2439,
+    "total": 2439
+   }
+  },
+  "3003102": {
+   "name": "Câmara de Lobos",
+   "bank_valuation": {
+    "total": 2502
+   }
+  },
+  "3003103": {
+   "name": "Funchal",
+   "bank_valuation": {
+    "house": 2573,
+    "total": 3037,
+    "apartment": 3397
+   }
+  },
+  "3003104": {
+   "name": "Machico",
+   "bank_valuation": {
+    "total": 2094
+   }
+  },
+  "3003105": {
+   "name": "Ponta do Sol"
+  },
+  "3003106": {
+   "name": "Porto Moniz"
+  },
+  "3003107": {
+   "name": "Ribeira Brava"
+  },
+  "3003108": {
+   "name": "Santa Cruz",
+   "bank_valuation": {
+    "house": 2258,
+    "total": 2707,
+    "apartment": 2769
+   }
+  },
+  "3003109": {
+   "name": "Santana"
+  },
+  "3003110": {
+   "name": "São Vicente"
+  },
+  "3003201": {
+   "name": "Porto Santo"
+  }
+ }
+}
