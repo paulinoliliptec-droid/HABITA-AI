@@ -19,7 +19,7 @@ const READ_NOTE = {
 } as const;
 
 /** HR-010: photos and plans for this matter. What HABITA reads in them is never verified and never changes the assessment. */
-export function PermitFiles({ matterId, token }: { matterId: string; token: string }) {
+export function PermitFiles({ matterId, token, onChange }: { matterId: string; token: string; onChange?: () => void }) {
   const { t } = useI18n();
   const id = useId();
   const [files, setFiles] = useState<MatterFile[] | null>(null);
@@ -66,6 +66,7 @@ export function PermitFiles({ matterId, token }: { matterId: string; token: stri
     setProgress(null);
     setBusy(false);
     reportChanged();
+    onChange?.();
   }
 
   async function remove(fileId: string) {
@@ -74,6 +75,7 @@ export function PermitFiles({ matterId, token }: { matterId: string; token: stri
       await deleteFile(matterId, token, fileId);
       setFiles((list) => (list ?? []).filter((f) => f.file_id !== fileId));
       reportChanged();
+      onChange?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("Something went wrong. Please try again."));
     }

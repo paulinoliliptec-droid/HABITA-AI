@@ -41,6 +41,8 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [choosing, setChoosing] = useState(false);
+  // Bumped when a file is added or deleted, so the concepts panel sees the new photo at once.
+  const [filesVersion, setFilesVersion] = useState(0);
   // Keyed like the evidence below: a translation read for another matter, state or language is never shown.
   const [translation, setTranslation] = useState<{ key: string; data: MatterTranslation | null } | null>(null);
 
@@ -187,8 +189,10 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
             <PermitResult matter={matter} evidence={evidence} authorityName={authorityName} shown={shown} note={note} />
           )}
 
-          {token && !running && <PermitFiles matterId={matter.matter_id} token={token} />}
-          {token && !running && <PermitConcepts matterId={matter.matter_id} token={token} />}
+          {token && !running && (
+            <PermitFiles matterId={matter.matter_id} token={token} onChange={() => setFilesVersion((n) => n + 1)} />
+          )}
+          {token && !running && <PermitConcepts matterId={matter.matter_id} token={token} filesVersion={filesVersion} />}
           {token && !running && <PermitAfford matterId={matter.matter_id} token={token} />}
 
           {STABLE_STATES.has(matter.state) && !running && (choosing || matter.intent === "out_of_scope") && (
