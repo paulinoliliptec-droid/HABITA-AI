@@ -33,6 +33,12 @@ export function pickVoice<V extends VoiceLike>(voices: V[], lang: "en" | "pt"): 
   return local(exact) ?? local(voices.filter((v) => v.lang.toLowerCase().startsWith(lang)));
 }
 
+/** What the reader must be told. Unless the voice is known to be on-device, the text may reach the browser's vendor. */
+export function voiceNotes<V extends VoiceLike>(voices: V[], lang: "en" | "pt") {
+  const voice = pickVoice(voices, lang);
+  return { noVoice: voices.length > 0 && !voice, mayLeaveDevice: voice?.localService !== true };
+}
+
 export class VoicePlayer<V extends VoiceLike, U extends UtteranceLike<V>> {
   private script: string[] = [];
   private lang: "en" | "pt" = "en";
@@ -41,7 +47,7 @@ export class VoicePlayer<V extends VoiceLike, U extends UtteranceLike<V>> {
 
   constructor(
     private readonly synth: SynthLike<V, U>,
-    private readonly utterance: (text: string) => U,
+    private readonly utterance: (text: string, index: number) => U,
     private readonly onChange: (state: VoiceState, line: string | null) => void,
   ) {}
 
@@ -84,7 +90,7 @@ export class VoicePlayer<V extends VoiceLike, U extends UtteranceLike<V>> {
       this.onChange("idle", null);
       return;
     }
-    const u = this.utterance(line);
+    const u = this.utterance(line, this.at);
     u.lang = LOCALE[this.lang];
     u.voice = pickVoice(this.synth.getVoices(), this.lang);
     u.rate = SPOKEN_RATE;

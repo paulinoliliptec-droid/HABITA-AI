@@ -26,6 +26,7 @@ from app.db.staging import confinement_problem
 from app.integrations.maps.geocoding import GeocodingClient
 from app.integrations.maps.static_maps import MemoryDailyUsage, MongoDailyUsage, StaticMapClient
 from app.integrations.meta.client import MetaChatModel
+from app.integrations.speech.client import ElevenLabsClient
 from app.integrations.translate.client import GoogleTranslateClient
 from app.services.permit.repository import InMemoryPermitRepository, MongoPermitRepository, PermitRepository
 from app.services.permit.sources.base import SourceRegistry
@@ -165,6 +166,15 @@ def create_app(
                 usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"], "translate")
                 if mongo is not None else MemoryDailyUsage(),
             ))
+            app.state.speech = ElevenLabsClient(
+                http, settings.elevenlabs_api_key.get_secret_value() if settings.elevenlabs_api_key else None,
+                {"en": settings.elevenlabs_voice_en, "pt": settings.elevenlabs_voice_pt},
+                model=settings.elevenlabs_model, timeout_seconds=settings.elevenlabs_timeout_seconds,
+                rate_per_minute=settings.elevenlabs_rate_per_minute, burst=settings.elevenlabs_burst,
+                daily_limit=settings.elevenlabs_daily_limit, cache_bytes=settings.elevenlabs_cache_bytes,
+                usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"], "speech")
+                if mongo is not None else MemoryDailyUsage(),
+            )
             app.state.property_service = property_service = PropertyLocationService(
                 geocoder=GeocodingClient(http, api_key),
                 resolver=JurisdictionResolver(),

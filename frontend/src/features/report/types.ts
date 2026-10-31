@@ -66,3 +66,10 @@ export interface PermitReport {
   language?: "en" | "pt";
   translation?: { available: boolean; kept_original: number; note: string | null } | null;
 }
+
+/** HR-007: the sentences spoken from a report. `audio`: synthesised speech exists for this language. */
+export interface VoiceScript {
+  version: string;
+  lines: string[];
+  audio: boolean;
+}

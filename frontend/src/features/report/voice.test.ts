@@ -1,108 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { translator } from "@/i18n/core";
-import verified from "./fixtures/verified-report.json";
-import type { PermitReport } from "./types";
-import { pickVoice, VoicePlayer, type UtteranceLike, type VoiceLike, type VoiceState } from "./voicePlayer";
-import { buildVoiceScript, speakable } from "./voiceScript";
-
-const report = verified as unknown as PermitReport;
-const a = report.assessment!;
-const withAssessment = (over: Partial<NonNullable<PermitReport["assessment"]>>) =>
-  ({ ...report, assessment: { ...a, ...over } }) as PermitReport;
-const said = (r: PermitReport) => buildVoiceScript(r).join(" ");
-
-describe("voice script (HR-007)", () => {
-  it("opens by saying audio is not proof and closes with the disclaimer", () => {
-    const script = buildVoiceScript(report);
-    expect(script.slice(0, 2).join(" ")).toContain("not legal proof");
-    expect(script.join(" ")).toContain(speakable(report.disclaimer).at(-1));
-    expect(script.at(-1)).toBe(speakable(report.disclaimer).at(-1));
-  });
-
-  it("says the report's status, and that verified is HABITA's own check", () => {
-    expect(said(report)).toContain("Status: Verified.");
-    expect(said(report)).toContain("not a municipal approval");
-    expect(said(withAssessment({ status: "REJECTED", content_verified: false }))).toContain("Status: Rejected.");
-  });
-
-  it.each([
-    ["content not verified", { content_verified: false }],
-    ["superseded record", { verification: { current: false, outcome: "VERIFIED" } }],
-    ["no record", { verification: null }],
-  ])("never says verified with %s", (_, over) => {
-    const text = said(withAssessment(over));
-    expect(text).toContain("Status: Pending confirmation.");
-    expect(text).not.toContain("Status: Verified");
-    expect(text).toContain("must not be relied on");
-  });
-
-  it("never keeps the reason of a status it corrected", () => {
-    const text = said(withAssessment({ verification: { current: false, outcome: "VERIFIED" } }));
-    expect(text).not.toContain(a.status_reason);
-    expect(text).toContain("does not support a verified result");
-  });
-
-  it("says every open item, not a count", () => {
-    const text = said({ ...report, pending: ["Confirm the land-use category."] });
-    expect(text).toContain("Pending confirmation");
-    expect(text).toContain("Confirm the land-use category.");
-  });
-
-  it("says every section of statements: nothing is left out of the summary", () => {
-    const text = said(report);
-    for (const s of a.statements) expect(text).toContain(speakable(s.text)[0]);
-  });
-
-  it("keeps a request for an answer that repeats a condition's words", () => {
-    const r = { ...withAssessment({ conditions: ["Confirm the exits."] }), pending: ["Your answer is needed: Confirm the exits."] };
-    expect(said(r)).toContain("Your answer is needed");
-  });
-
-  it("says why zoning is not verified", () => {
-    const r = { ...report, planning: { ...report.planning, reasons: ["The property lies near a boundary between zoning classes."] } };
-    expect(said(r)).toContain("near a boundary");
-  });
-
-  it("says what each official map covers", () => {
-    const text = said(report);
-    for (const d of report.planning.documents_to_consult) expect(text).toContain(speakable(d.reason)[0]);
-  });
-
-  it("says conditions once", () => {
-    const script = buildVoiceScript(withAssessment({ conditions: ["Confirm the exits."] }));
-    const pending = { ...withAssessment({ conditions: ["Confirm the exits."] }), pending: ["Condition: Confirm the exits."] };
-    expect(script.filter((l) => l === "Confirm the exits.")).toHaveLength(1);
-    expect(buildVoiceScript(pending).filter((l) => l.includes("Confirm the exits."))).toHaveLength(1);
-  });
-
-  it("states unverified zoning and names a class only from a verified layer", () => {
-    expect(said(report)).toContain("Zoning not verified");
-    const claimed = { ...report, planning: { ...report.planning, verified_zoning: false, classification: "Espaço Central" } };
-    expect(said(claimed)).not.toContain("Espaço Central");
-    const zoned = { ...report, planning: { ...report.planning, verified_zoning: true, classification: "Espaço Central" } };
-    expect(said(zoned)).toContain("Espaço Central");
-  });
-
-  it("says the translation label and the demo label", () => {
-    const translation = { available: true, kept_original: 0, note: "Tradução automática." };
-    expect(said({ ...report, translation })).toContain("Tradução automática.");
-    expect(said({ ...report, demo: true })).toContain("Demonstration data");
-  });
-
-  it("works with no assessment", () => {
-    expect(said({ ...report, assessment: null })).toContain("No permit assessment yet");
-  });
-
-  it("speaks in the reader's language", () => {
-    expect(buildVoiceScript(report, translator("pt"))[1]).toContain("Não é prova legal");
-  });
-
-  it("drops evidence references and splits long sentences", () => {
-    expect(speakable("Confirm this [E1, E2]. Then that [K3].")).toEqual(["Confirm this.", "Then that."]);
-    expect(speakable("word ".repeat(100)).every((s) => s.length <= 180)).toBe(true);
-    expect(speakable("   ")).toEqual([]);
-  });
-});
+import { describe, expect, it, vi } from "vitest";
+import { ApiError } from "@/lib/api";
+import { pickVoice, VoicePlayer, voiceNotes, type UtteranceLike, type VoiceLike, type VoiceState } from "./voicePlayer";
+import { RemoteSynth, type AudioLike } from "./voiceAudio";
 
 type V = VoiceLike & { name: string };
 class FakeSynth {
@@ -198,4 +97,95 @@ describe("voice player (HR-007)", () => {
     expect(pickVoice([voice("pt-BR", true, "br")], "pt")!.name).toBe("br");
     expect(pickVoice([voice("en-GB", true)], "pt")).toBeNull();
   });
+
+  it("warns unless the voice is known to stay on the device", () => {
+    const voice = (lang: string, localService: boolean): V => ({ lang, localService, name: lang });
+    expect(voiceNotes([voice("pt-PT", true)], "pt")).toEqual({ noVoice: false, mayLeaveDevice: false });
+    expect(voiceNotes([voice("pt-PT", false)], "pt")).toEqual({ noVoice: false, mayLeaveDevice: true });
+    expect(voiceNotes([voice("en-GB", true)], "pt")).toEqual({ noVoice: true, mayLeaveDevice: true });
+    expect(voiceNotes([], "pt")).toEqual({ noVoice: false, mayLeaveDevice: true }); // voices not loaded yet
+  });
 });
+
+class FakeAudio implements AudioLike {
+  src = "";
+  onended: (() => unknown) | null = null;
+  onerror: (() => unknown) | null = null;
+  played: string[] = [];
+  blocked = false;
+  async play() {
+    if (this.blocked) throw new Error("not allowed");
+    this.played.push(this.src);
+  }
+  pause() {}
+}
+
+describe("server voice (HR-007)", () => {
+  const settle = () => new Promise((resolve) => setTimeout(resolve));
+  const numbered = (text: string, index: number) => Object.assign(new FakeUtterance(text), { index });
+  type U = ReturnType<typeof numbered>;
+  function setup(load: (index: number) => Promise<string>, lines = 3, withBrowser = true) {
+    const browser = new FakeSynth();
+    const audio = new FakeAudio();
+    const onFallback = vi.fn();
+    const synth = new RemoteSynth<V, U>(load, lines, audio, withBrowser ? (browser as never) : null, onFallback);
+    const states: [VoiceState, string | null][] = [];
+    const player = new VoicePlayer<V, U>(synth, numbered, (s, l) => states.push([s, l]));
+    return { browser, audio, onFallback, synth, player, states };
+  }
+
+  it("plays each sentence in order and loads the next ahead", async () => {
+    const load = vi.fn(async (i: number) => `blob:${i}`);
+    const { audio, player, states } = setup(load);
+    player.play(["a", "b", "c"], "pt");
+    await settle();
+    expect(audio.played).toEqual(["blob:0"]);
+    expect(load.mock.calls.map((c) => c[0])).toEqual([0, 1]);
+    audio.onended!();
+    await settle();
+    audio.onended!();
+    await settle();
+    expect(audio.played).toEqual(["blob:0", "blob:1", "blob:2"]);
+    expect(load).toHaveBeenCalledTimes(3); // nothing past the end, nothing twice
+    audio.onended!();
+    expect(states.at(-1)).toEqual(["idle", null]);
+  });
+
+  it("pauses without playing what was still loading", async () => {
+    let release: (url: string) => void = () => {};
+    const { audio, player } = setup(() => new Promise((resolve) => (release = resolve)), 1);
+    player.play(["a"], "pt");
+    player.pause();
+    release("blob:0");
+    await settle();
+    expect(audio.played).toEqual([]);
+  });
+
+  it.each([
+    ["the server fails", (s: ReturnType<typeof setup>) => s],
+    ["the browser blocks playing", (s: ReturnType<typeof setup>) => ((s.audio.blocked = true), s)],
+  ])("keeps the same sentence in the browser's voice when %s", async (name, prepare) => {
+    const load = name === "the server fails" ? () => Promise.reject(new Error("503")) : async () => "blob:0";
+    const s = prepare(setup(load));
+    s.player.play(["warning", "b", "c"], "pt");
+    await settle();
+    expect(s.onFallback).toHaveBeenCalledOnce();
+    expect(s.browser.spoken.map((u) => u.text)).toEqual(["warning"]);
+    s.browser.spoken[0].onend!();
+    expect(s.browser.spoken.map((u) => u.text)).toEqual(["warning", "b"]);
+  });
+
+  it("stops on a changed report, and with no browser voice to fall back on", async () => {
+    const changed = setup(() => Promise.reject(new ApiError("network_error", "changed", 409)));
+    changed.player.play(["a", "b"], "pt");
+    await settle();
+    expect(changed.states.at(-1)).toEqual(["failed", null]);
+    expect(changed.browser.spoken).toEqual([]);
+
+    const alone = setup(() => Promise.reject(new Error("503")), 2, false);
+    alone.player.play(["a", "b"], "pt");
+    await settle();
+    expect(alone.states.at(-1)).toEqual(["failed", null]);
+  });
+});
+

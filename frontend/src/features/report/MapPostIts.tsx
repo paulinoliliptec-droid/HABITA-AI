@@ -73,7 +73,7 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
         </Button>
       </div>
       {graphOpen && <ReasoningGraph report={report} onClose={() => setGraphOpen(false)} />}
-      <VoiceExplanation report={report} />
+      <VoiceExplanation report={report} own={own} />
       {error && (
         <p className={styles.error} role="alert">
           {error}
