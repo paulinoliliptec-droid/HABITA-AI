@@ -3,7 +3,7 @@ Property intelligence that knows which rules apply where: resolve an address to 
 authority, ask a permitting question, and get an answer that is shown as **verified** only when every statement is
 backed by an official source that HABITA retrieved, snapshotted and checked.
 
-Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (HR-001 … HR-009 as described
+Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (HR-001 … HR-010 as described
 below); development continues on the branch `mu9/structural-verification` and reaches `main` only by an explicit merge.
 
 ## The problem
@@ -120,7 +120,7 @@ HABITA, not the model. Last real test on 2026-10-31: five cases, 4 VERIFIED with
 verified answers are short. The warnings have not had a legal review.
 Code: `backend/app/services/permit/requirements.py`, `frontend/src/features/permit/PermitSection.tsx`.
 
-### HR-010 · Multimodal Property Understanding — Tested on a no-traffic candidate; not published
+### HR-010 · Multimodal Property Understanding — Live; acceptance pending
 In a matter, the user can add photos and plans (JPEG, PNG, PDF; up to 10 files of 10 MB) after a consent notice that
 says what goes to Meta and what HABITA keeps. The type is checked from the content, not the name. Capture date and GPS
 are read first; a GPS point far from the property is shown as a mismatch that proves nothing. The kept copy, in a
@@ -154,7 +154,7 @@ Code: `backend/app/services/files/`, `frontend/src/features/permit/PermitFiles.t
 | SAM 3.1 segmentation, Muse Voice Transcribe, Muse Image | Planned (integration points only) |
 | Property profile: official, observed, declared (HR-008) | Live; acceptance pending |
 | Request types with correction by the user (HR-009) | Live; acceptance pending |
-| Photos and plans read as observations (HR-010) | Tested on a no-traffic candidate; not published |
+| Photos and plans read as observations (HR-010) | Live; acceptance pending (consent wording not legally reviewed) |
 | HR-011 … HR-015 | Pending definition |
 
 ## Private staging demo (authenticated)
@@ -163,8 +163,8 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `729fa7f` (backend
-revision `00039`, frontend `00034`), with the reasoning graph, the spoken report, the property profile and request types. The MU-9 migration of its database
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `f54bc8c` (backend
+revision `00041`, frontend `00036`), with the reasoning graph, the spoken report, the property profile, request types and photos and plans. The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
@@ -208,7 +208,7 @@ MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentia
 
 ## Roadmap and technical debt
 - Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002
-  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete; HR-005, HR-007, HR-008 and HR-009 live, acceptance pending; HR-010 tested on a candidate;
+  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete; HR-005, HR-007, HR-008 and HR-009 and HR-010 live, acceptance pending;
   HR-011…HR-015 pending definition.
 - Main open items: redeploy staging with the latest HR-004/HR-006 code (including the real PDF images); set Google
   Cloud API quotas and review the Maps Platform terms for imagery in PDFs; improve answers to procedure questions (repeated zoning conditions, missing RJUE
