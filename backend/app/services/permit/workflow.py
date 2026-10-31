@@ -107,6 +107,16 @@ def _basis(entry: dict) -> dict:
     return {"planning_basis": basis, "quote": quote}
 
 
+def _next_actions(conditions: list[dict[str, str]], evidence: list[Evidence],
+                  written: list[NextAction]) -> list[NextAction]:
+    """HABITA's next step: what the conditions leave to the authority, in fixed text citing the authority's record."""
+    authority = next((e for e in evidence if e.source_type == "authority_record"), None)
+    if not conditions or authority is None:
+        return []
+    text = f"Request confirmation of the conditions from the {authority.source_title}."
+    return [] if any(a.text == text for a in written) else [NextAction(text=text, evidence_ids=[authority.evidence_id])]
+
+
 class PermitWorkflow:
     def __init__(
         self,
@@ -442,14 +452,16 @@ class PermitWorkflow:
                                      **_basis(p))
                        for p in result["procedure"]],
             risks=[Risk(text=r["text"], evidence_ids=list(r["evidence_ids"]), **_basis(r)) for r in result["risks"]],
+            # The schema asks for none. Any the model writes anyway stays in the draft, so the rules still judge it.
             next_actions=[NextAction(text=a["text"], evidence_ids=list(a["evidence_ids"]), **_basis(a))
-                          for a in result["next_actions"]],
+                          for a in result.get("next_actions", [])],
             model_id=self._model.model_id,
             created_at=datetime.now(UTC),
         )
         # Structured planning statements carry HABITA-derived text (quote, condition, determination), never the
         # model's wording (CX-1); general explanations get HABITA's frame; the verifier checks all of them.
         draft = render_draft(draft, evidence, matter)
+        draft.next_actions = [*draft.next_actions, *_next_actions(conditions, evidence, draft.next_actions)]
         # Evidence-first: a general explanation the model left without its official passage gets it linked by
         # HABITA from this matter's admissible official text, when the match is strong and unambiguous (audited).
         chain = await tools.jurisdiction_chain()

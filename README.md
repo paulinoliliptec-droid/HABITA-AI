@@ -114,8 +114,10 @@ HABITA places a request in a closed catalog: dividing into units, change of use,
 It shows what it understood and the user can choose another type. New construction, extensions and demolition are not
 covered yet and are stated as such, as is anything outside Cascais. HABITA holds no reviewed rule on which interior
 works are exempt, so it never says they are: that stays a condition to confirm with the Câmara. MU-9 checks every type,
-and many answers are conditional or rejected by design. Real test on 2026-10-31: six cases, 6 classified as expected, 3
-of 4 answered cases VERIFIED with conditions; a small sample.
+and many answers are conditional or rejected by design. Material warnings (for example the nullity of a horizontal
+property title) are fixed text added by code, and the rules refuse an answer without them; next actions are written by
+HABITA, not the model. Last real test on 2026-10-31: five cases, 4 VERIFIED with conditions; a small sample, and the
+verified answers are short. The warnings have not had a legal review.
 Code: `backend/app/services/permit/requirements.py`, `frontend/src/features/permit/PermitSection.tsx`.
 
 ### Feature summary
@@ -145,8 +147,8 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `cbb93f4` (backend
-revision `00034`, frontend `00029`), with the reasoning graph, the spoken report, the property profile and request types. The MU-9 migration of its database
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `729fa7f` (backend
+revision `00039`, frontend `00034`), with the reasoning graph, the spoken report, the property profile and request types. The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
@@ -184,7 +186,7 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-10-31, commit `a3ca938`): backend **6757 passed, 14 skipped, 3 expected failures**
+Last full run (2026-10-31, commit `729fa7f`): backend **6790 passed, 14 skipped, 3 expected failures**
 (known limitations kept as strict xfail); frontend **84 passed**, lint, typecheck and build clean. Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 
