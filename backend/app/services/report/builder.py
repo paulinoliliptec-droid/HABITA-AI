@@ -10,6 +10,7 @@ from app.schemas.files import CHECK_TEXT, MatterFile
 from app.schemas.permit import Evidence, MatterState, PermitMatter, VerificationReport
 from app.schemas.property import ResolvedProperty
 from app.schemas.report import (
+    ReportConcept,
     PermitReport, ReportAssessment, ReportDocument, ReportEvidence, ReportPlanning, ReportProperty, ReportSource,
     ReportStatement, ReportStatus, ReportVerification,
 )
@@ -148,7 +149,7 @@ def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list
                  matter: PermitMatter | None = None, evidence: list[Evidence] = (),
                  verification: VerificationReport | None = None, *, demo: bool = False,
                  now: datetime | None = None, files: list[MatterFile] = (),
-                 afford: AffordReport | None = None) -> PermitReport:
+                 afford: AffordReport | None = None, concepts: list = ()) -> PermitReport:
     planning = _planning(context)
     assessment = _assessment(matter, list(evidence), verification) if matter is not None else None
     pending: list[str] = []
@@ -170,5 +171,6 @@ def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list
         sources=[ReportSource(source_id=s.source_id, title=s.title, publisher=s.publisher, url=s.official_url,
                               version=s.version, status=s.status, verified_on=s.verified_on) for s in sources],
         assessment=assessment, profile=build_profile(prop, context, sources, evidence, matter, files), pending=pending, demo=demo, afford=afford,
+        concepts=[ReportConcept(change_label=c.change_label, created_on=c.created_at.date()) for c in concepts],
         disclaimer=DISCLAIMER,
     )

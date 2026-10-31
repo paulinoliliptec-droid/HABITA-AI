@@ -9,7 +9,7 @@ import hashlib
 import re
 
 from app.schemas.report import PermitReport, ReportAssessment, ReportStatus
-from app.services.report import afford_lines
+from app.services.report import afford_lines, concept_lines
 from app.services.i18n.translator import msg, translator_for
 
 MAX_CHARS = 180  # sentences are spoken and paid for one at a time
@@ -89,6 +89,7 @@ def build_voice_script(report: PermitReport) -> list[str]:
         say += [t("Official maps to consult"), *[d.reason for d in planning.documents_to_consult]]
 
     say += _profile_lines(report, t)
+    say += concept_lines.sentences(report)  # HR-012
     if report.afford is not None:  # HR-011: an estimate, said with its sources and its disclaimer
         say += afford_lines.sentences(report.afford, report.language)
 

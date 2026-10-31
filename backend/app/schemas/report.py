@@ -133,6 +133,11 @@ class ProfileItem(BaseModel):
     conflict: bool = False
 
 
+class ReportConcept(BaseModel):
+    change_label: str
+    created_on: date
+
+
 class PermitReport(BaseModel):
     generated_at: datetime
     property: ReportProperty
@@ -142,6 +147,8 @@ class PermitReport(BaseModel):
     profile: list[ProfileItem] = Field(default_factory=list)
     #: HR-011: costs, financing and market price, an estimate only; present for a matter whose user entered figures.
     afford: AffordReport | None = None
+    #: HR-012: the matter's before/after concepts, by change and date; illustrations only.
+    concepts: list[ReportConcept] = Field(default_factory=list)
     #: What only the authority (or the user) can still settle.
     pending: list[str] = Field(default_factory=list)
     #: Set when any part comes from labelled demonstration data.

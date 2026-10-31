@@ -17,7 +17,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from app.integrations.maps.static_maps import ATTRIBUTION, LocationMaps
 from app.schemas.report import PermitReport
-from app.services.report import afford_lines
+from app.services.report import afford_lines, concept_lines
 from app.services.i18n.translator import msg, translator_for
 
 FONTS = Path(__file__).with_name("fonts")
@@ -428,6 +428,14 @@ def _profile(report: PermitReport) -> str:
             f'<th>{t("Kind")}</th><th>{t("Origin")}</th></tr></thead><tbody>{rows}</tbody></table></section>')
 
 
+def _concepts(report: PermitReport) -> str:
+    if not report.concepts:
+        return ""
+    t = translator_for(report.language)
+    body = "".join(f"<tr><td>{_e(a)}</td><td>{_e(b)}</td></tr>" for a, b in concept_lines.rows(report))
+    return f'<section><h2>{t(concept_lines.TITLE)}</h2><table><tbody>{body}</tbody></table></section>'
+
+
 def _afford(report: PermitReport) -> str:
     if report.afford is None:
         return ""
@@ -524,7 +532,7 @@ def render_html(report: PermitReport, maps: LocationMaps | None = None, style: s
     return (f'<!doctype html><html lang="{report.language}"><head><meta charset="utf-8"><title>{t("HABITA AI report")}</title><meta name="author" content="HABITA AI">'
             f"<style>{FONT_FACES[style]()}\n{css}\n{CSS_STYLE[style]}</style></head><body class='{style}'>"
             f'<div class="disclaimer-running">{"<b>" + t(DEMO) + ".</b> " if report.demo else ""}{_e(report.disclaimer)}</div>'
-            f"{_cover(report)}{_glance(report, style)}{_location(maps, t)}{_planning(report)}{_profile(report)}{_afford(report)}{_analysis(report)}"
+            f"{_cover(report)}{_glance(report, style)}{_location(maps, t)}{_planning(report)}{_profile(report)}{_concepts(report)}{_afford(report)}{_analysis(report)}"
             f"{_sources(report)}</body></html>")
 
 

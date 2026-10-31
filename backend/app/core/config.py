@@ -81,6 +81,13 @@ class Settings(BaseSettings):
     meta_api_key: SecretStr | None = None
     meta_api_base_url: str = "https://api.meta.ai/v1"
     meta_text_model: str = "muse-spark-1.3"
+    # HR-012: before/after concepts (image edit endpoint).
+    meta_image_model: str = "muse-image-1.0"
+    meta_image_timeout_seconds: float = 120.0
+    concept_rate_per_minute: float = 4
+    concept_burst: int = 3
+    concept_daily_limit: int = 50  # per UTC day, across instances (owner 2026-10-31)
+    concept_per_matter: int = 3  # owner 2026-10-31
     meta_timeout_seconds: float = 90.0
     # Optional reasoning effort ("minimal" … "max"); omitted from requests when unset.
     meta_reasoning_effort: str | None = None

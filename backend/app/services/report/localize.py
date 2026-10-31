@@ -75,6 +75,7 @@ async def localize_report(report: PermitReport, lang: str, translator: Translato
     return report.model_copy(update={
         "language": lang, "disclaimer": x(report.disclaimer), "planning": planning, "assessment": assessment,
         "profile": profile, "afford": afford,
+        "concepts": [c.model_copy(update={"change_label": t(c.change_label)}) for c in report.concepts],
         "pending": [t(lead) + x(rest) if lead else x(rest) for lead, rest in leads],
         "translation": ReportTranslation(
             available=x.available, kept_original=x.kept_original,

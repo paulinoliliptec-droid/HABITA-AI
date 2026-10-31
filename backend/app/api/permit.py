@@ -11,10 +11,13 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Header, Path, Query, Request
 from fastapi.responses import Response
+from pydantic import BaseModel, Field
 
 from app.core.errors import NotFoundError
 from app.schemas.afford import AffordInputs, AffordReport
+from app.schemas.concepts import Concept, ConceptOption
 from app.schemas.files import FileKind, MatterFile
+from app.services.concepts import catalog
 from app.services.afford.compute import afford
 from app.services.files.inspect import MAX_BYTES
 from app.services.files.service import InvalidFileError, MatterFiles
@@ -184,8 +187,12 @@ async def file_content(matter_id: MatterId, file_id: FileId, files: Files) -> Re
 
 
 @router.delete("/matters/{matter_id}/files/{file_id}", status_code=204)
-async def delete_file(matter_id: MatterId, file_id: FileId, files: Files) -> Response:
+async def delete_file(matter_id: MatterId, file_id: FileId, files: Files, request: Request) -> Response:
+    # Concepts before and after the photo (AC12.9): the first sweep means a stop halfway leaves no concept without
+    # its photo; the second catches one saved meanwhile. One saved later still sees the photo gone and removes itself.
+    await request.app.state.concepts.delete_for_file(matter_id, file_id)
     await files.delete(matter_id, file_id)
+    await request.app.state.concepts.delete_for_file(matter_id, file_id)
     return Response(status_code=204)
 
 
@@ -212,3 +219,46 @@ async def get_afford(matter_id: MatterId, request: Request, workflow: Workflow) 
 async def put_afford(matter_id: MatterId, body: AffordInputs, request: Request, workflow: Workflow) -> AffordReport:
     await request.app.state.afford_repo.save(matter_id, body)
     return await afford_report(request, workflow, matter_id, body)
+
+
+# --- HR-012: before/after concepts -----------------------------------------------------------------------------
+
+ConceptId = Annotated[str, Path(pattern=r"^cn_[0-9a-f]{16}$")]
+
+
+class ConceptRequest(BaseModel):
+    file_id: str = Field(pattern=r"^fl_[0-9a-f]{16}$")
+    change: str = Field(max_length=40)
+
+
+@router.get("/matters/{matter_id}/concepts/options", response_model=list[ConceptOption])
+async def concept_options(matter_id: MatterId, workflow: Workflow) -> list[ConceptOption]:
+    matter = await workflow.get(matter_id)
+    return [ConceptOption(key=k, label=catalog.CHANGES[k][0])
+            for k in catalog.options(matter.intent or matter.requested_intent)]
+
+
+@router.get("/matters/{matter_id}/concepts", response_model=list[Concept])
+async def list_concepts(matter_id: MatterId, request: Request) -> list[Concept]:
+    return await request.app.state.concepts.list(matter_id)
+
+
+@router.post("/matters/{matter_id}/concepts", response_model=Concept, status_code=201)
+async def create_concept(matter_id: MatterId, body: ConceptRequest, request: Request, workflow: Workflow) -> Concept:
+    matter = await workflow.get(matter_id)
+    return await request.app.state.concepts.create(matter_id, matter.intent or matter.requested_intent, body.file_id,
+                                                   body.change)
+
+
+@router.get("/matters/{matter_id}/concepts/{concept_id}/content")
+async def concept_content(matter_id: MatterId, concept_id: ConceptId, request: Request) -> Response:
+    data = await request.app.state.concepts.content(matter_id, concept_id)
+    return Response(data, media_type="image/jpeg", headers={
+        "Cache-Control": "no-store", "Content-Disposition": "attachment", "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "sandbox"})
+
+
+@router.delete("/matters/{matter_id}/concepts/{concept_id}", status_code=204)
+async def delete_concept(matter_id: MatterId, concept_id: ConceptId, request: Request) -> Response:
+    await request.app.state.concepts.delete(matter_id, concept_id)
+    return Response(status_code=204)
