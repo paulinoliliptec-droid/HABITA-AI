@@ -120,7 +120,7 @@ HABITA, not the model. Last real test on 2026-10-31: five cases, 4 VERIFIED with
 verified answers are short. The warnings have not had a legal review.
 Code: `backend/app/services/permit/requirements.py`, `frontend/src/features/permit/PermitSection.tsx`.
 
-### HR-010 · Multimodal Property Understanding — Implemented locally; not deployed
+### HR-010 · Multimodal Property Understanding — Tested on a no-traffic candidate; not published
 In a matter, the user can add photos and plans (JPEG, PNG, PDF; up to 10 files of 10 MB) after a consent notice that
 says what goes to Meta and what HABITA keeps. The type is checked from the content, not the name. Capture date and GPS
 are read first; a GPS point far from the property is shown as a mismatch that proves nothing. The kept copy, in a
@@ -129,7 +129,10 @@ document info. Each file keeps its SHA-256, date, kind and consent version. Muse
 records it as an observation from the user's file, in the profile, the PDF and the voice, never as an official fact.
 Files never reach the permit verification: they can only add one condition to the report. The user can view and
 delete each file; deleting removes the kept copy. Readings are capped per minute, per day and per matter, and only a
-file that passed its checks uses the daily budget. Tested with a scripted reader only; no real Muse reading yet.
+file that passed its checks uses the daily budget. PDF plans are read only from a plain JPEG image; other PDFs are kept
+but not read. Real test on 2026-10-31 with four synthetic files (a plan as PNG and as PDF, two room pictures with GPS
+near and far): four Muse Spark readings, labels and figures described as shown and not as facts, GPS far shown as a
+mismatch, no metadata left in the bucket copies, and every copy gone after deletion.
 Code: `backend/app/services/files/`, `frontend/src/features/permit/PermitFiles.tsx`.
 
 ### Feature summary
@@ -151,7 +154,7 @@ Code: `backend/app/services/files/`, `frontend/src/features/permit/PermitFiles.t
 | SAM 3.1 segmentation, Muse Voice Transcribe, Muse Image | Planned (integration points only) |
 | Property profile: official, observed, declared (HR-008) | Live; acceptance pending |
 | Request types with correction by the user (HR-009) | Live; acceptance pending |
-| Photos and plans read as observations (HR-010) | Implemented locally; not deployed, no real reading yet |
+| Photos and plans read as observations (HR-010) | Tested on a no-traffic candidate; not published |
 | HR-011 … HR-015 | Pending definition |
 
 ## Private staging demo (authenticated)
@@ -199,13 +202,13 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-10-31, HR-010 local commit): backend **6829 passed, 14 skipped, 3 expected failures**
+Last full run (2026-10-31, commit `f54bc8c`): backend **6831 passed, 14 skipped, 3 expected failures**
 (known limitations kept as strict xfail); frontend **84 passed**, lint, typecheck and build clean. Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 
 ## Roadmap and technical debt
 - Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002
-  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete; HR-005, HR-007, HR-008 and HR-009 live, acceptance pending; HR-010 implemented locally;
+  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete; HR-005, HR-007, HR-008 and HR-009 live, acceptance pending; HR-010 tested on a candidate;
   HR-011…HR-015 pending definition.
 - Main open items: redeploy staging with the latest HR-004/HR-006 code (including the real PDF images); set Google
   Cloud API quotas and review the Maps Platform terms for imagery in PDFs; improve answers to procedure questions (repeated zoning conditions, missing RJUE
