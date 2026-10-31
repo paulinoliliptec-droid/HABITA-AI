@@ -5,6 +5,7 @@ only selects, labels and orders it. The status rule is the one place where VERIF
 
 from datetime import UTC, datetime
 
+from app.schemas.afford import AffordReport
 from app.schemas.files import CHECK_TEXT, MatterFile
 from app.schemas.permit import Evidence, MatterState, PermitMatter, VerificationReport
 from app.schemas.property import ResolvedProperty
@@ -146,7 +147,8 @@ def _assessment(matter: PermitMatter, evidence: list[Evidence],
 def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list[OfficialSourceOut],
                  matter: PermitMatter | None = None, evidence: list[Evidence] = (),
                  verification: VerificationReport | None = None, *, demo: bool = False,
-                 now: datetime | None = None, files: list[MatterFile] = ()) -> PermitReport:
+                 now: datetime | None = None, files: list[MatterFile] = (),
+                 afford: AffordReport | None = None) -> PermitReport:
     planning = _planning(context)
     assessment = _assessment(matter, list(evidence), verification) if matter is not None else None
     pending: list[str] = []
@@ -167,6 +169,6 @@ def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list
         generated_at=now or datetime.now(UTC), property=_property(prop), planning=planning,
         sources=[ReportSource(source_id=s.source_id, title=s.title, publisher=s.publisher, url=s.official_url,
                               version=s.version, status=s.status, verified_on=s.verified_on) for s in sources],
-        assessment=assessment, profile=build_profile(prop, context, sources, evidence, matter, files), pending=pending, demo=demo,
+        assessment=assessment, profile=build_profile(prop, context, sources, evidence, matter, files), pending=pending, demo=demo, afford=afford,
         disclaimer=DISCLAIMER,
     )

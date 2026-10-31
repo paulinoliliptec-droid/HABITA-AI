@@ -21,7 +21,7 @@ are not global milestones.
 | HR-008 | Property Intelligence | property profile with provenance; official facts, observations and user declarations kept apart | AC8.1–AC8.8 below, approved by the owner 2026-10-31 | **LIVE, acceptance pending** — on the original services since 2026-10-31 (`360699b`, backend `00031-ron`, frontend `00026-muj`); panel, PDF and voice |
 | HR-009 | Intent & Permits | user intent → procedures by municipality and works type; never a specific licence without proof | AC9.1–AC9.8 below, approved by the owner 2026-10-31 | **LIVE, acceptance pending** — on the original services since 2026-10-31, now `729fa7f` (backend `00039-xes`, frontend `00034-pif`): fixed material warnings per type, next actions written by HABITA; last real run 4 of 5 answered VERIFIED with conditions, answers thin (TD-067); no legal review yet |
 | HR-010 | Multimodal Property Understanding (*proposed*) | photos, plans, documents; consent, EXIF, provenance, privacy; segmentation as a conditional sub-capability | AC10.1–AC10.9 below, approved by the owner 2026-10-31 | **LIVE, acceptance pending** — on the original since 2026-10-31, now `0caab9e` (backend `00043-kop`, frontend `00038-cud`): what to confirm from each file and several files at once; real readings of synthetic files before each release |
-| HR-011 | AFFORD / Financial Feasibility (*proposed*) | cost ranges, scenarios, parameterised rates; no financial guarantees | criteria **PENDING** | not started |
+| HR-011 | AFFORD / Financial Feasibility (*proposed*) | cost ranges, scenarios, parameterised rates; no financial guarantees | AC11.1–AC11.12 below; AC11.1–AC11.9 approved by the owner 2026-10-31 with a reference table; AC11.10–AC11.12 approved 2026-10-31 (INE first) | **LIVE, acceptance pending** — on the original since 2026-10-31 (`aebe149`, backend `00046-xih`, frontend `00041-pub`); table approved by the owner; Idealista/Casafari need accounts | not started |
 | HR-012 | Visual Transformation (*proposed*) | before/after concepts, never presented as municipal authorisation | criteria **PENDING** | not started |
 | HR-013 | Global Jurisdiction (*proposed*) | jurisdiction adapters with verified sources; Cascais first and stable | criteria **PENDING** | not started |
 | HR-014 | Production Readiness (*proposed*) | reliability, privacy, security, isolation, permissions, costs, observability, accessibility | criteria **PENDING** | not started |
@@ -72,6 +72,25 @@ Out of scope: photos and plans (HR-010), costs (HR-011).
 | AC10.9 | Nothing is measured from a photo or plan (areas, heights) as a fact; any figure read is the user's to confirm. |
 
 Out of scope: segmentation (SAM) and video (conditional sub-capability, later), costs (HR-011), before/after images (HR-012).
+
+### HR-011 acceptance criteria (AC11.1–AC11.9 approved by the owner 2026-10-31, with a reference table; valuation AC11.10–AC11.12 added at the owner's request, proposed)
+
+| ID | Criterion |
+|---|---|
+| AC11.1 | For a matter of a covered type, HABITA shows the cost of the works as a range (low, likely, high), never a single price. |
+| AC11.2 | Every figure says where it comes from: the user's own quote or budget, or HABITA's reference table with its date and author; the table is an assumption, never presented as a market price or a quote. |
+| AC11.3 | The user can enter their own figures (quotes, area, budget) and see the range recomputed; their figures are labelled as declared by them. |
+| AC11.4 | Municipal fees are shown as "to confirm with the Câmara" unless an official fee source is registered; no fee is invented. |
+| AC11.5 | Financing scenarios use the rate, term and down payment the user sets; the monthly payment is computed by HABITA with a stated formula, with no default rate presented as a market rate. |
+| AC11.6 | At least three scenarios (lower, likely, higher), each listing its assumptions, and what would move it. |
+| AC11.7 | Every number is computed by code, never written by the model; the model may only explain a computed result in words, checked against the numbers. |
+| AC11.8 | The page, PDF and voice say it is an estimate with no financial guarantee, in English and Portuguese. |
+| AC11.9 | Costs never change a permit status or a VERIFIED answer. |
+| AC11.10 | The property's market price is shown as a range per m² and in total, from official statistics (INE, by municipality, dated) and, when the owner's accounts exist, from Idealista and Casafari comparables; each source is named and kept apart, never averaged silently. |
+| AC11.11 | A valuation is labelled as a market estimate, not an official or bank valuation; the area used is the user's own figure, labelled as declared. |
+| AC11.12 | Without a source for this municipality, HABITA says so and shows no price. |
+
+Out of scope: bank offers or live rates, taxes such as IMT or IMI, a certified valuation, before/after images (HR-012).
 
 ### Bilingual system (PT/EN) — owner decision 2026-10-30
 

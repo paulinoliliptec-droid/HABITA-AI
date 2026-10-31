@@ -28,6 +28,7 @@ from app.integrations.maps.static_maps import MemoryDailyUsage, MongoDailyUsage,
 from app.integrations.meta.client import MetaChatModel
 from app.integrations.speech.client import ElevenLabsClient
 from app.integrations.translate.client import GoogleTranslateClient
+from app.services.afford.repository import InMemoryAffordRepository, MongoAffordRepository
 from app.services.files.service import InMemoryFileRepository, MatterFiles, MongoFileRepository
 from app.services.files.storage import GcsFileStorage, InMemoryFileStorage, UnconfiguredFileStorage
 from app.services.permit.repository import InMemoryPermitRepository, MongoPermitRepository, PermitRepository
@@ -126,6 +127,7 @@ def create_app(
             await permit_repo.ensure_indexes()
             source_repo = MongoSourceRepository(mongo, settings.mongodb_db_name)
             await source_repo.ensure_indexes()
+            afford_repo = MongoAffordRepository(mongo, settings.mongodb_db_name)
             file_repo = MongoFileRepository(mongo, settings.mongodb_db_name)
             await file_repo.ensure_indexes()
         elif settings.allow_ephemeral_storage:
@@ -134,6 +136,7 @@ def create_app(
             permit_repo = InMemoryPermitRepository()
             source_repo = InMemorySourceRepository()
             file_repo = InMemoryFileRepository()
+            afford_repo = InMemoryAffordRepository()
         else:
             # Never acknowledge saves into memory unless explicitly allowed.
             raise ConfigurationError("MONGODB_URI is required (set ALLOW_EPHEMERAL_STORAGE=true for a local in-memory store).")
@@ -205,6 +208,7 @@ def create_app(
             else:
                 logger.warning("USER_FILES_BUCKET not set: adding files will return 503.")
                 file_storage = UnconfiguredFileStorage()
+            app.state.afford_repo = afford_repo
             app.state.matter_files = MatterFiles(
                 file_repo, file_storage, reasoning,
                 limiter=ResolutionLimiter(settings.file_read_rate_per_minute, settings.file_read_burst,

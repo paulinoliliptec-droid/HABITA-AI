@@ -480,3 +480,36 @@ a.ref:hover {
 .fileChecks ul {
   padding-left: var(--space-4);
 }
+
+/* HR-011: costs, financing and price. */
+.affordForm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.affordField {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.affordResult {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.affordList {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  font-size: var(--text-sm);
+}
+
+.affordDisclaimer {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}

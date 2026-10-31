@@ -3,6 +3,7 @@
 One structure, built only from what HABITA already stored (property, planning context, official sources and, for an
 assessment, the matter's draft, evidence and latest verification report). Nothing here is new legal content."""
 
+from app.schemas.afford import AffordReport
 from datetime import date, datetime
 from typing import Literal
 
@@ -139,6 +140,8 @@ class PermitReport(BaseModel):
     sources: list[ReportSource] = Field(default_factory=list)
     assessment: ReportAssessment | None = None
     profile: list[ProfileItem] = Field(default_factory=list)
+    #: HR-011: costs, financing and market price, an estimate only; present for a matter whose user entered figures.
+    afford: AffordReport | None = None
     #: What only the authority (or the user) can still settle.
     pending: list[str] = Field(default_factory=list)
     #: Set when any part comes from labelled demonstration data.

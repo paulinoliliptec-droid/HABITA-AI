@@ -60,10 +60,21 @@ async def localize_report(report: PermitReport, lang: str, translator: Translato
         "value": t(i.value) if i.key == "request_type" else x(i.value) if i.key.startswith("file:") and i.value
         else i.value,  # a fixed label, unlike every other value
     }) for i in report.profile]
+    # HR-011 texts carry no numbers and are all pinned: they never reach the machine.
+    af = report.afford
+    afford = af.model_copy(update={
+        "costs": [f.model_copy(update={"label": t(f.label), "source": t(f.source),
+                                        "author": t(f.author) if f.author else None}) for f in af.costs],
+        "valuation": [f.model_copy(update={"label": t(f.label), "source": t(f.source)}) for f in af.valuation],
+        "scenarios": [s.model_copy(update={"assumptions": [t(a_) for a_ in s.assumptions],
+                                           "moves_it": [t(m) for m in s.moves_it]}) for s in af.scenarios],
+        **{k: t(getattr(af, k)) if getattr(af, k) else None
+           for k in ("costs_note", "fees_note", "financing_note", "formula", "valuation_note", "disclaimer")},
+    }) if af is not None else None
     leads = (_split_pending(p) for p in report.pending)
     return report.model_copy(update={
         "language": lang, "disclaimer": x(report.disclaimer), "planning": planning, "assessment": assessment,
-        "profile": profile,
+        "profile": profile, "afford": afford,
         "pending": [t(lead) + x(rest) if lead else x(rest) for lead, rest in leads],
         "translation": ReportTranslation(
             available=x.available, kept_original=x.kept_original,
