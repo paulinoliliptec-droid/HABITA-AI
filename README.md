@@ -127,7 +127,10 @@ are read first; a GPS point far from the property is shown as a mismatch that pr
 private Cloud Storage bucket, has no location or device data: images are re-encoded from their pixels, PDFs lose their
 document info. Each file keeps its SHA-256, date, kind and consent version. Muse Spark describes what is visible; HABITA
 records it as an observation from the user's file, in the profile, the PDF and the voice, never as an official fact.
-Files never reach the permit verification: they can only add one condition to the report. The user can view and
+Files never reach the permit verification: they only add conditions to the report. When a file clearly shows an
+entrance count, a possibly structural wall, a kitchen or bathroom, a facade or window, or several floors, the model picks
+that from a closed list and HABITA adds its own fixed sentence saying what to confirm with the Câmara. Several files can
+be chosen at once; they are read one after another. The user can view and
 delete each file; deleting removes the kept copy. Readings are capped per minute, per day and per matter, and only a
 file that passed its checks uses the daily budget. PDF plans are read only from a plain JPEG image; other PDFs are kept
 but not read. Real test on 2026-10-31 with four synthetic files (a plan as PNG and as PDF, two room pictures with GPS

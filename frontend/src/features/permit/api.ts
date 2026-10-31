@@ -1,4 +1,5 @@
 import type { Lang } from "@/i18n/core";
+import { msg } from "@/i18n/core";
 import { ApiError, apiRequest, parseErrorResponse } from "@/lib/api";
 import { config } from "@/lib/config";
 import type { Evidence, PermitIntent, PermitMatter, VerificationReport } from "./types";
@@ -71,7 +72,26 @@ export interface MatterFile {
   gps_distance_m: number | null;
   read_status: "reading" | "read" | "unreadable" | "failed";
   observations: string[];
+  checks: FileCheck[];
 }
+
+/** What a file can point out; the server sends the key, and this is HABITA's fixed wording for it. */
+export const CHECK_TEXT = {
+  several_entrances: msg(
+    "Your file seems to show more than one entrance. If you plan to divide the property, confirm with the Câmara Municipal that each unit would have its own exit to a common part or the street.",
+  ),
+  possible_structural_wall: msg(
+    "Your file shows walls that may carry weight. Before removing or opening any wall, confirm with a structural engineer and the Câmara Municipal.",
+  ),
+  kitchen_or_bathroom: msg(
+    "Your file shows a kitchen or a bathroom. If you plan to move water or drainage points, confirm with the Câmara Municipal whether that needs prior control.",
+  ),
+  facade_or_window: msg(
+    "Your file shows a facade, a window or a balcony. Before changing them, confirm with the Câmara Municipal whether the works need prior control.",
+  ),
+  several_floors: msg("Your file shows more than one floor. Confirm the licensed use of each floor with the Câmara Municipal."),
+} as const;
+export type FileCheck = keyof typeof CHECK_TEXT;
 
 /** The consent text version the user accepts in the files panel. */
 export const FILE_CONSENT = "v1";

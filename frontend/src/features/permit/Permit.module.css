@@ -463,3 +463,20 @@ a.ref:hover {
   font-size: var(--text-sm);
   color: var(--color-text);
 }
+
+.filesPurpose {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.fileChecks {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--color-accent);
+  font-size: var(--text-sm);
+}
+
+.fileChecks ul {
+  padding-left: var(--space-4);
+}

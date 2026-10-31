@@ -6,7 +6,7 @@ import { reportChanged } from "@/features/report/api";
 import { msg } from "@/i18n/core";
 import { useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
-import { addFile, deleteFile, fileContent, listFiles, type MatterFile } from "./api";
+import { addFile, CHECK_TEXT, deleteFile, fileContent, listFiles, type MatterFile } from "./api";
 import styles from "./Permit.module.css";
 
 const MAX_FILES = 10;
@@ -26,30 +26,46 @@ export function PermitFiles({ matterId, token }: { matterId: string; token: stri
   const [agreed, setAgreed] = useState(false);
   const [kind, setKind] = useState<MatterFile["kind"]>("photo");
   const [busy, setBusy] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [listFailed, setListFailed] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    // A failed list stays unknown (null), never empty: adding stays closed until the count is known.
     listFiles(matterId, token)
       .then((list) => !cancelled && setFiles(list))
-      .catch(() => !cancelled && setFiles([]));
+      .catch(() => !cancelled && setListFailed(true));
     return () => {
       cancelled = true;
     };
-  }, [matterId, token]);
+  }, [matterId, token, attempt]);
 
-  async function add(file: File) {
+  /** Several files at once: sent one after the other, so each is read in turn and one failure doesn't stop the rest. */
+  async function add(chosen: File[]) {
+    if (files === null) return; // the list isn't known yet, so the room left isn't either (the button waits too)
+    const room = MAX_FILES - files.length;
+    const batch = chosen.slice(0, Math.max(room, 0));
     setBusy(true);
     setError(null);
-    try {
-      const added = await addFile(matterId, token, file, kind);
-      setFiles((list) => [...(list ?? []), added]);
-      reportChanged();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("Something went wrong. Please try again."));
-    } finally {
-      setBusy(false);
+    const problems: string[] = [];
+    if (chosen.length > batch.length) {
+      problems.push(t("Only the first {count} files were added: a matter holds at most 10.", { count: String(batch.length) }));
     }
+    for (const [n, file] of batch.entries()) {
+      setProgress({ done: n, total: batch.length });
+      try {
+        const added = await addFile(matterId, token, file, kind);
+        setFiles((list) => [...(list ?? []), added]);
+      } catch (err) {
+        problems.push(`${file.name}: ${err instanceof ApiError ? err.message : t("Something went wrong. Please try again.")}`);
+      }
+    }
+    if (problems.length) setError(problems.join(" "));
+    setProgress(null);
+    setBusy(false);
+    reportChanged();
   }
 
   async function remove(fileId: string) {
@@ -73,10 +89,13 @@ export function PermitFiles({ matterId, token }: { matterId: string; token: stri
     }
   }
 
-  const full = (files?.length ?? 0) >= MAX_FILES;
+  const full = files === null || files.length >= MAX_FILES; // also closed while the list is loading
   return (
     <div className={styles.files}>
       <h3 className={styles.filesTitle}>{t("Your photos and plans")}</h3>
+      <p className={styles.filesPurpose}>
+        {t("Add photos or plans of the property so HABITA can see it from the inside and tell you what to confirm with the Câmara before the works.")}
+      </p>
       <p className={styles.fieldHint}>
         {t("HABITA describes what it sees. That reading is not verified and never changes the assessment.")}
       </p>
@@ -105,18 +124,37 @@ export function PermitFiles({ matterId, token }: { matterId: string; token: stri
           <input
             type="file"
             accept="image/jpeg,image/png,application/pdf"
+            multiple
             disabled={!agreed || busy || full}
             onChange={(e) => {
-              const file = e.target.files?.[0];
+              const chosen = Array.from(e.target.files ?? []);
               e.target.value = "";
-              if (file) void add(file);
+              if (chosen.length) void add(chosen);
             }}
           />
-          {busy ? t("Reading the file…") : t("Add a photo or plan")}
+          {progress
+            ? t("Reading file {n} of {total}…", { n: String(progress.done + 1), total: String(progress.total) })
+            : t("Add photos or plans")}
         </label>
-        <p className={styles.fieldHint}>{t("JPEG, PNG or PDF, up to 10 MB; at most 10 files.")}</p>
+        <p className={styles.fieldHint}>{t("You can choose several at once. JPEG, PNG or PDF, up to 10 MB each; at most 10 files.")}</p>
       </div>
 
+      {listFailed && (
+        <div className={styles.actions}>
+          <p className={styles.error} role="alert">
+            {t("Your files could not be loaded, so adding is paused.")}
+          </p>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setListFailed(false);
+              setAttempt((n) => n + 1);
+            }}
+          >
+            {t("Try again")}
+          </Button>
+        </div>
+      )}
       {error && (
         <p className={styles.error} role="alert">
           {error}
@@ -136,6 +174,16 @@ export function PermitFiles({ matterId, token }: { matterId: string; token: stri
                     <li key={n}>{o}</li>
                   ))}
                 </ul>
+              )}
+              {f.checks.length > 0 && (
+                <div className={styles.fileChecks}>
+                  <p className={styles.fieldLabel}>{t("What to confirm")}</p>
+                  <ul>
+                    {f.checks.map((c) => (
+                      <li key={c}>{t(CHECK_TEXT[c])}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
               {READ_NOTE[f.read_status] && <p className={styles.fieldHint}>{t(READ_NOTE[f.read_status]!)}</p>}
               {f.gps_check === "far" && (
