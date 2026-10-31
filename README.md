@@ -180,8 +180,8 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `aebe149` (backend
-revision `00046`, frontend `00041`), with the reasoning graph, the spoken report, the property profile, request types, photos and plans, and costs and price. The MU-9 migration of its database
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `f714c0e` (backend
+revision `00048`, frontend `00043`), with the reasoning graph, the spoken report, the property profile, request types, photos and plans, and costs and price. The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
@@ -219,7 +219,7 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-10-31, HR-011 local commit): backend **6864 passed, 14 skipped, 3 expected failures**
+Last full run (2026-10-31, HR-011 local commit): backend **6869 passed, 14 skipped, 3 expected failures**
 (known limitations kept as strict xfail); frontend **84 passed**, lint, typecheck and build clean. Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 

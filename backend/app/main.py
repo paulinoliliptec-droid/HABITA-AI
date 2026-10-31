@@ -252,7 +252,8 @@ def create_app(
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_methods=["GET", "POST"],
+        # Every method the site calls: PUT saves HR-011 figures, DELETE removes an HR-010 file.
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
         # Authorization carries a permit matter's capability token.
         allow_headers=["Content-Type", "Authorization"],
         expose_headers=["Retry-After"],
