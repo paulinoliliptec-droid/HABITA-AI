@@ -13,6 +13,21 @@ MAX_SIDE = 1600
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 
+EDIT_SIDE = 1536
+
+
+def for_editing(image_bytes: bytes) -> bytes:
+    """The photo as the image service gets it: a JPEG no larger than ``EDIT_SIDE`` on its long side."""
+    with Image.open(io.BytesIO(image_bytes)) as source:
+        if source.width * source.height > 40_000_000:
+            raise ValueError("image too large")
+        image = source.convert("RGB")
+    image.thumbnail((EDIT_SIDE, EDIT_SIDE))
+    out = io.BytesIO()
+    image.save(out, "JPEG", quality=90)
+    return out.getvalue()
+
+
 def _wrap(text: str, font, width: int) -> list[str]:
     """Whole words per line, so no part of the notice is ever clipped."""
     lines, current = [], ""

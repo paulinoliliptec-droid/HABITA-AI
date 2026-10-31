@@ -409,3 +409,62 @@ async def test_a_record_swept_during_the_write_leaves_no_object():
     with pytest.raises(NotFoundError):
         await concepts.create("pm_1", "interior_works", f.file_id, "new_kitchen")
     assert not any("/concepts/" in k for k in storage.objects)
+
+
+# --- owner's live report 2026-10-31: a failed image call used up the matter's limit ---------------------------------
+
+
+def test_a_failed_image_call_does_not_count_against_the_limit():
+    editor = Editor()
+    with client_with(editor, concept_burst=100, concept_rate_per_minute=100) as client:
+        mid = matter(client)
+        fid = photo(client, mid)
+        assert concept(client, mid, fid).status_code == 201
+        assert concept(client, mid, fid).status_code == 201
+        editor.fail = True
+        failed = concept(client, mid, fid)
+        assert failed.status_code == 502 and "does not count" in failed.text
+        editor.fail = False
+        assert concept(client, mid, fid).status_code == 201  # the third real one still fits
+        assert concept(client, mid, fid).status_code == 429
+
+
+def test_the_image_service_gets_a_bounded_jpeg():
+    from app.services.concepts.label import EDIT_SIDE, for_editing
+    big = io.BytesIO()
+    Image.new("RGB", (4000, 3000)).save(big, "PNG")
+    with Image.open(io.BytesIO(for_editing(big.getvalue()))) as sent:
+        assert sent.format == "JPEG" and max(sent.size) == EDIT_SIDE
+
+
+
+async def test_a_full_day_takes_nothing_from_the_matter_and_a_missing_photo_costs_nothing():
+    from app.core.errors import NotFoundError
+    from app.core.rate_limit import ResolutionLimiter
+    from app.integrations.maps.static_maps import MemoryDailyUsage
+    from tests.test_files import CASCAIS
+    usage = MemoryDailyUsage()
+    files = MatterFiles(InMemoryFileRepository(), InMemoryFileStorage(), Reader(),
+                        limiter=ResolutionLimiter(1000, 1000, 2))
+    f = await files.add("pm_1", CASCAIS, "photo", CONSENT_VERSION, jpeg())
+    concepts = Concepts(InMemoryConceptRepository(), files._storage, files, Editor(),
+                        limiter=ResolutionLimiter(1000, 1000, 2), usage=usage, daily_limit=0, per_matter=3)
+    for _ in range(5):
+        with pytest.raises(RateLimitedError):
+            await concepts.create("pm_1", "interior_works", f.file_id, "new_kitchen")
+    assert usage._counts.get("lifetime:pm_1", 0) == 0
+    await files._storage.delete(f"matters/pm_1/{f.file_id}")  # the copy is gone
+    concepts._daily = 10
+    with pytest.raises(NotFoundError):
+        await concepts.create("pm_1", "interior_works", f.file_id, "new_kitchen")
+    assert usage._counts.get("lifetime:pm_1", 0) == 0
+
+
+async def test_error_fields_are_logged_only_when_they_look_like_codes(caplog):
+    body = {"error": {"code": "invalid_image", "type": "a user prompt about my house in Rua X"}}
+    with pytest.raises(UpstreamServiceError):
+        await editor_with(lambda r: httpx.Response(400, json=body)).edit(b"img", "p")
+    assert "invalid_image" in caplog.text and "Rua X" not in caplog.text
+    deep = b"[" * 100000 + b"]" * 100000
+    with pytest.raises(UpstreamServiceError):
+        await editor_with(lambda r: httpx.Response(400, content=deep)).edit(b"img", "p")

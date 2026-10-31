@@ -126,6 +126,11 @@ class MemoryDailyUsage:
         self._counts[day] = n + 1
         return n + 1
 
+    async def give_back(self, day: str) -> None:
+        """Undo one take: the work it paid for did not happen."""
+        if self._counts.get(day, 0) > 0:
+            self._counts[day] -= 1
+
 
 class MongoDailyUsage:
     """Daily counter shared by every instance: one document per UTC day, incremented atomically below the limit."""
@@ -141,6 +146,10 @@ class MongoDailyUsage:
         except DuplicateKeyError:  # the day's document exists at the limit, so the upsert could not match it
             return None
         return int(doc["count"])
+
+    async def give_back(self, day: str) -> None:
+        """Undo one take: the work it paid for did not happen. Never below zero."""
+        await self._collection.update_one({"_id": f"{self._name}:{day}", "count": {"$gt": 0}}, {"$inc": {"count": -1}})
 
 
 class StaticMapClient:
