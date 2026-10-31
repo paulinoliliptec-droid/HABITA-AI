@@ -8,6 +8,8 @@ import { useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
 import { downloadReportPdf, getReport, onReportChanged } from "./api";
 import { buildPostIts } from "./postits";
+import { profileSummary } from "./profile";
+import { ProfilePanel } from "./ProfilePanel";
 import { ReasoningGraph } from "./ReasoningGraph";
 import { VoiceExplanation } from "./VoiceExplanation";
 import type { PermitReport } from "./types";
@@ -22,6 +24,7 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
   const [open, setOpen] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => onReportChanged(() => setVersion((v) => v + 1)), []);
@@ -71,8 +74,17 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
         <Button variant="secondary" onClick={() => setGraphOpen(true)}>
           {t("Reasoning graph")}
         </Button>
+        <Button variant="secondary" onClick={() => setProfileOpen(true)}>
+          {t("Property profile")}
+        </Button>
       </div>
       {graphOpen && <ReasoningGraph report={report} onClose={() => setGraphOpen(false)} />}
+      {profileOpen && <ProfilePanel report={report} onClose={() => setProfileOpen(false)} />}
+      {report.profile.length ? (
+        <button type="button" className={styles.summary} onClick={() => setProfileOpen(true)}>
+          {profileSummary(report, t)}
+        </button>
+      ) : null}
       <VoiceExplanation report={report} own={own} />
       {error && (
         <p className={styles.error} role="alert">

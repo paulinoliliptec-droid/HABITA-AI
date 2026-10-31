@@ -37,7 +37,8 @@ async def localize_report(report: PermitReport, lang: str, translator: Translato
     t = translator_for(lang)
     a, pl = report.assessment, report.planning
     texts = [report.disclaimer, pl.guidance, *pl.reasons, *(d.reason for d in pl.documents_to_consult),
-             *(_split_pending(p)[1] for p in report.pending)]
+             *(_split_pending(p)[1] for p in report.pending),
+             *(i.label for i in report.profile if i.kind == "declaration")]
     if a is not None:
         texts += [a.status_reason, a.conclusion_summary or "", *a.conditions, *a.issues]
         texts += [x for s in a.statements for x in (s.text, s.step or "")]
@@ -51,9 +52,15 @@ async def localize_report(report: PermitReport, lang: str, translator: Translato
         "conditions": [x(c) for c in a.conditions], "issues": [x(i) for i in a.issues],
         "statements": [s.model_copy(update={"text": x(s.text), "step": x(s.step)}) for s in a.statements],
     }) if a is not None else None
+    # A declaration's value stays the user's own words; a fixed label comes from the catalog.
+    profile = [i.model_copy(update={
+        "label": x(i.label) if i.kind == "declaration" else t(i.label), "origin": t(i.origin),
+        "precision": t(i.precision) if i.precision else None,
+    }) for i in report.profile]
     leads = (_split_pending(p) for p in report.pending)
     return report.model_copy(update={
         "language": lang, "disclaimer": x(report.disclaimer), "planning": planning, "assessment": assessment,
+        "profile": profile,
         "pending": [t(lead) + x(rest) if lead else x(rest) for lead, rest in leads],
         "translation": ReportTranslation(
             available=x.available, kept_original=x.kept_original,

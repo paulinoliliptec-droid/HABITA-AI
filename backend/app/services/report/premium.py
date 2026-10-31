@@ -412,6 +412,21 @@ def _planning(report: PermitReport) -> str:
                f'<th>{t("What it shows")}</th></tr></thead><tbody>{docs}</tbody></table>' if docs else "") + "</section>")
 
 
+def _profile(report: PermitReport) -> str:
+    if not report.profile:
+        return ""
+    t = translator_for(report.language)
+    kinds = {"official": t("Official"), "observation": t("Observation"), "declaration": t("Declaration")}
+    rows = "".join(
+        f"<tr><td>{_e(i.label)}</td><td>{_e(i.value) if i.value else '<b>' + t('Not confirmed') + '</b>'}"
+        + (f"<br/><b>{t('The sources disagree.')}</b>" if i.conflict else "")
+        + f"</td><td>{kinds[i.kind]}</td><td>{_e(i.origin)}"
+        + (f" ({i.as_of.isoformat()})" if i.as_of else "") + (f"<br/>{_e(i.precision)}" if i.precision else "")
+        + "</td></tr>" for i in report.profile)
+    return (f'<section><h2>{t("Property profile")}</h2><table><thead><tr><th>{t("Item")}</th><th>{t("Value")}</th>'
+            f'<th>{t("Kind")}</th><th>{t("Origin")}</th></tr></thead><tbody>{rows}</tbody></table></section>')
+
+
 def _analysis(report: PermitReport) -> str:
     a = report.assessment
     if a is None:
@@ -499,7 +514,7 @@ def render_html(report: PermitReport, maps: LocationMaps | None = None, style: s
     return (f'<!doctype html><html lang="{report.language}"><head><meta charset="utf-8"><title>{t("HABITA AI report")}</title><meta name="author" content="HABITA AI">'
             f"<style>{FONT_FACES[style]()}\n{css}\n{CSS_STYLE[style]}</style></head><body class='{style}'>"
             f'<div class="disclaimer-running">{"<b>" + t(DEMO) + ".</b> " if report.demo else ""}{_e(report.disclaimer)}</div>'
-            f"{_cover(report)}{_glance(report, style)}{_location(maps, t)}{_planning(report)}{_analysis(report)}"
+            f"{_cover(report)}{_glance(report, style)}{_location(maps, t)}{_planning(report)}{_profile(report)}{_analysis(report)}"
             f"{_sources(report)}</body></html>")
 
 

@@ -112,12 +112,32 @@ class ReportTranslation(BaseModel):
     note: str | None
 
 
+ProfileKind = Literal["official", "observation", "declaration"]
+
+
+class ProfileItem(BaseModel):
+    """HR-008: one thing known about the property, with who said it. ``value`` None: not confirmed."""
+
+    key: str
+    label: str
+    value: str | None = None
+    kind: ProfileKind
+    #: Who said it, or where to confirm it when the value is None.
+    origin: str
+    as_of: date | None = None
+    precision: str | None = None
+    url: str | None = None
+    #: Sources disagree on this item; every side is in the profile.
+    conflict: bool = False
+
+
 class PermitReport(BaseModel):
     generated_at: datetime
     property: ReportProperty
     planning: ReportPlanning
     sources: list[ReportSource] = Field(default_factory=list)
     assessment: ReportAssessment | None = None
+    profile: list[ProfileItem] = Field(default_factory=list)
     #: What only the authority (or the user) can still settle.
     pending: list[str] = Field(default_factory=list)
     #: Set when any part comes from labelled demonstration data.

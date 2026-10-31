@@ -16,6 +16,7 @@ from reportlab.platypus import (
 
 from app.integrations.maps.static_maps import ATTRIBUTION, HEIGHT, WIDTH, LocationMaps
 from app.schemas.report import PermitReport, ReportStatus
+from app.services.i18n.translator import translator_for
 
 #: Status → (banner colour, words). The words always carry the status; colour only reinforces it.
 STATUS_STYLE: dict[ReportStatus, tuple[colors.Color, str]] = {
@@ -146,6 +147,18 @@ def _location(maps: LocationMaps | None, s) -> list:
     return flow
 
 
+def _profile(report: PermitReport, s) -> list:
+    t = translator_for(report.language)
+    kinds = {"official": t("Official"), "observation": t("Observation"), "declaration": t("Declaration")}
+    rows = []
+    for i in report.profile:
+        value = _t(i.value) if i.value else f"<b>{t('Not confirmed')}</b>"
+        details = [kinds[i.kind], _t(i.origin), *([i.as_of.isoformat()] if i.as_of else []),
+                   *([_t(i.precision)] if i.precision else []), *([f"<b>{t('The sources disagree.')}</b>"] if i.conflict else [])]
+        rows.append((_t(i.label), f"{value}<br/>{' · '.join(details)}"))
+    return [Paragraph(t("Property profile"), s["h2"]), _table(rows, [42 * mm, 132 * mm], s)] if rows else []
+
+
 def _refs(ids: list[str]) -> str:
     return f" <font color='#5b625e'>[{', '.join(_t(i) for i in ids)}]</font>" if ids else ""
 
@@ -179,6 +192,7 @@ def render_pdf(report: PermitReport, maps: LocationMaps | None = None) -> bytes:
 
     pl = report.planning
     flow += _location(maps, s)
+    flow += _profile(report, s)
     flow.append(Paragraph("Planning context", s["h2"]))
     zoning = (f"<b>{_t(pl.classification)}</b> (verified official layer)" if pl.verified_zoning else
               "<b>Zoning not verified.</b> No verified zoning layer. HABITA does not determine the classification; it "

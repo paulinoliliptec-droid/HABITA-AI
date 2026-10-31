@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { english } from "@/i18n/core";
 import verified from "./fixtures/verified-report.json";
 import { buildPostIts } from "./postits";
-import type { PermitReport } from "./types";
+import { groupOf, profileCounts, profileSummary } from "./profile";
+import { nodeIcon } from "./reasoningGraph";
+import type { PermitReport, ProfileItem } from "./types";
 
 // The fixture is the backend's own report for a real end-to-end Cascais run (scripted model, VERIFIED conditional),
 // so these tests check the map against the same JSON the PDF is rendered from (AC4.5, AC6.6).
@@ -66,5 +69,28 @@ describe("property post-it (HR-004)", () => {
     expect(note(coarse, "property").lines.join(" ")).toContain("approximate, area center");
     const unmodelled = { ...report, property: { ...report.property, jurisdiction: ["Country: United States"] } };
     expect(note(unmodelled, "property").lines).toContain("Municipality: not modelled for this jurisdiction");
+  });
+});
+
+describe("property profile (HR-008)", () => {
+  const item = (over: Partial<ProfileItem>): ProfileItem =>
+    ({ key: "k", label: "L", value: "v", kind: "observation", origin: "o", as_of: null, precision: null, url: null, conflict: false, ...over });
+
+  it("keeps an unknown out of the fact groups, whatever kind it would have been", () => {
+    expect(groupOf(item({ kind: "official", value: null }))).toBe("unconfirmed");
+    expect(groupOf(item({ kind: "official" }))).toBe("official");
+    expect(groupOf(item({ kind: "declaration" }))).toBe("declaration");
+  });
+
+  it("counts each group and leaves empty ones out of the map's line", () => {
+    const profile = [item({ kind: "official", value: null }), item({}), item({}), item({ kind: "declaration" })];
+    const report = { profile } as PermitReport;
+    expect(profileCounts(report)).toEqual({ official: 0, observation: 2, declaration: 1, unconfirmed: 1 });
+    expect(profileSummary(report, english)).toBe("2 Observations · 1 Declarations · 1 Not confirmed");
+  });
+
+  it("gives every graph step a symbol, with a neutral one for the unknown", () => {
+    expect(nodeIcon("conclusion")).toBe("scale");
+    expect(nodeIcon("something new")).toBe("info");
   });
 });

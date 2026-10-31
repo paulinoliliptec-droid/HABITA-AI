@@ -1,3 +1,4 @@
+import type { IconName } from "@/components/ui/Icon";
 import { ANSWER } from "@/features/permit/present";
 import type { ConclusionAnswer } from "@/features/permit/types";
 import { english, msg, type Translate } from "@/i18n/core";
@@ -93,6 +94,29 @@ export function statusReason(assessment: Assessment, t: Translate): string {
     ? t("The verification record does not support a verified result.")
     : assessment.status_reason;
 }
+
+const NODE_ICONS: Record<string, IconName> = {
+  property: "home",
+  jurisdiction: "globe",
+  authority: "landmark",
+  planning: "layers",
+  "ev:official": "document",
+  "ev:curated": "book",
+  "ev:system": "info",
+  "ev:declared": "person",
+  conditions: "checklist",
+  conclusion: "scale",
+  findings: "check",
+  risks: "alert",
+  procedure: "arrowRight",
+  actions: "checklist",
+  documents: "document",
+  sources: "book",
+  pending: "clock",
+};
+
+/** The symbol of a step; words stay beside it, so the icon never carries meaning alone. */
+export const nodeIcon = (id: string): IconName => NODE_ICONS[id] ?? "info";
 
 export function buildGraph(report: PermitReport, t: Translate = english): ReasoningGraphModel {
   const { property, planning, assessment } = report;

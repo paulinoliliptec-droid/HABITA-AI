@@ -23,6 +23,19 @@ export interface ReportStatement {
   evidence_ids: string[];
 }
 
+/** HR-008: one thing known about the property, with who said it. `value` null: not confirmed. */
+export interface ProfileItem {
+  key: string;
+  label: string;
+  value: string | null;
+  kind: "official" | "observation" | "declaration";
+  origin: string;
+  as_of: string | null;
+  precision: string | null;
+  url: string | null;
+  conflict: boolean;
+}
+
 export interface PermitReport {
   generated_at: string;
   property: {
@@ -60,6 +73,7 @@ export interface PermitReport {
     verification?: { outcome: string; current: boolean } | null;
     evidence: ReportEvidence[];
   } | null;
+  profile: ProfileItem[];
   pending: string[];
   demo: boolean;
   disclaimer: string;
