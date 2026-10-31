@@ -3,7 +3,7 @@ Property intelligence that knows which rules apply where: resolve an address to 
 authority, ask a permitting question, and get an answer that is shown as **verified** only when every statement is
 backed by an official source that HABITA retrieved, snapshotted and checked.
 
-Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (HR-001 … HR-007 as described
+Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (HR-001 … HR-008 as described
 below); development continues on the branch `mu9/structural-verification` and reaches `main` only by an explicit merge.
 
 ## The problem
@@ -101,6 +101,14 @@ Portuguese audio reads machine translation, labelled as such.
 Code: `backend/app/services/report/voice.py`, `backend/app/integrations/speech/client.py`,
 `frontend/src/features/report/VoiceExplanation.tsx`.
 
+### HR-008 · Property Intelligence — Live; acceptance pending
+A property profile says what is known and who said it. Official facts, observations and user declarations never mix,
+each with origin, date and precision, and what is unknown is shown as not confirmed. Only a registered official source
+makes a fact official; a user's answer stays a declaration, visible only to whoever can read that matter. When sources
+disagree, both are shown. The profile changes no status. It opens in its own panel and also appears in the PDF and the
+voice. It holds few items today: no source yet gives area, year, typology or land registry data.
+Code: `backend/app/services/report/profile.py`, `frontend/src/features/report/ProfilePanel.tsx`.
+
 ### Feature summary
 | Feature | State |
 |---|---|
@@ -118,7 +126,8 @@ Code: `backend/app/services/report/voice.py`, `backend/app/integrations/speech/c
 | Private staging on Cloud Run | Done (IAM-authenticated, isolated database) |
 | Original (public demo) updated with HR-004/HR-006 and MU-9 | Done (2026-10-30), tested in the browser |
 | SAM 3.1 segmentation, Muse Voice Transcribe, Muse Image | Planned (integration points only) |
-| HR-008 … HR-015 | Pending definition |
+| Property profile: official, observed, declared (HR-008) | Live; acceptance pending |
+| HR-009 … HR-015 | Pending definition |
 
 ## Private staging demo (authenticated)
 A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-staging`) on an isolated database
@@ -126,8 +135,8 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `984750b` (backend
-revision `00029`, frontend `00024`), with the reasoning graph and the spoken report. The MU-9 migration of its database
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `360699b` (backend
+revision `00031`, frontend `00026`), with the reasoning graph, the spoken report and the property profile. The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
@@ -165,14 +174,14 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-10-31, commit `984750b`): backend **6723 passed, 14 skipped, 3 expected failures**
-(known limitations kept as strict xfail); frontend **81 passed**, lint, typecheck and build clean. Live tests against
+Last full run (2026-10-31, commit `360699b`): backend **6748 passed, 14 skipped, 3 expected failures**
+(known limitations kept as strict xfail); frontend **84 passed**, lint, typecheck and build clean. Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 
 ## Roadmap and technical debt
 - Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002
-  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete; HR-005 and HR-007 live, acceptance pending;
-  HR-008…HR-015 pending definition.
+  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete; HR-005, HR-007 and HR-008 live, acceptance pending;
+  HR-009…HR-015 pending definition.
 - Main open items: redeploy staging with the latest HR-004/HR-006 code (including the real PDF images); set Google
   Cloud API quotas and review the Maps Platform terms for imagery in PDFs; improve answers to procedure questions (repeated zoning conditions, missing RJUE
   procedure citations); research semantic verification (entailment, negation scope, deontic logic) without weakening
