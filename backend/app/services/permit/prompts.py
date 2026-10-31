@@ -30,7 +30,8 @@ Role: PLANNER. Classify the user's goal about one property:
 - "general_overview": an orientation question such as "what can I do with this property?";
 - "out_of_scope": anything else, or a goal that could be more than one of these: never guess. New construction,
   extensions and demolition are not covered yet, so they are out of scope, however generally they are asked.
-Use "general_overview" only when the user names no works at all.
+Use "general_overview" when the user asks what is possible in general, even if they mention works in passing. Use a
+works type when the goal is those works.
 HABITA's checklist uses fixed item keys. You may rephrase the question of existing keys so it reads naturally for
 this property and goal; never invent keys.
 """
@@ -97,7 +98,12 @@ Role: DRAFTER. Write a structured draft answer from the checklist, the evidence 
 - Write few statements. A short draft is a complete answer: the conclusion, the conditions and next actions saying
   what to confirm with the Câmara are enough. Leaving out a rule you can't quote literally is correct, not a gap.
   Don't write a statement only to mention a curated reference: its wording is never a rule you can restate.
-- If verifier feedback names a statement, remove that statement. Don't reword it.
+- Few statements never means fewer warnings: keep every material risk, requirement or legal consequence the evidence
+  raises for this request, such as the nullity of a title. State it with a literal quote, or say what must be confirmed
+  with the Câmara.
+- If verifier feedback names a statement, never reword the same claim. If its subject is a material risk, requirement
+  or legal consequence, replace it with a literal quote or a sentence saying what must be confirmed with the Câmara.
+  Otherwise remove it.
 - The draft is not verified; never claim it is.
 """
 
