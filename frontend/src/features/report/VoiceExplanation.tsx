@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import type { MatterCapability } from "@/features/permit/capability";
 import { useI18n } from "@/i18n/useI18n";
 import { getVoiceLine, getVoiceScript } from "./api";
@@ -78,8 +79,8 @@ export function VoiceExplanation({ report, own }: { report: PermitReport; own: M
     <div className={styles.voice}>
       <div className={styles.controls}>
         {(state === "idle" || state === "failed") && (
-          <Button variant="secondary" onClick={listen} disabled={!script}>
-            {t("Listen")}
+          <Button variant="secondary" onClick={listen} disabled={!script} aria-label={t("Listen")} title={t("Listen")}>
+            <Icon name="speaker" />
           </Button>
         )}
         {state === "playing" && (

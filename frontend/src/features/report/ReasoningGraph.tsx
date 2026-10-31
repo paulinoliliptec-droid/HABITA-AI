@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { useI18n } from "@/i18n/useI18n";
-import { buildGraph, COLUMNS, edgeKey, flowOf, layout, NODE_HEIGHT, NODE_WIDTH, revealDelays } from "./reasoningGraph";
+import { buildGraph, COLUMNS, nodeIcon, edgeKey, flowOf, layout, NODE_HEIGHT, NODE_WIDTH, revealDelays } from "./reasoningGraph";
 import type { PermitReport } from "./types";
+import { useModal } from "./useModal";
 import styles from "./ReasoningGraph.module.css";
 
 /** Text that enters word by word; the words are decoration, so assistive technology reads the sentence once. */
@@ -35,26 +37,7 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
   const flowNodes = graph.nodes.filter((n) => flow.nodes.has(n.id) && n.id !== node.id);
   const delays = revealDelays(node.lines);
 
-  useEffect(() => {
-    const opener = document.activeElement as HTMLElement | null;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") return onClose();
-      if (event.key !== "Tab") return;
-      // The dialog is modal: Tab cycles inside it and never reaches the page behind.
-      const inside = [...(dialog.current?.querySelectorAll<HTMLElement>("button, a[href]") ?? [])];
-      const [first, last] = [inside[0], inside[inside.length - 1]];
-      const edge = event.shiftKey ? first : last;
-      if (document.activeElement === edge || !dialog.current?.contains(document.activeElement)) {
-        event.preventDefault();
-        (event.shiftKey ? last : first)?.focus();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      opener?.focus(); // keyboard users return to where they were
-    };
-  }, [onClose]);
+  useModal(dialog, onClose);
 
   // In the body: the post-its form their own stacking context, which would leave it under the top bar.
   return createPortal(
@@ -145,7 +128,10 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
                   onClick={() => setSelected(n.id)}
                 >
                   <span className={styles.soma} aria-hidden="true" />
-                  <span className={styles.nodeTitle}>{n.title}</span>
+                  <span className={styles.nodeTitle}>
+                    <Icon name={nodeIcon(n.id)} size={16} className={styles.nodeIcon} />
+                    {n.title}
+                  </span>
                   <span className={styles.nodeText}>{n.text}</span>
                 </button>
               );
@@ -156,6 +142,7 @@ export function ReasoningGraph({ report, onClose }: { report: PermitReport; onCl
         {/* The live region stays; only its content changes, so screen readers announce each selection. */}
         <aside className={styles.detail} aria-live="polite">
           <div key={node.id} className={styles.detailContent}>
+            <Icon name={nodeIcon(node.id)} size={28} className={styles.detailIcon} />
             <h3 className={styles.detailTitle} aria-label={node.title}>
               {[...node.title].map((letter, i) => (
                 <span key={i} aria-hidden="true" className={styles.letter} style={{ animationDelay: `${i * 35}ms` }}>

@@ -12,6 +12,7 @@ from app.schemas.report import (
     ReportStatement, ReportStatus, ReportVerification,
 )
 from app.schemas.sources import OfficialSourceOut, PlanningContext
+from app.services.report.profile import build_profile
 
 DISCLAIMER = (
     "HABITA AI provides decision support, not legal advice. This report is not a permit, licence or authorisation: "
@@ -156,5 +157,6 @@ def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list
         generated_at=now or datetime.now(UTC), property=_property(prop), planning=planning,
         sources=[ReportSource(source_id=s.source_id, title=s.title, publisher=s.publisher, url=s.official_url,
                               version=s.version, status=s.status, verified_on=s.verified_on) for s in sources],
-        assessment=assessment, pending=pending, demo=demo, disclaimer=DISCLAIMER,
+        assessment=assessment, profile=build_profile(prop, context, sources, evidence), pending=pending, demo=demo,
+        disclaimer=DISCLAIMER,
     )

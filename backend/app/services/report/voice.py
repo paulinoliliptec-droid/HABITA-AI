@@ -45,6 +45,27 @@ def is_verified(assessment: ReportAssessment) -> bool:
             and record.current and record.outcome == "VERIFIED")
 
 
+def _profile_lines(report: PermitReport, t) -> list[str]:
+    say: list[str] = []
+    for title, items in (
+        (t("Official facts"), [i for i in report.profile if i.kind == "official" and i.value]),
+        (t("Observations"), [i for i in report.profile if i.kind == "observation" and i.value]),
+        (t("Your declarations, not verified"), [i for i in report.profile if i.kind == "declaration" and i.value]),
+    ):
+        if items:
+            say += [title, *[t("{label}: {value}. Source: {origin}.", label=i.label, value=i.value, origin=i.origin)
+                             for i in items]]
+    unknown = [i for i in report.profile if not i.value]
+    if unknown:
+        say += [t("Not confirmed"), *[
+            t("{label}: you declared that you do not know. Confirm with {origin}.", label=i.label, origin=i.origin)
+            if i.kind == "declaration" else t("{label}: confirm with {origin}.", label=i.label, origin=i.origin)
+            for i in unknown]]
+    say += [t("{label}: the sources disagree. Check each one.", label=label)
+            for label in dict.fromkeys(i.label for i in report.profile if i.conflict)]
+    return say
+
+
 def build_voice_script(report: PermitReport) -> list[str]:
     t = translator_for(report.language)
     prop, planning, assessment = report.property, report.planning, report.assessment
@@ -65,6 +86,8 @@ def build_voice_script(report: PermitReport) -> list[str]:
     # What each map covers is a possible restriction, so it is said, not just counted.
     if planning.documents_to_consult:
         say += [t("Official maps to consult"), *[d.reason for d in planning.documents_to_consult]]
+
+    say += _profile_lines(report, t)
 
     if assessment is None:
         say.append(t("No permit assessment yet: no permit question has been verified for this property."))

@@ -18,7 +18,7 @@ are not global milestones.
 | HR-005 | Visual Reasoning Graph (*proposed*, Drive master roadmap 30/10) | progressive, clickable graph property → jurisdiction/rules → evidence/conditions → conclusion with uncertainty → documents → next steps; relations traceable to sources; no invented causality or authorisation | AC5.1–AC5.7, approved by the owner 2026-10-30 (Drive report HABITA-I18N-20261030-1400) | **IMPLEMENTED locally** — not deployed; browser QA pending |
 | HR-006 | Premium PDF Report | professional export: property identification, analysis summary, conditions, risks, official sources, verifiable references and conclusion status; VERIFIED / REJECTED / pending clearly distinct; evidence provenance and version preserved (owner, 2026-10-29) | AC6.1–AC6.9 below | **MVP COMPLETE** — Clássico PDF live on the original services since 2026-10-30 (`5fae732`, backend `00019-kew`, frontend `00014-jiy`); real Portuguese run VERIFIED on staging with 3 images; browser QA pending (TD-049) |
 | HR-007 | Voice Explanation | audio explanation of results with listen/pause/repeat; audio is not legal proof | proposed by Claude from the master roadmap, owner approved starting 2026-10-30: spoken only from the report, opens with "not legal proof", same status rule as the PDF, EN/PT, sentence on screen, owner changed 2026-10-31: ElevenLabs behind the backend, one voice per language, browser voice as fallback | **LIVE, acceptance pending** — on the original services since 2026-10-31 (`984750b`, backend `00029-tuq`, frontend `00024-wuw`); real audio in PT and EN from the server; owner's listening test pending |
-| HR-008 | Property Intelligence (*proposed*) | property profile with provenance; official facts, observations and user declarations kept apart | criteria **PENDING** | not started |
+| HR-008 | Property Intelligence | property profile with provenance; official facts, observations and user declarations kept apart | AC8.1–AC8.8 below, approved by the owner 2026-10-31 | **LIVE, acceptance pending** — on the original services since 2026-10-31 (`360699b`, backend `00031-ron`, frontend `00026-muj`); panel, PDF and voice |
 | HR-009 | Intent & Permits (*proposed*) | user intent → procedures by municipality and works type; never a specific licence without proof | criteria **PENDING** | not started |
 | HR-010 | Multimodal Property Understanding (*proposed*) | photos, plans, documents; consent, EXIF, provenance, privacy; segmentation as a conditional sub-capability | criteria **PENDING** | not started |
 | HR-011 | AFFORD / Financial Feasibility (*proposed*) | cost ranges, scenarios, parameterised rates; no financial guarantees | criteria **PENDING** | not started |
@@ -26,6 +26,21 @@ are not global milestones.
 | HR-013 | Global Jurisdiction (*proposed*) | jurisdiction adapters with verified sources; Cascais first and stable | criteria **PENDING** | not started |
 | HR-014 | Production Readiness (*proposed*) | reliability, privacy, security, isolation, permissions, costs, observability, accessibility | criteria **PENDING** | not started |
 | HR-015 | Hackathon Submission (*proposed*) | video, narrative, documentation, evidence, official competition rules | criteria **PENDING** | not started |
+
+### HR-008 acceptance criteria (proposed by Claude, approved by the owner 2026-10-31)
+
+| ID | Criterion |
+|---|---|
+| AC8.1 | Every profile item has one fixed kind: official, observation or user declaration. |
+| AC8.2 | Every item shows its origin, date and precision; an item with no origin does not enter the profile. |
+| AC8.3 | Only a registered official source can create an official fact. A declaration never becomes official. |
+| AC8.4 | What is unknown is shown as not confirmed, never as an estimate. |
+| AC8.5 | When two sources disagree, both are shown as a conflict; nothing is chosen silently. |
+| AC8.6 | Declarations reuse what the user already answered in the matter and are visible only to whoever can read that matter. |
+| AC8.7 | The profile appears on the site, in the PDF and in the voice with the same three kinds, in English and Portuguese. |
+| AC8.8 | The profile does not change a VERIFIED status or replace the MU-9 checks. |
+
+Out of scope: photos and plans (HR-010), permits by works type (HR-009).
 
 ### Bilingual system (PT/EN) — owner decision 2026-10-30
 
