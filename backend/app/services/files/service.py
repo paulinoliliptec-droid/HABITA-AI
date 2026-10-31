@@ -53,6 +53,7 @@ Say only what is visible, as short neutral sentences (at most 6), in English. Ex
   "the area is 60 m2".
 - Don't identify people, faces or number plates; don't describe people at all.
 - If nothing about the property can be seen, return no observations.
+Also return "people": true if any person, or part of one, is visible anywhere; false only if you are sure none is.
 Also return "checks": only the items below that the file clearly shows; none if unsure.
 - "several_entrances": more than one entrance door to the property or to separate parts of it.
 - "possible_structural_wall": a thick wall, a column or a beam that may carry weight.
@@ -66,8 +67,9 @@ READER_SCHEMA = {
     "properties": {
         "observations": {"type": "array", "items": {"type": "string"}},
         "checks": {"type": "array", "items": {"type": "string", "enum": sorted(CHECK_TEXT)}},
+        "people": {"type": "boolean"},
     },
-    "required": ["observations", "checks"],
+    "required": ["observations", "checks", "people"],
     "additionalProperties": False,
 }
 
@@ -220,9 +222,9 @@ class MatterFiles:
             await self._storage.delete(_key(record))
             await self._repo.remove(matter_id, record.file_id)
             raise
-        status, observations, checks, model_id = await self._read(checked.readable)
+        status, observations, checks, people, model_id = await self._read(checked.readable)
         record = record.model_copy(update={"read_status": status, "observations": observations, "checks": checks,
-                                           "model_id": model_id})
+                                           "people_visible": people, "model_id": model_id})
         await self._repo.replace(record)
         return record
 
@@ -242,9 +244,18 @@ class MatterFiles:
         await self._storage.delete(_key(record))  # the copy first: a record without a copy is harmless
         await self._repo.remove(matter_id, file_id)
 
-    async def _read(self, picture: bytes | None) -> tuple[str, list[str], list[str], str | None]:
+    async def shows_people(self, image: bytes) -> bool:
+        """HR-012: the same reader, on a generated image. Anything but a clear "no people" counts as people."""
+        try:
+            picture = await run_in_threadpool(inspect, image)
+        except FileRejected:
+            return True
+        status, _, _, people, _ = await self._read(picture.readable)
+        return status != "read" or people is not False
+
+    async def _read(self, picture: bytes | None) -> tuple[str, list[str], list[str], bool | None, str | None]:
         if picture is None:
-            return "unreadable", [], [], None
+            return "unreadable", [], [], None, None
         url = "data:image/jpeg;base64," + base64.b64encode(picture).decode()
         try:
             result = await self._model.chat(
@@ -256,10 +267,11 @@ class MatterFiles:
             observations = [o.strip()[:300] for o in parsed["observations"] if isinstance(o, str) and o.strip()][:6]
             # Only known keys count, whatever the model returned; their text is HABITA's.
             checks = list(dict.fromkeys(c for c in parsed.get("checks", []) if c in CHECK_TEXT))
+            people = parsed.get("people") if isinstance(parsed.get("people"), bool) else None
         except (UpstreamServiceError, ValueError, KeyError, TypeError, AttributeError):
             logger.warning("HR-010 file reading failed")
-            return "failed", [], [], None
+            return "failed", [], [], None, None
         except Exception:  # noqa: BLE001 - a model fault must not lose the user's file
             logger.exception("HR-010 file reading failed unexpectedly")
-            return "failed", [], [], None
-        return "read", observations, checks, self._model.model_id
+            return "failed", [], [], None, None
+        return "read", observations, checks, people, self._model.model_id

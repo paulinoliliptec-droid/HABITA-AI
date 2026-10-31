@@ -56,4 +56,6 @@ class MatterFile(BaseModel):
     observations: list[str] = Field(default_factory=list)
     #: What to confirm, from the closed list; shown with HABITA's fixed text, never the model's.
     checks: list[FileCheck] = Field(default_factory=list)
+    #: HR-012: whether the reader saw any person. None (not read, or read before this was asked) counts as yes.
+    people_visible: bool | None = None
     model_id: str | None = None

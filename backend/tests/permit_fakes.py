@@ -132,14 +132,15 @@ def google_handler(request: httpx.Request) -> httpx.Response:
     return httpx.Response(200, json=fixtures.cascais(params.get("language", "pt")))
 
 
-def make_client(model: ScriptedModel | None = None, **overrides) -> TestClient:
+def make_client(model: ScriptedModel | None = None, permit_image_editor=None, **overrides) -> TestClient:
     values = {
         "_env_file": None, "google_maps_api_key": "test-key", "mongodb_uri": None, "app_env": "test",
         "allow_ephemeral_storage": True, "meta_api_key": "test-meta-key", "permit_rate_per_minute": 1000,
         "permit_burst": 1000,
     }
     settings = Settings(**{**values, **overrides})
-    return TestClient(create_app(settings, http_transport=httpx.MockTransport(google_handler), permit_model=model))
+    return TestClient(create_app(settings, http_transport=httpx.MockTransport(google_handler), permit_model=model,
+                                 permit_image_editor=permit_image_editor))
 
 
 def resolve_cascais(client: TestClient) -> str:

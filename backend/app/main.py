@@ -28,6 +28,8 @@ from app.integrations.maps.static_maps import MemoryDailyUsage, MongoDailyUsage,
 from app.integrations.meta.client import MetaChatModel
 from app.integrations.speech.client import ElevenLabsClient
 from app.integrations.translate.client import GoogleTranslateClient
+from app.integrations.meta.image import MetaImageEditor
+from app.services.concepts.service import Concepts, InMemoryConceptRepository, MongoConceptRepository
 from app.services.afford.repository import InMemoryAffordRepository, MongoAffordRepository
 from app.services.files.service import InMemoryFileRepository, MatterFiles, MongoFileRepository
 from app.services.files.storage import GcsFileStorage, InMemoryFileStorage, UnconfiguredFileStorage
@@ -104,6 +106,7 @@ def create_app(
     http_transport: httpx.AsyncBaseTransport | None = None,
     meta_transport: httpx.AsyncBaseTransport | None = None,
     permit_model: ReasoningModel | None = None,
+    permit_image_editor=None,
 ) -> FastAPI:
     settings = settings or get_settings()
 
@@ -128,6 +131,8 @@ def create_app(
             source_repo = MongoSourceRepository(mongo, settings.mongodb_db_name)
             await source_repo.ensure_indexes()
             afford_repo = MongoAffordRepository(mongo, settings.mongodb_db_name)
+            concept_repo = MongoConceptRepository(mongo, settings.mongodb_db_name)
+            await concept_repo.ensure_indexes()
             file_repo = MongoFileRepository(mongo, settings.mongodb_db_name)
             await file_repo.ensure_indexes()
         elif settings.allow_ephemeral_storage:
@@ -137,6 +142,7 @@ def create_app(
             source_repo = InMemorySourceRepository()
             file_repo = InMemoryFileRepository()
             afford_repo = InMemoryAffordRepository()
+            concept_repo = InMemoryConceptRepository()
         else:
             # Never acknowledge saves into memory unless explicitly allowed.
             raise ConfigurationError("MONGODB_URI is required (set ALLOW_EPHEMERAL_STORAGE=true for a local in-memory store).")
@@ -216,6 +222,17 @@ def create_app(
                 usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"], "file-reads")
                 if mongo is not None else MemoryDailyUsage(),
                 daily_limit=settings.file_read_daily_limit, per_matter_daily=settings.file_read_per_matter_daily,
+            )
+            app.state.concepts = Concepts(
+                concept_repo, file_storage, app.state.matter_files,
+                permit_image_editor or MetaImageEditor(
+                    httpx.AsyncClient(timeout=settings.meta_image_timeout_seconds, transport=meta_transport),
+                    api_key=settings.meta_api_key.get_secret_value() if settings.meta_api_key else None,
+                    base_url=settings.meta_api_base_url, model_id=settings.meta_image_model),
+                limiter=ResolutionLimiter(settings.concept_rate_per_minute, settings.concept_burst, 2),
+                usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"], "concepts")
+                if mongo is not None else MemoryDailyUsage(),
+                daily_limit=settings.concept_daily_limit, per_matter=settings.concept_per_matter,
             )
             app.state.permit_workflow = PermitWorkflow(
                 repository=permit_repo,

@@ -1,0 +1,162 @@
+"""HR-012: before/after concepts from the user's own photos.
+
+Only a photo the reader looked at and found no person in can be used (AC12.7). The instruction is HABITA's fixed text
+for a change in the matter's catalog (AC12.2, AC12.6). The result is checked as an image, gets the notice burned in and
+is kept privately next to the photo (AC12.3, AC12.9). Nothing here touches the matter, its evidence or its
+verification (AC12.4). Spend: a per-process rate, a daily cap across instances and a cap per matter, all taken before
+the paid call (AC12.8)."""
+
+from __future__ import annotations
+
+import logging
+import secrets
+from datetime import UTC, datetime
+
+from fastapi.concurrency import run_in_threadpool
+from pymongo import ASCENDING
+from pymongo.asynchronous.mongo_client import AsyncMongoClient
+from pymongo.errors import PyMongoError
+
+from app.core.errors import NotFoundError, RateLimitedError, StorageUnavailableError, UpstreamServiceError
+from app.core.rate_limit import ResolutionLimiter
+from app.integrations.maps.static_maps import MemoryDailyUsage
+from app.schemas.concepts import Concept
+from app.services.concepts import catalog
+from app.services.concepts.label import burn
+from app.services.files.service import InvalidFileError, MatterFiles
+from app.services.files.storage import FileStorage
+
+logger = logging.getLogger(__name__)
+_UNAVAILABLE = "Storage is temporarily unavailable. Please try again."
+
+
+class InMemoryConceptRepository:
+    def __init__(self) -> None:
+        self._items: dict[str, Concept] = {}
+
+    async def add(self, concept: Concept) -> None:
+        self._items[concept.concept_id] = concept
+
+    async def list(self, matter_id: str) -> list[Concept]:
+        return sorted((c for c in self._items.values() if c.matter_id == matter_id), key=lambda c: c.created_at)
+
+    async def remove(self, matter_id: str, concept_id: str) -> None:
+        if (c := self._items.get(concept_id)) is not None and c.matter_id == matter_id:
+            del self._items[concept_id]
+
+
+class MongoConceptRepository:
+    def __init__(self, client: AsyncMongoClient, db_name: str) -> None:
+        self._docs = client[db_name]["matter_concepts"]
+
+    async def ensure_indexes(self) -> None:
+        await self._call(self._docs.create_index([("matter_id", ASCENDING), ("created_at", ASCENDING)]))
+
+    async def add(self, concept: Concept) -> None:
+        await self._call(self._docs.insert_one({"_id": concept.concept_id, **concept.model_dump(mode="python")}))
+
+    async def list(self, matter_id: str) -> list[Concept]:
+        cursor = self._docs.find({"matter_id": matter_id}).sort("created_at", ASCENDING)
+        return [Concept.model_validate(d) for d in await self._call(cursor.to_list(100))]
+
+    async def remove(self, matter_id: str, concept_id: str) -> None:
+        await self._call(self._docs.delete_one({"_id": concept_id, "matter_id": matter_id}))
+
+    @staticmethod
+    async def _call(awaitable):
+        try:
+            return await awaitable
+        except PyMongoError:
+            raise StorageUnavailableError(_UNAVAILABLE) from None
+
+
+def _key(matter_id: str, concept_id: str) -> str:
+    return f"matters/{matter_id}/concepts/{concept_id}"
+
+
+class Concepts:
+    def __init__(self, repository, storage: FileStorage, files: MatterFiles, editor, *,
+                 limiter: ResolutionLimiter | None = None, usage=None, daily_limit: int = 50,
+                 per_matter: int = 3) -> None:
+        self._repo, self._storage, self._files, self._editor = repository, storage, files, editor
+        self._limiter = limiter or ResolutionLimiter(4, 3, 2)
+        self._usage = usage or MemoryDailyUsage()
+        self._daily, self._per_matter = daily_limit, per_matter
+
+    async def list(self, matter_id: str) -> list[Concept]:
+        return await self._repo.list(matter_id)
+
+    async def create(self, matter_id: str, intent: str | None, file_id: str, change: str) -> Concept:
+        # Every refusal comes before any spend.
+        if change not in catalog.options(intent):
+            raise InvalidFileError("This change is not covered for this type of request.")
+        photo = next((f for f in await self._files.list(matter_id) if f.file_id == file_id), None)
+        if photo is None:
+            raise NotFoundError("This file doesn't exist.")
+        if photo.kind != "photo" or photo.content_type not in ("image/jpeg", "image/png"):
+            raise InvalidFileError("Concepts are made only from your photos.")
+        if photo.people_visible is not False:
+            raise InvalidFileError("HABITA makes concepts only from photos it has checked and found no people in.")
+        slots = self._limiter.admit()
+        day = datetime.now(UTC).date().isoformat()
+        try:
+            # The matter's cap is for its whole life: deleting a concept or a new day never gives more.
+            ok = (await self._usage.take(f"lifetime:{matter_id}", self._per_matter) is not None
+                  and await self._usage.take(day, self._daily) is not None)
+        except Exception:  # noqa: BLE001 - without a reliable count, spend is not allowed
+            raise StorageUnavailableError(_UNAVAILABLE) from None
+        if not ok:
+            raise RateLimitedError(f"A matter can have at most {self._per_matter} concepts, and at most "
+                                   f"{self._daily} are made a day.")
+        _, original = await self._files.content(matter_id, file_id)
+        async with slots:
+            generated = await self._editor.edit(original, catalog.instruction(change))
+        try:
+            labelled = await run_in_threadpool(burn, generated)
+        except Exception:  # noqa: BLE001 - whatever came back is not shown unless it is an image we could label
+            logger.warning("HR-012 concept was not a usable image")
+            raise UpstreamServiceError("The image service returned an unusable image. Please try again.") from None
+        # AC12.7 holds for the result too: the reader checks it, and a person, or any doubt, means it is not kept.
+        if await self._files.shows_people(labelled):
+            raise UpstreamServiceError("The concept could not be kept because it may show a person. Please try "
+                                       "another change or photo.")
+        # The photo may have been deleted while the image was being made: then the concept goes with it.
+        if not any(f.file_id == file_id for f in await self._files.list(matter_id)):
+            raise NotFoundError("This photo was deleted while the concept was being made.")
+        concept = Concept(concept_id=f"cn_{secrets.token_hex(8)}", matter_id=matter_id, file_id=file_id,
+                          change=change, change_label=catalog.CHANGES[change][0], created_at=datetime.now(UTC),
+                          model_id=self._editor.model_id)
+        await self._repo.add(concept)
+        try:
+            await self._storage.put(_key(matter_id, concept.concept_id), labelled, "image/jpeg")
+        except BaseException:
+            await self._storage.delete(_key(matter_id, concept.concept_id))  # never an object without a record
+            await self._repo.remove(matter_id, concept.concept_id)
+            raise
+        # The record or the photo may have gone while the image was being written (a delete of either). Then the object
+        # is removed directly, whether or not its record still exists, so nothing is left that no one can reach.
+        photo_left = any(f.file_id == file_id for f in await self._files.list(matter_id))
+        record_left = any(c.concept_id == concept.concept_id for c in await self._repo.list(matter_id))
+        if not (photo_left and record_left):
+            await self._storage.delete(_key(matter_id, concept.concept_id))
+            await self._repo.remove(matter_id, concept.concept_id)
+            raise NotFoundError("This photo or concept was deleted while the concept was being made.")
+        return concept
+
+    async def content(self, matter_id: str, concept_id: str) -> bytes:
+        found = any(c.concept_id == concept_id for c in await self._repo.list(matter_id))
+        data = await self._storage.get(_key(matter_id, concept_id)) if found else None
+        if data is None:
+            raise NotFoundError("This concept doesn't exist.")
+        return data
+
+    async def delete(self, matter_id: str, concept_id: str) -> None:
+        if not any(c.concept_id == concept_id for c in await self._repo.list(matter_id)):
+            raise NotFoundError("This concept doesn't exist.")
+        await self._storage.delete(_key(matter_id, concept_id))
+        await self._repo.remove(matter_id, concept_id)
+
+    async def delete_for_file(self, matter_id: str, file_id: str) -> None:
+        for c in await self._repo.list(matter_id):
+            if c.file_id == file_id:
+                await self.delete(matter_id, c.concept_id)

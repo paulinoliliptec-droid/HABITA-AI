@@ -73,6 +73,7 @@ export interface MatterFile {
   read_status: "reading" | "read" | "unreadable" | "failed";
   observations: string[];
   checks: FileCheck[];
+  people_visible: boolean | null;
 }
 
 /** What a file can point out; the server sends the key, and this is HABITA's fixed wording for it. */
@@ -183,4 +184,35 @@ export function getAfford(matterId: string, token: string): Promise<AffordReport
 
 export function saveAfford(matterId: string, token: string, inputs: AffordInputs): Promise<AffordReport> {
   return apiRequest(`${base}/matters/${matterId}/afford`, withToken(token, { method: "PUT", body: JSON.stringify(inputs) }));
+}
+
+/** HR-012: a before/after concept made from one of the user's photos; an illustration only. */
+export interface Concept {
+  concept_id: string;
+  file_id: string;
+  change: string;
+  change_label: string;
+  created_at: string;
+}
+
+export function conceptOptions(matterId: string, token: string): Promise<{ key: string; label: string }[]> {
+  return apiRequest(`${base}/matters/${matterId}/concepts/options`, withToken(token));
+}
+
+export function listConcepts(matterId: string, token: string): Promise<Concept[]> {
+  return apiRequest(`${base}/matters/${matterId}/concepts`, withToken(token));
+}
+
+export function createConcept(matterId: string, token: string, fileId: string, change: string): Promise<Concept> {
+  return apiRequest(`${base}/matters/${matterId}/concepts`, withToken(token, {
+    method: "POST", body: JSON.stringify({ file_id: fileId, change }),
+  }));
+}
+
+export async function conceptImage(matterId: string, token: string, conceptId: string): Promise<Blob> {
+  return (await fileRequest(`${base}/matters/${matterId}/concepts/${conceptId}/content`, token)).blob();
+}
+
+export async function deleteConcept(matterId: string, token: string, conceptId: string): Promise<void> {
+  await fileRequest(`${base}/matters/${matterId}/concepts/${conceptId}`, token, { method: "DELETE" });
 }
