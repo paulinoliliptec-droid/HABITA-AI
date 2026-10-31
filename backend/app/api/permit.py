@@ -199,7 +199,8 @@ async def afford_report(request: Request, workflow: PermitWorkflow, matter_id: s
     prop = await request.app.state.property_service.get(matter.property_id)
     levels = {lvl.type: lvl.name for lvl in prop.jurisdiction.levels} if prop is not None else {}
     stored = inputs or await request.app.state.afford_repo.get(matter_id) or AffordInputs()
-    return afford(matter.intent, levels.get("municipality"), levels.get("subdivision"), stored, levels.get("region"))
+    # The type HABITA settled on, or, before the first run, the one the user chose when asking.
+    return afford(matter.intent or matter.requested_intent, levels.get("municipality"), levels.get("subdivision"), stored, levels.get("region"))
 
 
 @router.get("/matters/{matter_id}/afford", response_model=AffordReport)

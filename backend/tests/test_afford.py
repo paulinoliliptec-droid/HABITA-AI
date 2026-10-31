@@ -195,3 +195,17 @@ def test_pdf_and_voice_rows_carry_assumptions_and_the_declared_area():
     assert "Totals use the area you declared: 87 m²" in text
     pt = " ".join(b for _, b in afford_lines.rows(r, "pt"))
     assert "Os totais usam a área que indicou: 87 m²" in pt
+
+
+
+def test_a_type_chosen_when_asking_gives_costs_before_the_first_run():
+    """Found on the candidate: a new matter has no settled type until it runs."""
+    with make_client(ScriptedModel()) as client:
+        from tests.permit_fakes import resolve_cascais
+        res = client.post("/api/permit/matters", json={"property_id": resolve_cascais(client),
+                                                        "question": "Quero remodelar a cozinha.",
+                                                        "intent": "interior_works"})
+        body = res.json()
+        client.headers["Authorization"] = f"Bearer {body['access_token']}"
+        r = client.put(f"/api/permit/matters/{body['matter']['matter_id']}/afford", json={"area_m2": 80}).json()
+    assert r["costs"] and r["costs"][0]["low"] == 500 * 80

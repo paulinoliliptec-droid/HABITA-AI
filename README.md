@@ -219,7 +219,7 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-10-31, HR-011 local commit): backend **6863 passed, 14 skipped, 3 expected failures**
+Last full run (2026-10-31, HR-011 local commit): backend **6864 passed, 14 skipped, 3 expected failures**
 (known limitations kept as strict xfail); frontend **84 passed**, lint, typecheck and build clean. Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 
