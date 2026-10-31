@@ -3,7 +3,7 @@ Property intelligence that knows which rules apply where: resolve an address to 
 authority, ask a permitting question, and get an answer that is shown as **verified** only when every statement is
 backed by an official source that HABITA retrieved, snapshotted and checked.
 
-Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (HR-001 … HR-010 as described
+Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (HR-001 … HR-011 as described
 below); development continues on the branch `mu9/structural-verification` and reaches `main` only by an explicit merge.
 
 ## The problem
@@ -139,7 +139,7 @@ near and far): four Muse Spark readings, labels and figures described as shown a
 mismatch, no metadata left in the bucket copies, and every copy gone after deletion.
 Code: `backend/app/services/files/`, `frontend/src/features/permit/PermitFiles.tsx`.
 
-### HR-011 · AFFORD / Financial Feasibility — Implemented locally; not deployed
+### HR-011 · AFFORD / Financial Feasibility — Live; acceptance pending
 In a matter, the user can enter the area, their own quotes, a budget and a loan's rate, term and down payment. HABITA
 shows the cost of the works as a range (lower, likely, higher), from the user's quotes when given and from a reference
 table built from public price guides, cited, dated and approved by the owner on 2026-10-31 (an assumption, not a
@@ -171,7 +171,7 @@ accounts. Code: `backend/app/services/afford/`, `frontend/src/features/permit/Pe
 | Property profile: official, observed, declared (HR-008) | Live; acceptance pending |
 | Request types with correction by the user (HR-009) | Live; acceptance pending |
 | Photos and plans read as observations (HR-010) | Live; acceptance pending (consent wording not legally reviewed) |
-| Costs, financing and market price (HR-011) | Implemented locally; reference table approved by the owner |
+| Costs, financing and market price (HR-011) | Live; acceptance pending |
 | HR-012 … HR-015 | Pending definition |
 
 ## Private staging demo (authenticated)
@@ -180,8 +180,8 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `0caab9e` (backend
-revision `00043`, frontend `00038`), with the reasoning graph, the spoken report, the property profile, request types and photos and plans. The MU-9 migration of its database
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `aebe149` (backend
+revision `00046`, frontend `00041`), with the reasoning graph, the spoken report, the property profile, request types, photos and plans, and costs and price. The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
@@ -225,7 +225,7 @@ MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentia
 
 ## Roadmap and technical debt
 - Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002
-  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete; HR-005, HR-007, HR-008 and HR-009 and HR-010 live, acceptance pending; HR-011 implemented locally;
+  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete; HR-005, HR-007, HR-008 and HR-009, HR-010 and HR-011 live, acceptance pending;
   HR-012…HR-015 pending definition.
 - Main open items: redeploy staging with the latest HR-004/HR-006 code (including the real PDF images); set Google
   Cloud API quotas and review the Maps Platform terms for imagery in PDFs; improve answers to procedure questions (repeated zoning conditions, missing RJUE
