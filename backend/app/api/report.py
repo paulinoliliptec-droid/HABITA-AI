@@ -31,19 +31,22 @@ Line = Annotated[int, Path(ge=0)]
 Version = Annotated[str, Query(pattern=r"^[0-9a-f]{16}$")]
 
 
-async def _property_report(request: Request, property_id: str, lang: str, matter=None, evidence=(), verification=None):
+async def _property_report(request: Request, property_id: str, lang: str, matter=None, evidence=(), verification=None,
+                           files=()):
     prop = await request.app.state.property_service.get(property_id)
     if prop is None:
         raise NotFoundError("This property hasn't been resolved yet.")
     planning = await planning_response(request.app.state, prop)
-    report = build_report(prop, planning.planning_context, planning.sources, matter, evidence, verification)
+    report = build_report(prop, planning.planning_context, planning.sources, matter, evidence, verification,
+                          files=list(files))
     return await localize_report(report, lang, request.app.state.translator)
 
 
 async def _matter_report(request: Request, matter_id: str, workflow, lang: str) -> PermitReport:
     matter = await workflow.get(matter_id)
     return await _property_report(request, matter.property_id, lang, matter, await workflow.evidence(matter_id),
-                                  await workflow.verification(matter_id))
+                                  await workflow.verification(matter_id),
+                                  await request.app.state.matter_files.list(matter_id))
 
 
 async def _pdf(request: Request, report: PermitReport, name: str) -> Response:

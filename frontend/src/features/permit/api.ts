@@ -1,5 +1,6 @@
 import type { Lang } from "@/i18n/core";
-import { apiRequest } from "@/lib/api";
+import { ApiError, apiRequest, parseErrorResponse } from "@/lib/api";
+import { config } from "@/lib/config";
 import type { Evidence, PermitIntent, PermitMatter, VerificationReport } from "./types";
 
 const base = "/api/permit";
@@ -55,4 +56,54 @@ export function getTranslation(matterId: string, token: string, lang: Lang): Pro
 
 export function getVerification(matterId: string, token: string): Promise<VerificationReport> {
   return apiRequest(`${base}/matters/${matterId}/verification`, withToken(token));
+}
+
+/** HR-010: a photo, plan or document added to the matter, and what HABITA read in it (never verified). */
+export interface MatterFile {
+  file_id: string;
+  kind: "photo" | "plan" | "document";
+  content_type: string;
+  size: number;
+  sha256: string;
+  added_at: string;
+  captured_at: string | null;
+  gps_check: "none" | "near" | "far";
+  gps_distance_m: number | null;
+  read_status: "reading" | "read" | "unreadable" | "failed";
+  observations: string[];
+}
+
+/** The consent text version the user accepts in the files panel. */
+export const FILE_CONSENT = "v1";
+
+export function listFiles(matterId: string, token: string): Promise<MatterFile[]> {
+  return apiRequest(`${base}/matters/${matterId}/files`, withToken(token));
+}
+
+/** The file is sent as the request body, never in the URL; the server checks its content, not its name. */
+export function addFile(matterId: string, token: string, file: File, kind: MatterFile["kind"]): Promise<MatterFile> {
+  return apiRequest(
+    `${base}/matters/${matterId}/files?kind=${kind}&consent=${FILE_CONSENT}`,
+    withToken(token, { method: "POST", body: file, headers: { "Content-Type": "application/octet-stream" } }),
+  );
+}
+
+async function fileRequest(path: string, token: string, init: RequestInit = {}): Promise<Response> {
+  let response: Response;
+  try {
+    response = await fetch(`${config.apiBaseUrl}${path}`, withToken(token, init));
+  } catch {
+    throw new ApiError("network_error", "HABITA can't reach its server right now. Check your connection and try again.", 0);
+  }
+  if (!response.ok) throw await parseErrorResponse(response);
+  return response;
+}
+
+export async function deleteFile(matterId: string, token: string, fileId: string): Promise<void> {
+  await fileRequest(`${base}/matters/${matterId}/files/${fileId}`, token, { method: "DELETE" });
+}
+
+/** The kept copy, as a blob the browser can show; the token stays in a header. */
+export async function fileContent(matterId: string, token: string, fileId: string): Promise<Blob> {
+  return (await fileRequest(`${base}/matters/${matterId}/files/${fileId}/content`, token)).blob();
 }

@@ -5,6 +5,7 @@ only selects, labels and orders it. The status rule is the one place where VERIF
 
 from datetime import UTC, datetime
 
+from app.schemas.files import MatterFile
 from app.schemas.permit import Evidence, MatterState, PermitMatter, VerificationReport
 from app.schemas.property import ResolvedProperty
 from app.schemas.report import (
@@ -28,6 +29,10 @@ _REASONS = {
     "boundary_distance_unknown": "The distance to the nearest zoning boundary is unknown.",
 }
 
+
+#: HR-010: shown whenever HABITA read something in the user's files.
+FILE_CONDITION = ("What HABITA read in your files is not verified. Confirm it with the Câmara Municipal before relying "
+                  "on it.")
 
 def _is_current(matter: PermitMatter, verification: VerificationReport | None) -> bool:
     """The report decided the matter's current draft: it is the matter's latest one, for the same draft revision."""
@@ -141,7 +146,7 @@ def _assessment(matter: PermitMatter, evidence: list[Evidence],
 def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list[OfficialSourceOut],
                  matter: PermitMatter | None = None, evidence: list[Evidence] = (),
                  verification: VerificationReport | None = None, *, demo: bool = False,
-                 now: datetime | None = None) -> PermitReport:
+                 now: datetime | None = None, files: list[MatterFile] = ()) -> PermitReport:
     planning = _planning(context)
     assessment = _assessment(matter, list(evidence), verification) if matter is not None else None
     pending: list[str] = []
@@ -153,10 +158,12 @@ def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list
             pending.append(f"Assessment: {assessment.status_reason}")
         if matter is not None:
             pending += [f"Your answer is needed: {m.question}" for m in matter.missing_inputs]
+    if any(f.observations or f.gps_check == "far" for f in files):
+        pending.append(f"Condition: {FILE_CONDITION}")  # HR-010: the only effect a file can have on a report
     return PermitReport(
         generated_at=now or datetime.now(UTC), property=_property(prop), planning=planning,
         sources=[ReportSource(source_id=s.source_id, title=s.title, publisher=s.publisher, url=s.official_url,
                               version=s.version, status=s.status, verified_on=s.verified_on) for s in sources],
-        assessment=assessment, profile=build_profile(prop, context, sources, evidence, matter), pending=pending, demo=demo,
+        assessment=assessment, profile=build_profile(prop, context, sources, evidence, matter, files), pending=pending, demo=demo,
         disclaimer=DISCLAIMER,
     )

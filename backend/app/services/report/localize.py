@@ -38,7 +38,8 @@ async def localize_report(report: PermitReport, lang: str, translator: Translato
     a, pl = report.assessment, report.planning
     texts = [report.disclaimer, pl.guidance, *pl.reasons, *(d.reason for d in pl.documents_to_consult),
              *(_split_pending(p)[1] for p in report.pending),
-             *(i.label for i in report.profile if i.kind == "declaration")]
+             *(i.label for i in report.profile if i.kind == "declaration"),
+             *(i.value for i in report.profile if i.key.startswith("file:") and i.value)]
     if a is not None:
         texts += [a.status_reason, a.conclusion_summary or "", *a.conditions, *a.issues]
         texts += [x for s in a.statements for x in (s.text, s.step or "")]
@@ -56,7 +57,8 @@ async def localize_report(report: PermitReport, lang: str, translator: Translato
     profile = [i.model_copy(update={
         "label": x(i.label) if i.kind == "declaration" else t(i.label), "origin": t(i.origin),
         "precision": t(i.precision) if i.precision else None,
-        "value": t(i.value) if i.key == "request_type" else i.value,  # a fixed label, unlike every other value
+        "value": t(i.value) if i.key == "request_type" else x(i.value) if i.key.startswith("file:") and i.value
+        else i.value,  # a fixed label, unlike every other value
     }) for i in report.profile]
     leads = (_split_pending(p) for p in report.pending)
     return report.model_copy(update={

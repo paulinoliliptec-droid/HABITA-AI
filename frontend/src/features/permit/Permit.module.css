@@ -377,3 +377,89 @@ a.ref:hover {
   font-style: italic;
   opacity: 0.8;
 }
+
+
+/* HR-010: the user's photos and plans. */
+.files {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.filesTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.consent {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.fileForm {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.fileButton {
+  display: inline-flex;
+  justify-content: center;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-inverse);
+  color: var(--color-text-inverse);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.fileButton:hover:not([aria-disabled="true"]) {
+  background: var(--color-accent-hover);
+}
+
+.fileButton:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.fileButton[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fileButton {
+  position: relative;
+}
+
+.fileButton input {
+  position: absolute;
+  inset: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.fileList {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  padding: 0;
+}
+
+.fileItem {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.observations {
+  padding-left: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}

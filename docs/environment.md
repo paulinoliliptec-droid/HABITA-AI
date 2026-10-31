@@ -13,6 +13,7 @@ The template is in [`/.env.example`](../.env.example) and holds placeholders onl
 | `META_TEXT_MODEL` | backend | No | Reasoning/agent model for Permit Intelligence; default `muse-spark-1.3`. Never a `-contributor` variant. |
 | `META_REASONING_EFFORT` | backend | No | Optional `reasoning_effort` (`minimal`…`max`); omitted when unset. |
 | `META_IMAGE_MODEL` | backend | No | `muse-image-1.0` |
+| `USER_FILES_BUCKET` | backend | No | HR-010 private bucket for users' files (`habita-ai-512916-user-files` on the original: uniform access, public access prevention, no soft delete). Unset: files are kept in memory with `ALLOW_EPHEMERAL_STORAGE`, refused otherwise. |
 | `META_TRANSCRIBE_MODEL` | backend | No | `muse-voice-transcribe-1.0` |
 | `META_SEGMENTATION_MODEL` | backend | No | `sam-3.1` |
 | `GOOGLE_MAPS_API_KEY` | backend | **Yes** | Server-side key for Geocoding/Places. Restrict to required APIs. |
