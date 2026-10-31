@@ -68,7 +68,7 @@ def item(key, status="satisfied", owner="SYSTEM_TOOL", required=True) -> Checkli
                          evidence_ids=["E1"] if status == "satisfied" else [])
 
 
-def checklist(*items: ChecklistItem, intent="general_overview") -> Checklist:
+def checklist(*items: ChecklistItem, intent="interior_works") -> Checklist:
     return Checklist(matter_id="pm_0000000000000001", intent=intent, intent_summary="s",
                      items=list(items) or [item("jurisdiction")], model_id="m", created_at=NOW, updated_at=NOW)
 

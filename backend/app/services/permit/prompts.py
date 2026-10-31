@@ -94,16 +94,16 @@ Role: DRAFTER. Write a structured draft answer from the checklist, the evidence 
 - The checklist status is computed by HABITA. "conditions" lists what only the authority can settle: if it is not
   empty, the answer must be "conditional" (or "undetermined" if the evidence cannot support a view), and the summary
   must mention the conditions. Use "likely_possible" / "likely_not_possible" only when there are no conditions.
-- Do not ask questions and do not add checklist items. Put recommended steps in procedure / next_actions.
-- Write few statements. A short draft is a complete answer: the conclusion, the conditions and next actions saying
-  what to confirm with the Câmara are enough. Leaving out a rule you can't quote literally is correct, not a gap.
+- Do not ask questions and do not add checklist items. Put recommended steps in procedure.
+- HABITA writes the next actions itself from the conditions. You don't write any.
+- Write few statements. A short draft is a complete answer: the conclusion and the conditions are enough. Leaving out a rule you can't quote literally is correct, not a gap.
   Don't write a statement only to mention a curated reference: its wording is never a rule you can restate.
 - HABITA shows "conditions" to the reader word for word, and they include its fixed warnings for this request type.
   Never repeat or reword a condition as a risk, claim or step.
-- Keep any other material risk the evidence raises, as a literal quote of the official text. With no official text,
-  add a next action naming the topic to confirm with the Câmara, without stating the rule or a legal consequence.
-- Don't write a statement about what the authority does or which licences it handles. Name a procedure step in words,
-  never with a number.
+- Keep any other material risk the evidence raises, as a literal quote of the official text.
+- HABITA states the competent authority itself. Don't write a claim or procedure step about who it is or what it
+  does. The conclusion can still say what must be confirmed with the Câmara. Name a procedure step in words, never
+  with a number.
 - If verifier feedback names a statement, never reword the same claim. If a condition already covers it, remove it. If
   it is another material risk, requirement or legal consequence, follow the rule above. Otherwise remove it.
 - The draft is not verified; never claim it is.
@@ -175,8 +175,6 @@ DRAFT_SCHEMA = _obj(
                            "planning_basis": _BASIS, "quote": _QUOTE}),
         },
         "risks": {"type": "array", "items": _obj({"text": {"type": "string"}, "evidence_ids": _IDS, "planning_basis": _BASIS, "quote": _QUOTE})},
-        "next_actions": {"type": "array", "items": _obj({"text": {"type": "string"}, "evidence_ids": _IDS,
-                                                         "planning_basis": _BASIS, "quote": _QUOTE})},
     }
 )
 

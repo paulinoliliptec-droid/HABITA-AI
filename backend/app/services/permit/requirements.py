@@ -158,6 +158,12 @@ MATERIAL_WARNINGS: dict[str, tuple[tuple[str, str], ...]] = {
          "areas, ceiling heights, natural light and ventilation. Confirm this with the Câmara Municipal before "
          "dividing."),
     ),
+    "general_overview": (
+        ("warning_prior_control",
+         "Urban operations, including building works and alterations, are subject to municipal prior control under the "
+         "RJUE: a licence or a prior communication, depending on the operation. Confirm the procedure that applies with "
+         "the Câmara Municipal, in its wording after the Simplex Urbanístico, before starting."),
+    ),
     "change_of_use": (
         ("warning_use_procedure",
          "Changes to the use of a building or unit are regulated by the RJUE. Confirm the procedure for this change "

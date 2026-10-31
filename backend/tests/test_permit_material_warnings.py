@@ -7,6 +7,7 @@ import pytest
 
 from app.schemas.permit import Condition
 from app.services.i18n.translator import PINNED
+from app.services.permit.prompts import DRAFT_SCHEMA
 from app.services.permit.requirements import (
     CATALOG,
     MATERIAL_WARNINGS,
@@ -97,7 +98,7 @@ def test_a_draft_with_the_warnings_passes_the_rules(intent):
 
 
 def test_a_type_without_warnings_is_unaffected():
-    assert outcome(draft(), "general_overview") == (None, [])
+    assert outcome(draft(), "interior_works") == (None, [])
 
 
 def test_a_model_that_writes_no_risk_still_gets_a_report_with_the_warning():
@@ -117,3 +118,49 @@ def test_a_model_that_writes_no_risk_still_gets_a_report_with_the_warning():
     for _, text in MATERIAL_WARNINGS["unit_conversion"]:
         assert text in shown
     assert "Nothing to worry about." not in shown
+
+
+# --- next actions come from HABITA, not the model -------------------------------------------------
+
+
+NEXT_ACTION = "Request confirmation of the conditions from the Câmara Municipal de Cascais."
+
+
+def only_habita(payload):
+    return {k: v for k, v in default_draft(payload).items() if k != "next_actions"}
+
+
+def finish(model):
+    with make_client(model) as client:
+        matter_id = create(client)["matter_id"]
+        run(client, matter_id)
+        answer(client, matter_id, ANSWERS)
+        done = run(client, matter_id)
+        return done, client.get(f"/api/permit/matters/{matter_id}/report").json()
+
+
+def test_the_model_is_not_asked_for_next_actions():
+    assert "next_actions" not in DRAFT_SCHEMA["properties"]
+
+
+def test_the_next_step_is_written_by_habita_and_passes_the_real_rules():
+    done, report = finish(ScriptedModel(draft=only_habita))
+    assert done["state"] == "VERIFIED"
+    assert [a["text"] for a in done["draft"]["next_actions"]] == [NEXT_ACTION]
+    assert any(s["section"] == "next_action" and s["text"] == NEXT_ACTION for s in report["assessment"]["statements"])
+
+
+def test_the_next_step_has_pinned_portuguese():
+    assert NEXT_ACTION in PINNED
+
+
+@pytest.mark.parametrize("text", ["O imóvel está isento de licença.", "Licenciamento confirmado pela Câmara.",
+                                  "The Câmara has approved the conversion; no licence is needed."])
+def test_a_next_action_the_model_writes_anyway_is_still_judged_and_rejects(text):
+    def bad(payload):
+        authority = [e["id"] for e in payload["evidence"] if e["type"] == "authority_record"]
+        return {**only_habita(payload), "next_actions": [
+            {"text": text, "evidence_ids": authority, "planning_basis": "none", "quote": None}]}
+
+    done, _ = finish(ScriptedModel(draft=bad))
+    assert done["state"] == "REJECTED"
