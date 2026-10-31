@@ -68,8 +68,8 @@ def item(key, status="satisfied", owner="SYSTEM_TOOL", required=True) -> Checkli
                          evidence_ids=["E1"] if status == "satisfied" else [])
 
 
-def checklist(*items: ChecklistItem) -> Checklist:
-    return Checklist(matter_id="pm_0000000000000001", intent="unit_conversion", intent_summary="s",
+def checklist(*items: ChecklistItem, intent="general_overview") -> Checklist:
+    return Checklist(matter_id="pm_0000000000000001", intent=intent, intent_summary="s",
                      items=list(items) or [item("jurisdiction")], model_id="m", created_at=NOW, updated_at=NOW)
 
 
@@ -218,7 +218,8 @@ def test_reconciliation_is_computed_from_evidence_and_owner():
     assert status["planning_constraints"] == ("blocked_external", ["E4"])  # rule found, parcel needs the authority
     assert status["required_documents"][0] == "blocked_external"
     conditions = requirements.conditions_for("unit_conversion", requirements.reconcile("unit_conversion", items, evidence))
-    assert [c["item_key"] for c in conditions] == ["planning_constraints", "required_documents"]
+    assert [c["item_key"] for c in conditions] == [
+        "planning_constraints", "required_documents", "warning_title_nullity", "warning_habitability"]
 
 
 def test_user_answer_for_another_key_does_not_satisfy_an_item():

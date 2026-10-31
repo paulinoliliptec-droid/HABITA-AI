@@ -86,7 +86,8 @@ def test_resume_after_answers_converges_to_verified_with_few_calls(client, model
     assert done["authority_approval"] == "not_obtained"
     assert "not a permit" in done["outcome_note"] and "Conditions remain" in done["outcome_note"]
     assert done["draft"]["conclusion"]["answer"] == "conditional"
-    assert [c["item_key"] for c in done["draft"]["conditions"]] == ["planning_constraints", "required_documents"]
+    assert [c["item_key"] for c in done["draft"]["conditions"]] == [
+        "planning_constraints", "required_documents", "warning_title_nullity", "warning_habitability"]
     # Resume reused the checklist and the tool loop's evidence: one planner call, one tool loop, one draft, one review.
     assert model.calls == ["checklist", "investigate", "investigate", "draft", "verification"]
     assert done["rounds"] == 2

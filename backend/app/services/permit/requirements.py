@@ -143,6 +143,29 @@ CATALOG: dict[str, tuple[Requirement, ...]] = {
     "general_overview": (_JURISDICTION, _AUTHORITY, _PROCEDURE, _PLANNING),
 }
 
+#: Material warnings HABITA always shows for a request type, as (item key, text). They are fixed text added by code, so
+#: none depends on what the model chose to write or cite. The verifier refuses a draft without them. Each follows a
+#: curated finding and says what to confirm; none is a conclusion about the property.
+MATERIAL_WARNINGS: dict[str, tuple[tuple[str, str], ...]] = {
+    "unit_conversion": (
+        ("warning_title_nullity",
+         "Only autonomous units can be the object of horizontal property: units that are independent, distinct and "
+         "isolated from each other, with their own exit to a common part of the building or to the public way. If the "
+         "legal requirements are missing, the title constituting the horizontal property is null and the building is "
+         "subject to co-ownership instead. Confirm that the units meet these requirements before dividing."),
+        ("warning_habitability",
+         "Each new dwelling has to meet the RGEU's general habitability requirements on its own, such as minimum "
+         "areas, ceiling heights, natural light and ventilation. Confirm this with the Câmara Municipal before "
+         "dividing."),
+    ),
+    "change_of_use": (
+        ("warning_use_procedure",
+         "Changes to the use of a building or unit are regulated by the RJUE. Confirm the procedure for this change "
+         "with the Câmara Municipal, against the version in force after the Simplex Urbanístico, before changing the "
+         "use."),
+    ),
+}
+
 USER_QUESTIONS_PER_ROUND = 3
 
 
@@ -221,4 +244,5 @@ def conditions_for(intent: str, items: list[ChecklistItem], evidence: list[Evide
                     text += " Check against the official documents: " + "; ".join(d for d in docs if d) + "."
                 break
         conditions.append({"item_key": i.key, "text": text})
+    conditions += [{"item_key": key, "text": text} for key, text in MATERIAL_WARNINGS.get(intent, ())]
     return conditions

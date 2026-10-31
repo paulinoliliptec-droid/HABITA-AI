@@ -21,7 +21,8 @@ and the report lists the excluded ones separately.
      trusted in the official registry for this jurisdiction (or official text without
      a snapshot hash), a statement placing the parcel in a zoning class or category
      without citing an authoritative planning determination for this property, or a
-     definitive answer while conditions remain.
+     definitive answer while conditions remain, or a draft of a request type without
+     the fixed material warnings of that type (``requirements.MATERIAL_WARNINGS``).
      Only HABITA-generated text (conditions, status notes) needs no citation;
    - NEEDS_INPUT: a required user-owned item is still unanswered;
    - ESCALATE: a required item HABITA's tools could not evidence (a gap, including an item
@@ -44,7 +45,7 @@ from app.schemas.permit import (
     VerificationIssue,
     VerificationReport,
 )
-from app.services.permit import prompts
+from app.services.permit import prompts, requirements
 from app.services.permit.model import ReasoningModel
 from app.services.permit.repository import new_verification_id
 from app.services.permit.tools import compact_evidence
@@ -73,7 +74,7 @@ PROTOCOL = "atomic-v1"
 REJECTING = {
     "unsupported_claim", "unknown_evidence", "foreign_evidence", "wrong_jurisdiction", "authority_mismatch",
     "definitive_with_conditions", "untrusted_source", "unverified_zoning", "unsupported_legal_claim",
-    "definitive_without_property_evidence",
+    "definitive_without_property_evidence", "missing_material_warning",
 }
 #: A required item without currently admissible support is a gap (ESCALATE), not a pass.
 GAPS = {"evidence_gap", "inadmissible_support"}
@@ -156,6 +157,12 @@ def rule_checks(
                     code="inadmissible_support", item_key=item.key, origin="rule",
                     message=f"'{item.key}' is supported only by evidence that is not currently admissible "
                             f"({', '.join(item.evidence_ids) or 'none'})."))
+
+    shown = {c.text for c in draft.conditions}
+    for key, text in requirements.MATERIAL_WARNINGS.get(checklist.intent, ()):
+        if text not in shown:
+            issues.append(VerificationIssue(code="missing_material_warning", item_key=key, origin="rule",
+                                            message=f"The fixed warning '{key}' of this request type is missing."))
 
     # Materiality is not the model's call: every model-written statement must cite evidence.
     case_facts = [e for e in evidence if e.source_type in ("property_record", "jurisdiction_record", "authority_record")
