@@ -22,7 +22,7 @@ from app.core.rate_limit import ResolutionLimiter
 from app.integrations.maps.static_maps import MemoryDailyUsage
 from app.schemas.concepts import Concept
 from app.services.concepts import catalog
-from app.services.concepts.label import burn
+from app.services.concepts.label import burn, for_editing
 from app.services.files.service import InvalidFileError, MatterFiles
 from app.services.files.storage import FileStorage
 
@@ -97,20 +97,34 @@ class Concepts:
             raise InvalidFileError("Concepts are made only from your photos.")
         if photo.people_visible is not False:
             raise InvalidFileError("HABITA makes concepts only from photos it has checked and found no people in.")
+        # The rate comes first and the whole job holds a concurrency slot, so repeated requests can't pile up decodes.
+        # The photo is prepared before any count is taken, so a missing or unreadable photo costs nothing.
         slots = self._limiter.admit()
-        day = datetime.now(UTC).date().isoformat()
-        try:
-            # The matter's cap is for its whole life: deleting a concept or a new day never gives more.
-            ok = (await self._usage.take(f"lifetime:{matter_id}", self._per_matter) is not None
-                  and await self._usage.take(day, self._daily) is not None)
-        except Exception:  # noqa: BLE001 - without a reliable count, spend is not allowed
-            raise StorageUnavailableError(_UNAVAILABLE) from None
-        if not ok:
-            raise RateLimitedError(f"A matter can have at most {self._per_matter} concepts, and at most "
-                                   f"{self._daily} are made a day.")
-        _, original = await self._files.content(matter_id, file_id)
         async with slots:
-            generated = await self._editor.edit(original, catalog.instruction(change))
+            _, original = await self._files.content(matter_id, file_id)
+            try:
+                source = await run_in_threadpool(for_editing, original)
+            except (OSError, ValueError):
+                raise InvalidFileError("This photo can't be used for a concept.") from None
+            day = datetime.now(UTC).date().isoformat()
+            try:
+                # The day first: a full day takes nothing from the matter. The matter's cap is for its whole life.
+                if await self._usage.take(day, self._daily) is None:
+                    raise RateLimitedError(f"At most {self._daily} concepts are made a day. Please try again tomorrow.")
+                if await self._usage.take(f"lifetime:{matter_id}", self._per_matter) is None:
+                    await self._usage.give_back(day)
+                    raise RateLimitedError(f"A matter can have at most {self._per_matter} concepts.")
+            except RateLimitedError:
+                raise
+            except Exception:  # noqa: BLE001 - without a reliable count, spend is not allowed
+                raise StorageUnavailableError(_UNAVAILABLE) from None
+            try:
+                generated = await self._editor.edit(source, catalog.instruction(change))
+            except UpstreamServiceError:
+                # The image service refused or failed, so nothing was made: the attempt doesn't count.
+                await self._give_back(matter_id, day)
+                raise UpstreamServiceError("The image service could not make this concept. It does not count "
+                                           "against your limit; please try again.") from None
         try:
             labelled = await run_in_threadpool(burn, generated)
         except Exception:  # noqa: BLE001 - whatever came back is not shown unless it is an image we could label
@@ -142,6 +156,13 @@ class Concepts:
             await self._repo.remove(matter_id, concept.concept_id)
             raise NotFoundError("This photo or concept was deleted while the concept was being made.")
         return concept
+
+    async def _give_back(self, matter_id: str, day: str) -> None:
+        try:
+            await self._usage.give_back(f"lifetime:{matter_id}")
+            await self._usage.give_back(day)
+        except Exception:  # noqa: BLE001 - a lost refund only makes the limit stricter
+            logger.warning("HR-012 could not give back a concept count")
 
     async def content(self, matter_id: str, concept_id: str) -> bytes:
         found = any(c.concept_id == concept_id for c in await self._repo.list(matter_id))
