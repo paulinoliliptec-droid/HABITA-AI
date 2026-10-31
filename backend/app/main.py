@@ -28,6 +28,8 @@ from app.integrations.maps.static_maps import MemoryDailyUsage, MongoDailyUsage,
 from app.integrations.meta.client import MetaChatModel
 from app.integrations.speech.client import ElevenLabsClient
 from app.integrations.translate.client import GoogleTranslateClient
+from app.services.files.service import InMemoryFileRepository, MatterFiles, MongoFileRepository
+from app.services.files.storage import GcsFileStorage, InMemoryFileStorage, UnconfiguredFileStorage
 from app.services.permit.repository import InMemoryPermitRepository, MongoPermitRepository, PermitRepository
 from app.services.permit.sources.base import SourceRegistry
 from app.services.permit.sources.portugal import PortugalSources
@@ -124,11 +126,14 @@ def create_app(
             await permit_repo.ensure_indexes()
             source_repo = MongoSourceRepository(mongo, settings.mongodb_db_name)
             await source_repo.ensure_indexes()
+            file_repo = MongoFileRepository(mongo, settings.mongodb_db_name)
+            await file_repo.ensure_indexes()
         elif settings.allow_ephemeral_storage:
             logger.warning("MONGODB_URI not set: properties are kept in memory for this process only.")
             repository = InMemoryPropertyRepository()
             permit_repo = InMemoryPermitRepository()
             source_repo = InMemorySourceRepository()
+            file_repo = InMemoryFileRepository()
         else:
             # Never acknowledge saves into memory unless explicitly allowed.
             raise ConfigurationError("MONGODB_URI is required (set ALLOW_EPHEMERAL_STORAGE=true for a local in-memory store).")
@@ -186,6 +191,28 @@ def create_app(
                 ),
             )
             meta_http = httpx.AsyncClient(timeout=settings.meta_timeout_seconds, transport=meta_transport)
+            reasoning = permit_model or MetaChatModel(
+                meta_http,
+                api_key=settings.meta_api_key.get_secret_value() if settings.meta_api_key else None,
+                base_url=settings.meta_api_base_url,
+                model_id=settings.meta_text_model,
+                reasoning_effort=settings.meta_reasoning_effort,
+            )
+            if settings.user_files_bucket:
+                file_storage = GcsFileStorage(meta_http, settings.user_files_bucket)
+            elif settings.allow_ephemeral_storage:
+                file_storage = InMemoryFileStorage()
+            else:
+                logger.warning("USER_FILES_BUCKET not set: adding files will return 503.")
+                file_storage = UnconfiguredFileStorage()
+            app.state.matter_files = MatterFiles(
+                file_repo, file_storage, reasoning,
+                limiter=ResolutionLimiter(settings.file_read_rate_per_minute, settings.file_read_burst,
+                                          settings.file_read_max_concurrency),
+                usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"], "file-reads")
+                if mongo is not None else MemoryDailyUsage(),
+                daily_limit=settings.file_read_daily_limit, per_matter_daily=settings.file_read_per_matter_daily,
+            )
             app.state.permit_workflow = PermitWorkflow(
                 repository=permit_repo,
                 properties=property_service,
@@ -193,14 +220,7 @@ def create_app(
                 official=official,
                 retriever=RegulatoryRetriever(official),
                 planning=planning,
-                model=permit_model
-                or MetaChatModel(
-                    meta_http,
-                    api_key=settings.meta_api_key.get_secret_value() if settings.meta_api_key else None,
-                    base_url=settings.meta_api_base_url,
-                    model_id=settings.meta_text_model,
-                    reasoning_effort=settings.meta_reasoning_effort,
-                ),
+                model=reasoning,
                 limiter=ResolutionLimiter(
                     settings.permit_rate_per_minute, settings.permit_burst, settings.permit_max_concurrency
                 ),

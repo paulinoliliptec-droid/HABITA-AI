@@ -7,6 +7,7 @@ Declarations come from the matter's evidence, so a public property report has no
 
 from collections.abc import Iterable
 
+from app.schemas.files import MatterFile
 from app.schemas.permit import Evidence, PermitMatter
 from app.schemas.property import ResolvedProperty
 from app.schemas.report import ProfileItem
@@ -31,6 +32,14 @@ _AREA = msg("Administrative area")
 _REVIEWED = msg("Reviewed reference, not a registered source")
 _AS_STATED = msg("As stated by you, not verified")
 _UNKNOWN_ANSWERS = ("i don't know", "não sei")  # an answer that says nothing about the property is not a value
+_FILE_LABEL = {"photo": msg("Seen in your photo"), "plan": msg("Seen in your plan"),
+               "document": msg("Seen in your document")}
+_FILE_READER = msg("Muse Spark reading of a file you added")
+_FILE_PRECISION = msg("Not verified; confirm it before relying on it")
+_FILE_GPS = msg("Where your photo says it was taken")
+_FILE_GPS_FAR = msg("Far from this property")
+_FILE_GPS_ORIGIN = msg("Location data in your file, removed from the kept copy")
+_FILE_GPS_PRECISION = msg("Location data can be wrong or edited; it proves nothing")
 _PRECISION = {
     "rooftop": msg("Exact address point"), "interpolated": msg("Interpolated along the street"),
     "area_center": msg("Centre of an area"), "approximate": msg("Approximate"),
@@ -101,9 +110,26 @@ def _request(matter: PermitMatter | None) -> list[ProfileItem]:
     return items
 
 
+def _files(files: Iterable[MatterFile]) -> list[ProfileItem]:
+    """HR-010: what was read in the user's files is an observation, never official, and never decides a status."""
+    items = []
+    for f in files:
+        day = f.added_at.date()
+        items += [ProfileItem(key=f"file:{f.file_id}:{n}", label=_FILE_LABEL[f.kind], value=text, kind="observation",
+                              origin=_FILE_READER, as_of=day, precision=_FILE_PRECISION)
+                  for n, text in enumerate(f.observations)]
+        if f.gps_check == "far":
+            items.append(ProfileItem(key=f"file:{f.file_id}:gps", label=_FILE_GPS, value=_FILE_GPS_FAR,
+                                     kind="observation", origin=_FILE_GPS_ORIGIN, as_of=day,
+                                     precision=_FILE_GPS_PRECISION))
+    return items
+
+
 def build_profile(prop: ResolvedProperty, context: PlanningContext, sources: Iterable[OfficialSourceOut],
-                  evidence: Iterable[Evidence] = (), matter: PermitMatter | None = None) -> list[ProfileItem]:
-    items = [*_official(context, sources), *_observations(prop), *_request(matter), *_declarations(evidence)]
+                  evidence: Iterable[Evidence] = (), matter: PermitMatter | None = None,
+                  files: Iterable[MatterFile] = ()) -> list[ProfileItem]:
+    items = [*_official(context, sources), *_observations(prop), *_request(matter), *_declarations(evidence),
+             *_files(files)]
     values: dict[str, set[str]] = {}
     for item in items:
         if item.value is not None:

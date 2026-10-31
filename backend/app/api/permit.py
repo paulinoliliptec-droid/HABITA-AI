@@ -6,11 +6,16 @@ There is deliberately no lookup of matters by property ID: the property is
 public, its permit matters are not.
 """
 
+import asyncio
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Header, Path, Query, Request
+from fastapi.responses import Response
 
 from app.core.errors import NotFoundError
+from app.schemas.files import FileKind, MatterFile
+from app.services.files.inspect import MAX_BYTES
+from app.services.files.service import InvalidFileError, MatterFiles
 from app.schemas.permit import (
     Checklist,
     CreateMatterRequest,
@@ -117,3 +122,66 @@ async def get_verification(matter_id: MatterId, workflow: Workflow) -> Verificat
     if report is None:
         raise NotFoundError("This matter hasn't been verified yet.")
     return report
+
+
+# --- HR-010: the user's photos, plans and documents ------------------------------------------------------------
+
+
+def get_files(request: Request) -> MatterFiles:
+    return request.app.state.matter_files
+
+
+Files = Annotated[MatterFiles, Depends(get_files)]
+FileId = Annotated[str, Path(pattern=r"^fl_[0-9a-f]{16}$")]
+
+
+#: A slow upload can't hold a concurrency slot longer than this.
+BODY_SECONDS = 30
+
+
+async def _body(request: Request) -> bytes:
+    """The upload, refused as soon as it passes the size limit or the time limit, so a large or trickling body is never
+    held for long."""
+    data = bytearray()
+    try:
+        async with asyncio.timeout(BODY_SECONDS):
+            async for chunk in request.stream():
+                data += chunk
+                if len(data) > MAX_BYTES:
+                    raise InvalidFileError("Files can have at most 10 MB.")
+    except TimeoutError:
+        raise InvalidFileError("The upload took too long. Please try again.") from None
+    return bytes(data)
+
+
+@router.get("/matters/{matter_id}/files", response_model=list[MatterFile])
+async def list_files(matter_id: MatterId, files: Files) -> list[MatterFile]:
+    return await files.list(matter_id)
+
+
+@router.post("/matters/{matter_id}/files", response_model=MatterFile, status_code=201)
+async def add_file(matter_id: MatterId, request: Request, workflow: Workflow, files: Files,
+                   kind: Annotated[FileKind, Query()], consent: Annotated[str, Query(max_length=8)]) -> MatterFile:
+    """The file is the raw request body. It is checked, cleaned, kept privately and read; the matter is not changed."""
+    matter = await workflow.get(matter_id)
+    prop = await request.app.state.property_service.get(matter.property_id)
+    if prop is None:
+        raise NotFoundError("This property hasn't been resolved yet.")
+    # Admission comes before the body is read, so refused uploads are never buffered or decoded.
+    async with await files.admit(matter_id, consent):
+        return await files.add_admitted(matter_id, (prop.coordinates.lat, prop.coordinates.lng), kind, consent,
+                                        await _body(request))
+
+
+@router.get("/matters/{matter_id}/files/{file_id}/content")
+async def file_content(matter_id: MatterId, file_id: FileId, files: Files) -> Response:
+    record, data = await files.content(matter_id, file_id)
+    return Response(data, media_type=record.content_type,
+                    headers={"Cache-Control": "no-store", "Content-Disposition": "attachment",
+                             "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox"})
+
+
+@router.delete("/matters/{matter_id}/files/{file_id}", status_code=204)
+async def delete_file(matter_id: MatterId, file_id: FileId, files: Files) -> Response:
+    await files.delete(matter_id, file_id)
+    return Response(status_code=204)

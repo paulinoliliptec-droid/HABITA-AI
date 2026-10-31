@@ -95,6 +95,15 @@ class Settings(BaseSettings):
     source_ingest_on_startup: bool = False
     source_fetch_timeout_seconds: float = 60.0
 
+    # HR-010: private bucket for users' files. Unset: files are kept in memory with ALLOW_EPHEMERAL_STORAGE, and refused
+    # otherwise.
+    user_files_bucket: str | None = None
+    file_read_rate_per_minute: float = 10  # readings by Muse Spark, per process
+    file_read_burst: int = 5
+    file_read_max_concurrency: int = 2
+    file_read_daily_limit: int = 200  # per UTC day, across instances
+    file_read_per_matter_daily: int = 20
+
     mongodb_uri: SecretStr | None = None
     mongodb_db_name: str = "habita_ai"
     mongodb_timeout_ms: int = 5000
