@@ -99,7 +99,7 @@ class Settings(BaseSettings):
     # otherwise.
     user_files_bucket: str | None = None
     file_read_rate_per_minute: float = 10  # readings by Muse Spark, per process
-    file_read_burst: int = 5
+    file_read_burst: int = 10  # a whole batch of files chosen at once
     file_read_max_concurrency: int = 2
     file_read_daily_limit: int = 200  # per UTC day, across instances
     file_read_per_matter_daily: int = 20

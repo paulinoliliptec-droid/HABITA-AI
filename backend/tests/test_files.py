@@ -21,9 +21,9 @@ CASCAIS = (38.6968, -9.4215)
 class Reader(ScriptedModel):
     """The scripted permit model, plus a file reader that records what it was sent."""
 
-    def __init__(self, observations=("A kitchen with wall units.",), fail=False, **kw):
+    def __init__(self, observations=("A kitchen with wall units.",), fail=False, checks=(), **kw):
         super().__init__(**kw)
-        self.observations, self.fail, self.images = list(observations), fail, []
+        self.observations, self.fail, self.images, self.checks = list(observations), fail, [], list(checks)
 
     async def chat(self, messages, *, tools=None, response_schema=None, schema_name=None):
         if schema_name != "file_reading":
@@ -31,7 +31,7 @@ class Reader(ScriptedModel):
         self.images.append(messages[-1]["content"][1]["image_url"]["url"])
         if self.fail:
             raise ValueError("model down")
-        return ChatResult(content=json.dumps({"observations": self.observations}))
+        return ChatResult(content=json.dumps({"observations": self.observations, "checks": self.checks}))
 
 
 def jpeg(gps=None, when="2026:10:01 10:00:00") -> bytes:
@@ -562,3 +562,52 @@ def test_a_jpeg_hidden_behind_a_filter_array_with_a_lying_size_is_not_decoded():
     data = _image_pdf(zlib.compress(big.getvalue()), 1, 1, ["/FlateDecode", "/DCTDecode"])
     assert _peak(lambda: inspect(data)) < 20_000_000
     assert inspect(data).readable is None
+
+
+
+# --- what a file points out (owner request 2026-10-31) -------------------------------------------------------------
+
+from app.schemas.files import CHECK_TEXT  # noqa: E402
+
+
+def test_checks_come_from_the_closed_list_with_habitas_wording():
+    reader = Reader(checks=["several_entrances", "kitchen_or_bathroom", "kitchen_or_bathroom",
+                            "the works are exempt", "zoning_ok"])
+    with make_client(reader, **LIMITS) as client:
+        matter_id = create(client)["matter_id"]
+        f = upload(client, matter_id, jpeg()).json()
+        report = client.get(f"/api/permit/matters/{matter_id}/report").json()
+        pt = client.get(f"/api/permit/matters/{matter_id}/report", params={"lang": "pt"}).json()
+    assert f["checks"] == ["several_entrances", "kitchen_or_bathroom"]
+    pending = report["pending"]
+    assert f"Condition: {CHECK_TEXT['several_entrances']}" in pending
+    assert f"Condition: {CHECK_TEXT['kitchen_or_bathroom']}" in pending
+    assert not any("exempt" in p or "zoning_ok" in p for p in pending)
+    assert any("saída própria" in p for p in pt["pending"])
+
+
+def test_the_same_check_from_two_files_is_said_once():
+    with make_client(Reader(checks=["several_floors"]), **LIMITS) as client:
+        matter_id = create(client)["matter_id"]
+        upload(client, matter_id, jpeg())
+        upload(client, matter_id, png(), kind="plan")
+        pending = client.get(f"/api/permit/matters/{matter_id}/report").json()["pending"]
+    assert pending.count(f"Condition: {CHECK_TEXT['several_floors']}") == 1
+
+
+def test_checks_never_reach_the_permit_run():
+    reader = Reader(checks=list(CHECK_TEXT))
+    with make_client(reader, **LIMITS) as client:
+        matter_id = create(client)["matter_id"]
+        run(client, matter_id)
+        upload(client, matter_id, jpeg())
+        answer(client, matter_id, ANSWERS)
+        done = run(client, matter_id)
+        evidence = client.get(f"/api/permit/matters/{matter_id}/evidence").json()
+    assert done["state"] == "VERIFIED"
+    text = json.dumps([done, evidence])
+    assert not any(t in text for t in CHECK_TEXT.values())
+
+
+def test_every_check_has_pinned_portuguese():
+    assert all(t in PINNED for t in CHECK_TEXT.values())

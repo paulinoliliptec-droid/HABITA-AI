@@ -30,7 +30,7 @@ from app.core.errors import (
 )
 from app.core.rate_limit import ResolutionLimiter
 from app.integrations.maps.static_maps import MemoryDailyUsage
-from app.schemas.files import CONSENT_VERSION, FileKind, MatterFile
+from app.schemas.files import CHECK_TEXT, CONSENT_VERSION, FileKind, MatterFile
 from app.services.files.inspect import MAX_FILES, NEAR_METRES, FileRejected, distance_m, inspect
 from app.services.files.storage import FileStorage
 from app.services.permit.model import ReasoningModel
@@ -49,16 +49,25 @@ You are HABITA's file READER. You see one photo, plan or document a user added a
 Say only what is visible, as short neutral sentences (at most 6), in English. Examples: "A kitchen with wall units.",
 "The plan shows two floors.", "A window faces the street."
 - Never state a legal conclusion, a licence, an exemption, a zoning class or whether works are allowed.
-- Never give measurements as facts. If a figure is written on the file, say "The plan shows the figure 60 m2", never
+- Never give measurements as facts. If a figure is written on the file, say "The plan shows the number 60 m2", never
   "the area is 60 m2".
 - Don't identify people, faces or number plates; don't describe people at all.
 - If nothing about the property can be seen, return no observations.
+Also return "checks": only the items below that the file clearly shows; none if unsure.
+- "several_entrances": more than one entrance door to the property or to separate parts of it.
+- "possible_structural_wall": a thick wall, a column or a beam that may carry weight.
+- "kitchen_or_bathroom": a kitchen or a bathroom.
+- "facade_or_window": an outside wall, a window or a balcony.
+- "several_floors": more than one floor or level.
 """
 
 READER_SCHEMA = {
     "type": "object",
-    "properties": {"observations": {"type": "array", "items": {"type": "string"}}},
-    "required": ["observations"],
+    "properties": {
+        "observations": {"type": "array", "items": {"type": "string"}},
+        "checks": {"type": "array", "items": {"type": "string", "enum": sorted(CHECK_TEXT)}},
+    },
+    "required": ["observations", "checks"],
     "additionalProperties": False,
 }
 
@@ -211,8 +220,9 @@ class MatterFiles:
             await self._storage.delete(_key(record))
             await self._repo.remove(matter_id, record.file_id)
             raise
-        status, observations, model_id = await self._read(checked.readable)
-        record = record.model_copy(update={"read_status": status, "observations": observations, "model_id": model_id})
+        status, observations, checks, model_id = await self._read(checked.readable)
+        record = record.model_copy(update={"read_status": status, "observations": observations, "checks": checks,
+                                           "model_id": model_id})
         await self._repo.replace(record)
         return record
 
@@ -232,9 +242,9 @@ class MatterFiles:
         await self._storage.delete(_key(record))  # the copy first: a record without a copy is harmless
         await self._repo.remove(matter_id, file_id)
 
-    async def _read(self, picture: bytes | None) -> tuple[str, list[str], str | None]:
+    async def _read(self, picture: bytes | None) -> tuple[str, list[str], list[str], str | None]:
         if picture is None:
-            return "unreadable", [], None
+            return "unreadable", [], [], None
         url = "data:image/jpeg;base64," + base64.b64encode(picture).decode()
         try:
             result = await self._model.chat(
@@ -244,10 +254,12 @@ class MatterFiles:
                 response_schema=READER_SCHEMA, schema_name="file_reading")
             parsed = json.loads(result.content or "")
             observations = [o.strip()[:300] for o in parsed["observations"] if isinstance(o, str) and o.strip()][:6]
-        except (UpstreamServiceError, ValueError, KeyError, TypeError):
+            # Only known keys count, whatever the model returned; their text is HABITA's.
+            checks = list(dict.fromkeys(c for c in parsed.get("checks", []) if c in CHECK_TEXT))
+        except (UpstreamServiceError, ValueError, KeyError, TypeError, AttributeError):
             logger.warning("HR-010 file reading failed")
-            return "failed", [], None
+            return "failed", [], [], None
         except Exception:  # noqa: BLE001 - a model fault must not lose the user's file
             logger.exception("HR-010 file reading failed unexpectedly")
-            return "failed", [], None
-        return "read", observations, self._model.model_id
+            return "failed", [], [], None
+        return "read", observations, checks, self._model.model_id

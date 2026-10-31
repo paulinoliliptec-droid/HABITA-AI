@@ -127,7 +127,11 @@ are read first; a GPS point far from the property is shown as a mismatch that pr
 private Cloud Storage bucket, has no location or device data: images are re-encoded from their pixels, PDFs lose their
 document info. Each file keeps its SHA-256, date, kind and consent version. Muse Spark describes what is visible; HABITA
 records it as an observation from the user's file, in the profile, the PDF and the voice, never as an official fact.
-Files never reach the permit verification: they can only add one condition to the report. The user can view and
+Files never reach the permit verification: they only add conditions to the report. When a file clearly shows an
+entrance count, a possibly structural wall, a kitchen or bathroom, a facade or window, or several floors, the model picks
+that from a closed list and HABITA adds its own fixed sentence saying what to confirm with the Câmara. Several files can
+be chosen at once; they are read one after another. Real test on 2026-10-31: the kitchen pictures pointed to a
+kitchen and a window, the plans to a kitchen, each with its fixed sentence in English and Portuguese. The user can view and
 delete each file; deleting removes the kept copy. Readings are capped per minute, per day and per matter, and only a
 file that passed its checks uses the daily budget. PDF plans are read only from a plain JPEG image; other PDFs are kept
 but not read. Real test on 2026-10-31 with four synthetic files (a plan as PNG and as PDF, two room pictures with GPS
@@ -163,8 +167,8 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `f54bc8c` (backend
-revision `00041`, frontend `00036`), with the reasoning graph, the spoken report, the property profile, request types and photos and plans. The MU-9 migration of its database
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `0caab9e` (backend
+revision `00043`, frontend `00038`), with the reasoning graph, the spoken report, the property profile, request types and photos and plans. The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
@@ -202,7 +206,7 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-10-31, commit `f54bc8c`): backend **6831 passed, 14 skipped, 3 expected failures**
+Last full run (2026-10-31, commit `0caab9e`): backend **6835 passed, 14 skipped, 3 expected failures**
 (known limitations kept as strict xfail); frontend **84 passed**, lint, typecheck and build clean. Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 

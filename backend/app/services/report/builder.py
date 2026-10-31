@@ -5,7 +5,7 @@ only selects, labels and orders it. The status rule is the one place where VERIF
 
 from datetime import UTC, datetime
 
-from app.schemas.files import MatterFile
+from app.schemas.files import CHECK_TEXT, MatterFile
 from app.schemas.permit import Evidence, MatterState, PermitMatter, VerificationReport
 from app.schemas.property import ResolvedProperty
 from app.schemas.report import (
@@ -159,7 +159,10 @@ def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list
         if matter is not None:
             pending += [f"Your answer is needed: {m.question}" for m in matter.missing_inputs]
     if any(f.observations or f.gps_check == "far" for f in files):
-        pending.append(f"Condition: {FILE_CONDITION}")  # HR-010: the only effect a file can have on a report
+        pending.append(f"Condition: {FILE_CONDITION}")  # HR-010: files only ever add conditions to a report
+    # What the files point out, in HABITA's fixed wording, once each, in the closed list's order.
+    pointed = {c for f in files for c in f.checks}
+    pending += [f"Condition: {text}" for key, text in CHECK_TEXT.items() if key in pointed]
     return PermitReport(
         generated_at=now or datetime.now(UTC), property=_property(prop), planning=planning,
         sources=[ReportSource(source_id=s.source_id, title=s.title, publisher=s.publisher, url=s.official_url,
