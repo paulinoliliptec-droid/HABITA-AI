@@ -27,7 +27,8 @@ def test_costs_are_a_range_from_the_table_never_one_price():
     t = reference.COSTS["interior_works"]
     assert (table.low, table.high, table.likely) == (t.low * 80, t.high * 80, t.likely * 80)
     assert table.low < table.likely < table.high and table.source_kind == "reference_table"
-    assert "awaiting" in table.source and table.url and table.as_of == reference.COMPILED_ON and table.author
+    assert "approved by the owner" in table.source and table.url and table.as_of == reference.APPROVED_ON
+    assert table.author
     assert (table.per_m2_low, table.per_m2_high) == (t.low, t.high)
 
 

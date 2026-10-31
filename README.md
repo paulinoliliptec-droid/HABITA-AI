@@ -142,7 +142,8 @@ Code: `backend/app/services/files/`, `frontend/src/features/permit/PermitFiles.t
 ### HR-011 · AFFORD / Financial Feasibility — Implemented locally; not deployed
 In a matter, the user can enter the area, their own quotes, a budget and a loan's rate, term and down payment. HABITA
 shows the cost of the works as a range (lower, likely, higher), from the user's quotes when given and from a reference
-table built from public price guides, cited, dated and marked as awaiting the owner's approval of its figures. Financing
+table built from public price guides, cited, dated and approved by the owner on 2026-10-31 (an assumption, not a
+market price). Financing
 uses only the user's own rate and term, with the formula shown; there is no default rate. The market price comes from
 INE official statistics for the municipality and parish (median bank valuation, median sale price over 12 months), from
 a dated snapshot, each source shown apart. A municipality without statistics, or with an ambiguous name, shows no price.
@@ -170,7 +171,7 @@ accounts. Code: `backend/app/services/afford/`, `frontend/src/features/permit/Pe
 | Property profile: official, observed, declared (HR-008) | Live; acceptance pending |
 | Request types with correction by the user (HR-009) | Live; acceptance pending |
 | Photos and plans read as observations (HR-010) | Live; acceptance pending (consent wording not legally reviewed) |
-| Costs, financing and market price (HR-011) | Implemented locally; reference table awaiting the owner |
+| Costs, financing and market price (HR-011) | Implemented locally; reference table approved by the owner |
 | HR-012 … HR-015 | Pending definition |
 
 ## Private staging demo (authenticated)

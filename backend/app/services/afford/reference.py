@@ -8,7 +8,7 @@ cited below, and are assumptions, never quotes or market prices (AC11.2). The ow
 from dataclasses import dataclass
 
 #: Set when the owner approves these figures; until then every use says they await approval.
-APPROVED_ON: str | None = None
+APPROVED_ON: str | None = "2026-10-31"  # owner: "aprovo a tabela"
 AUTHOR = "Claude Code for HABITA, from the public guides below"
 COMPILED_ON = "2026-10-31"
 
