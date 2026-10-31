@@ -1,17 +1,21 @@
 """HR-008 property profile: three kinds that never mix, origin on every item, unknowns stated, disagreements shown, and no
 effect on any status (AC8.1–AC8.8)."""
 
+import asyncio
 import io
 import json
 from datetime import UTC, date, datetime
 from types import SimpleNamespace as NS
 
+import httpx
 import pytest
 from pypdf import PdfReader
 
+from app.integrations.translate.client import GoogleTranslateClient
 from app.schemas.permit import Evidence
 from app.schemas.report import PermitReport
-from app.services.i18n.translator import translator_for
+from app.services.i18n.translator import Translator, translator_for
+from app.services.report.localize import localize_report
 from app.services.report.pdf import render_pdf
 from app.services.report.premium import render_html
 from app.services.report.profile import build_profile
@@ -178,3 +182,34 @@ def test_the_portuguese_legacy_pdf_labels_the_profile_in_portuguese():
 def test_portuguese_labels_exist():
     t = translator_for("pt")
     assert t("Property profile") == "Ficha do imóvel" and t("Parcel boundary") == "Limites do lote"
+
+
+def matter(intent="change_of_use", chosen=None):
+    return NS(question="Posso alterar o uso?", intent=intent, requested_intent=chosen,
+              created_at=datetime(2026, 10, 31, tzinfo=UTC))
+
+
+def test_the_request_is_the_users_and_its_type_is_habitas_reading():
+    items = build_profile(PROPERTY, context(), [source()], [], matter())
+    request, kind = by_key(items, "request")[0], by_key(items, "request_type")[0]
+    assert (request.kind, request.value) == ("declaration", "Posso alterar o uso?")
+    assert (kind.kind, kind.value) == ("observation", "Change of use")
+    assert "correct" in kind.precision
+
+
+def test_a_chosen_type_says_so_and_the_public_report_has_no_request():
+    assert by_key(build_profile(PROPERTY, context(), [source()], [], matter(chosen="change_of_use")),
+                  "request_type")[0].precision == "Chosen by you"
+    assert not by_key(build_profile(PROPERTY, context(), [source()]), "request")
+
+
+def test_the_portuguese_report_says_the_type_in_portuguese():
+    report = REPORT.model_copy(update={"profile": build_profile(PROPERTY, context(), [source()], [], matter())})
+
+    async def run():
+        async with httpx.AsyncClient() as http:  # no key: fixed texts still come from the catalog
+            return await localize_report(report, "pt", Translator(GoogleTranslateClient(http, None)))
+
+    pt = asyncio.run(run())
+    assert by_key(pt.profile, "request_type")[0].value == "Alteração de uso"
+    assert by_key(pt.profile, "request")[0].value == "Posso alterar o uso?"

@@ -1,3 +1,5 @@
+export type PermitIntent = "unit_conversion" | "change_of_use" | "interior_works" | "general_overview";
+
 // Mirrors backend/app/schemas/permit.py (fields the UI uses).
 
 export type MatterState =
@@ -53,7 +55,8 @@ export interface PermitMatter {
   property_id: string;
   question: string;
   state: MatterState;
-  intent: "unit_conversion" | "general_overview" | "out_of_scope" | null;
+  intent: PermitIntent | "out_of_scope" | null;
+  requested_intent: PermitIntent | null;
   missing_inputs: MissingInput[];
   draft: Draft | null;
   escalation_reason: string | null;

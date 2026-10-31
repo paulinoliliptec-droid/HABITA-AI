@@ -120,7 +120,7 @@ def _assessment(matter: PermitMatter, evidence: list[Evidence],
     shown = [e for e in evidence if e.evidence_id in cited] if cited else list(evidence)
     rejected = status == "REJECTED"
     return ReportAssessment(
-        matter_id=matter.matter_id, question=matter.question, state=str(matter.state), status=status,
+        matter_id=matter.matter_id, question=matter.question, intent=matter.intent, state=str(matter.state), status=status,
         status_reason=reason, content_verified=status == "VERIFIED",
         conclusion_answer=draft.conclusion.answer if draft else None,
         conclusion_summary=draft.conclusion.summary if draft else None,
@@ -157,6 +157,6 @@ def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list
         generated_at=now or datetime.now(UTC), property=_property(prop), planning=planning,
         sources=[ReportSource(source_id=s.source_id, title=s.title, publisher=s.publisher, url=s.official_url,
                               version=s.version, status=s.status, verified_on=s.verified_on) for s in sources],
-        assessment=assessment, profile=build_profile(prop, context, sources, evidence), pending=pending, demo=demo,
+        assessment=assessment, profile=build_profile(prop, context, sources, evidence, matter), pending=pending, demo=demo,
         disclaimer=DISCLAIMER,
     )

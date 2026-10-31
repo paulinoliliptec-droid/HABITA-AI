@@ -25,8 +25,12 @@ Rules:
 PLANNER = SHARED_RULES + """\
 Role: PLANNER. Classify the user's goal about one property:
 - "unit_conversion": converting or dividing the property into more residential units;
+- "change_of_use": changing the property's use, for example from housing to commerce or services;
+- "interior_works": works inside the property that change no use and add no unit;
 - "general_overview": an orientation question such as "what can I do with this property?";
-- "out_of_scope": anything else (HABITA's permit foundation does not cover it yet).
+- "out_of_scope": anything else, or a goal that could be more than one of these: never guess. New construction,
+  extensions and demolition are not covered yet, so they are out of scope, however generally they are asked.
+Use "general_overview" only when the user names no works at all.
 HABITA's checklist uses fixed item keys. You may rephrase the question of existing keys so it reads naturally for
 this property and goal; never invent keys.
 """
@@ -90,6 +94,10 @@ Role: DRAFTER. Write a structured draft answer from the checklist, the evidence 
   empty, the answer must be "conditional" (or "undetermined" if the evidence cannot support a view), and the summary
   must mention the conditions. Use "likely_possible" / "likely_not_possible" only when there are no conditions.
 - Do not ask questions and do not add checklist items. Put recommended steps in procedure / next_actions.
+- Write few statements. A short draft is a complete answer: the conclusion, the conditions and next actions saying
+  what to confirm with the Câmara are enough. Leaving out a rule you can't quote literally is correct, not a gap.
+  Don't write a statement only to mention a curated reference: its wording is never a rule you can restate.
+- If verifier feedback names a statement, remove that statement. Don't reword it.
 - The draft is not verified; never claim it is.
 """
 
@@ -133,7 +141,7 @@ _AREAS = [
 
 CHECKLIST_SCHEMA = _obj(
     {
-        "intent": {"type": "string", "enum": ["unit_conversion", "general_overview", "out_of_scope"]},
+        "intent": {"type": "string", "enum": ["unit_conversion", "change_of_use", "interior_works", "general_overview", "out_of_scope"]},
         "intent_summary": {"type": "string"},
         "questions": {
             "type": "array",

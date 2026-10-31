@@ -61,6 +61,7 @@ export interface PermitReport {
   assessment: {
     matter_id: string;
     question: string;
+    intent?: string | null;
     status: ReportStatus;
     status_reason: string;
     content_verified: boolean;

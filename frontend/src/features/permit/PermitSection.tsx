@@ -21,8 +21,8 @@ import { forgetMatter, recallMatter, rememberMatter } from "./capability";
 import { PermitInputs } from "./PermitInputs";
 import { PermitProgress } from "./PermitProgress";
 import { PermitResult } from "./PermitResult";
-import { SUGGESTED_QUESTIONS, sourcesLine } from "./present";
-import { STABLE_STATES, type Evidence, type PermitMatter } from "./types";
+import { INTENT_LABEL, SUGGESTED_QUESTIONS, sourcesLine } from "./present";
+import { STABLE_STATES, type Evidence, type PermitIntent, type PermitMatter } from "./types";
 import styles from "./Permit.module.css";
 
 const POLL_MS = 1500;
@@ -37,6 +37,7 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [choosing, setChoosing] = useState(false);
   // Keyed like the evidence below: a translation read for another matter, state or language is never shown.
   const [translation, setTranslation] = useState<{ key: string; data: MatterTranslation | null } | null>(null);
 
@@ -119,10 +120,11 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
     if (poller.current) clearInterval(poller.current);
   }, []);
 
-  async function ask(question: string) {
+  async function ask(question: string, intent?: PermitIntent) {
     setError(null);
+    setChoosing(false);
     try {
-      const created = await createMatter(propertyId, question);
+      const created = await createMatter(propertyId, question, intent);
       if (created.detected_language) setLanguage(created.detected_language); // answers follow the language asked in
       rememberMatter(propertyId, { matterId: created.matter.matter_id, token: created.access_token });
       reportChanged(); // the map and the PDF now follow the new matter
@@ -160,6 +162,9 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
       ) : (
         <div className={styles.matter}>
           <p className={styles.goal}>{matter.question}</p>
+          {matter.intent && matter.intent !== "out_of_scope" && (
+            <p className={styles.worked}>{t("Understood as: {type}", { type: t(INTENT_LABEL[matter.intent]) })}</p>
+          )}
           <PermitProgress matter={matter} running={running} />
 
           {matter.state === "NEEDS_INPUT" && !running && evidence.length > 0 && (
@@ -179,6 +184,17 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
             <PermitResult matter={matter} evidence={evidence} authorityName={authorityName} shown={shown} note={note} />
           )}
 
+          {STABLE_STATES.has(matter.state) && !running && (choosing || matter.intent === "out_of_scope") && (
+            <div className={styles.suggestions}>
+              <p className={styles.fieldHint}>{t("Not what you asked? Choose the type and HABITA starts again.")}</p>
+              {(Object.keys(INTENT_LABEL) as PermitIntent[]).map((intent) => (
+                <button key={intent} type="button" className={styles.suggestion} onClick={() => ask(matter.question, intent)}>
+                  {t(INTENT_LABEL[intent])}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className={styles.actions}>
             {matter.state === "FAILED" && !running && (
               <Button variant="secondary" onClick={() => token && advance(matter.matter_id, token)}>
@@ -193,6 +209,11 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
             {STABLE_STATES.has(matter.state) && !running && (
               <Button variant="ghost" onClick={() => setAsking(true)}>
                 {t("Ask another question")}
+              </Button>
+            )}
+            {STABLE_STATES.has(matter.state) && !running && matter.intent && matter.intent !== "out_of_scope" && !choosing && (
+              <Button variant="ghost" onClick={() => setChoosing(true)}>
+                {t("Choose the type")}
               </Button>
             )}
           </div>

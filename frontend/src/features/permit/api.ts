@@ -1,6 +1,6 @@
 import type { Lang } from "@/i18n/core";
 import { apiRequest } from "@/lib/api";
-import type { Evidence, PermitMatter, VerificationReport } from "./types";
+import type { Evidence, PermitIntent, PermitMatter, VerificationReport } from "./types";
 
 const base = "/api/permit";
 
@@ -17,8 +17,9 @@ export function permitStatus(): Promise<{ available: boolean; model: string }> {
 export function createMatter(
   propertyId: string,
   question: string,
+  intent?: PermitIntent,
 ): Promise<{ matter: PermitMatter; access_token: string; detected_language: Lang | null }> {
-  return apiRequest(`${base}/matters`, { method: "POST", body: JSON.stringify({ property_id: propertyId, question }) });
+  return apiRequest(`${base}/matters`, { method: "POST", body: JSON.stringify({ property_id: propertyId, question, intent }) });
 }
 
 export function getMatter(matterId: string, token: string, signal?: AbortSignal): Promise<PermitMatter> {

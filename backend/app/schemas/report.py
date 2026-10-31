@@ -91,6 +91,7 @@ class ReportVerification(BaseModel):
 class ReportAssessment(BaseModel):
     matter_id: str
     question: str
+    intent: str | None = None
     state: str
     status: ReportStatus
     status_reason: str
