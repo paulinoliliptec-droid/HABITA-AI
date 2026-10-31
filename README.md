@@ -194,8 +194,8 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-10-31 to commit `2a47072` (backend
-revision `00050`, frontend `00049`), with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, and before/after concepts. The MU-9 migration of its database
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-11-01 to commit `c883ef0` (backend
+revision `00053`, frontend `00049`), with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, and before/after concepts. The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
