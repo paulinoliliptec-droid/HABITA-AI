@@ -109,7 +109,7 @@ Out of scope: bank offers or live rates, taxes such as IMT or IMI, a certified v
 
 Plan views (owner, 2026-11-01): from a plan, a 3D view, a realistic image, or a 3D view with one more bedroom made inside the home; never a redrawn plan. They carry the extra notice "May not match your plan exactly", since the model doesn't follow a plan exactly.
 
-| AC12.11 (*proposed*) | A view from a plan is judged by the fidelity criterion in [`hr012-plan-fidelity.md`](hr012-plan-fidelity.md): an inventory of the plan against an inventory of the view by an evaluator that did not make it, zero tolerance for added, removed or moved rooms, openings, windows, entrances, floors or stairs (one more bedroom only for that view); anything undecided is UNVERIFIED, never PASS. |
+| AC12.11 (*manual gate, owner option (a), 2026-11-01*) | A view from a plan is judged by the fidelity criterion in [`hr012-plan-fidelity.md`](hr012-plan-fidelity.md): an inventory of the plan against an inventory of the view by an evaluator that did not make it, zero tolerance for added, removed or moved rooms, openings, windows, entrances, floors or stairs (one more bedroom only for that view); anything undecided is UNVERIFIED, never PASS. |
 
 Out of scope: video, plans or drawings generated from scratch, street or aerial imagery, measurements from concepts.
 

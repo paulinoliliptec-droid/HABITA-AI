@@ -1,6 +1,8 @@
 # HR-012 · Fidelity criterion for views from a plan (proposal)
 
-Status: **proposed, not yet a gate in the product.** The code (`backend/app/services/concepts/fidelity.py`) and its
+Status: **owner chose option (a) on 2026-11-01: a manual gate.** Before each new publication of plan views and after
+each real test, a person other than the image service applies the checklist below and records the result in this
+document. It is not automatic in the product. The code (`backend/app/services/concepts/fidelity.py`) and its
 tests are in place. No paid call was made to prepare it. Using it on every view needs the owner's decision (see
 "Options" below).
 
@@ -73,4 +75,9 @@ private data). The earlier failed views stay in the git-ignored review folder, b
 - **(c) Deterministic 3D from a confirmed plan (later):** the user confirms the rooms on the plan, HABITA draws the 3D
   geometry itself, and AI only adds materials. Exact geometry, but several days of work. Not for the hackathon.
 
-Recommendation: (a) now; (b) only if the owner wants plan views to stay on after the hackathon.
+Decision (owner, 2026-11-01): **(a)**. Options (b) and (c) are not planned; (b) would first need a cost, latency,
+privacy and false-PASS estimate and the owner's approval.
+
+Known gaps (ChatGPT review 0318): one synthetic PASS is an example, not a general guarantee. The evaluator's inventory
+can itself be wrong. The "largest room" rule is HABITA's choice, not the user's: letting the user choose the room to
+divide is a polish item. Negative samples (T1/T3, unmeasured plans, ties, several floors) are still to be prepared.

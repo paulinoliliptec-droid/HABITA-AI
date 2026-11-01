@@ -167,7 +167,7 @@ on 2026-11-01 to publish them as illustrations with that notice, provided a view
 one-more-bedroom view passed its real test on 2026-11-01 (synthetic two-bedroom plan: the living room divided by a
 light partition with a door, every other room, window and the entrance kept, no stairs or extension). How a view is
 judged against its plan (zero tolerance, fail-closed) is set out in
-[`docs/hr012-plan-fidelity.md`](docs/hr012-plan-fidelity.md) (proposed criterion, with tests; not yet run on every view);
+[`docs/hr012-plan-fidelity.md`](docs/hr012-plan-fidelity.md) (applied by hand before each publication of plan views, owner's choice of 2026-11-01; not automatic);
 a plan is never redrawn by a photo change, since an AI-edited plan could pass for a project. The original and the
 concept are shown side by side, and open large on a
 click. The panel picks up a new photo as soon as it is added. At most 3 per matter and 50
