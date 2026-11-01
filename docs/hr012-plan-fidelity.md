@@ -98,7 +98,7 @@ What the matrix shows:
     rooms it joins, not by its width.
   - a door moved along its wall, between the same two rooms.
 - **Not covered:** a room chosen by the user to divide. `compare` only knows "the largest room"; a user's choice
-  would need its own parameter, which waits for the UX proposal (ChatGPT review 0527, point D).
+  would need its own parameter. UX proposal (not built): [`hr012-room-choice-ux.md`](hr012-room-choice-ux.md).
 - **Stated limit:** zones are per floor, but a room's floor is not recorded. In a duplex, a bedroom carved
   upstairs but declared as carved from the living room would only be caught by the evaluator's `carved_from`.
 
