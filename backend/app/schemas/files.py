@@ -34,6 +34,25 @@ CHECK_TEXT: dict[str, str] = {
                       "Municipal.",
 }
 
+#: HR-012: a room as the reader saw it on a plan. Types and zones come from closed lists (the same as the plan-view
+#: fidelity criterion); the id is HABITA's (R1, R2… in reading order), never the model's.
+RoomType = Literal["living", "kitchen", "bedroom", "bathroom", "hall", "storage", "office", "other"]
+#: Where a room sits on the drawing, as a 3×3 grid (C = centre).
+Zone = Literal["NW", "N", "NE", "W", "C", "E", "SW", "S", "SE"]
+
+
+class PlanRoom(BaseModel):
+    id: str = Field(pattern=r"^R[1-9][0-9]?$")
+    #: As written on the plan (e.g. "SALA"); shown to the user only, never put into an instruction or a report.
+    label: str = Field(max_length=40)
+    type: RoomType
+    #: Only when the plan writes it in m²; never a fact, only to mark "the largest".
+    area: float | None = None
+    zones: list[Zone] = Field(default_factory=list)
+    #: 0 = ground floor; None when the plan doesn't say.
+    floor: int | None = None
+
+
 #: The consent wording the user accepted, by version. Changing the text needs a new version.
 CONSENT_VERSION = "v1"
 
@@ -60,4 +79,6 @@ class MatterFile(BaseModel):
     people_visible: bool | None = None
     #: HR-012: whether the reader saw a floor plan or technical drawing (whatever kind the user chose).
     is_plan: bool | None = None
+    #: HR-012: the rooms read on a plan. None: not asked (read before), or the list could not be read reliably.
+    rooms: list[PlanRoom] | None = None
     model_id: str | None = None

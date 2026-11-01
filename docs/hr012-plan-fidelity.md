@@ -26,12 +26,13 @@ HABITA-REVIEW-20261101-0052, point C.
 |---|---|---|
 | `plan_3d` 3D view | nothing | FAIL |
 | `plan_real` realistic image (one room) | nothing, in the rooms it shows. Only this view may be partial; a plan opening of a shown room that is missing must be declared "outside the frame" by the evaluator, otherwise it fails | FAIL |
-| `plan_3d_bedroom` one more bedroom | exactly one new bedroom, which the evaluator sees carved out of the plan's single largest room, with exactly one door (to that room or a hall) and no entrance; its windows count as the largest room's, on the same walls | FAIL |
+| `plan_3d_bedroom` one more bedroom | exactly one new bedroom, which the evaluator sees carved out of the room the user chose (`divided_room_id`, since 2026-11-01; for views made before, the plan's single largest room), on that room's floor, with exactly one door (to that room or a hall) and no entrance; its windows count as that room's, on the same walls | FAIL |
 
    Defects: a room added, removed or changed in type; an opening added, removed or joining other rooms; a window added,
    removed or on another wall; an entrance changed; an extra floor; stairs or an opening to another floor; for the
    bedroom view, no new bedroom, more than one door, an entrance in it, or a bedroom taken from a room other than the
-   largest (a tie for largest, or a room without an area, also fails); a room in other zones of the drawing; a floor or
+   chosen one, or on another floor (for an older view without a choice: other than the largest; a tie, or a room
+   without an area, also fails); a room seen on another floor than on the plan; a room in other zones of the drawing; a floor or
    stairs added or removed; a realistic image that shows no room of the plan. A room whose zones the evaluator doesn't
    state makes the view UNVERIFIED.
 
@@ -85,9 +86,10 @@ down; no image was made and no paid call was used. 27 cases plus 3 stated limits
 | Duplex | faithful 3D; one more bedroom from the living room; realistic hall with the stairs and the floor above seen | ground floor only; stairs left out; a third floor | realistic image of any room where the other floor and the stairs aren't seen |
 
 What the matrix shows:
-- **Without areas, or with a tie, the one-more-bedroom view can never pass.** "Divide the largest room" has no
-  answer there. Before such views are offered on plans like these, the user should choose the room to divide
-  (polish item); until then the evaluator records them as FAIL.
+- **Without areas, or with a tie, the one-more-bedroom view could never pass** under "divide the largest room". Since
+  2026-11-01 the user chooses the room, so these plans can pass (`test_the_chosen_room_replaces_the_largest`, 8 cases:
+  unmeasured T1, the tie, T3 with a room other than the largest, and the duplex upstairs, downstairs and with the
+  floor unstated, which stays UNVERIFIED). The old rule is kept only for views made before the choice.
 - **A realistic image of a home with several floors stays UNVERIFIED** unless the evaluator records the other floor
   and the stairs as seen in it (for example a hall with the stairs going up). One room usually can't show them.
 - **Stated limits, kept as tests that PASS** (`test_stated_limits_pass_and_need_the_evaluator`), so only the
@@ -97,10 +99,13 @@ What the matrix shows:
   - a wall between two rooms opened wide into an open-plan room, both rooms kept. An opening is recorded by the two
     rooms it joins, not by its width.
   - a door moved along its wall, between the same two rooms.
-- **Not covered:** a room chosen by the user to divide. `compare` only knows "the largest room"; a user's choice
-  would need its own parameter. UX proposal (not built): [`hr012-room-choice-ux.md`](hr012-room-choice-ux.md).
-- **Stated limit:** zones are per floor, but a room's floor is not recorded. In a duplex, a bedroom carved
-  upstairs but declared as carved from the living room would only be caught by the evaluator's `carved_from`.
+- **The room chosen by the user** (built 2026-11-01, [`hr012-room-choice-ux.md`](hr012-room-choice-ux.md)):
+  `compare(..., divided_room_id=…)` takes the room's internal id (R1, R2…, never the label). Each room records its
+  floor; on a plan with several floors the new bedroom must be on the chosen room's floor (a floor the evaluator
+  doesn't state makes the view UNVERIFIED), and a room seen on another floor is `room_moved`.
+- **Stated limit:** for views made before the choice (no `divided_room_id`), the floor of the new bedroom is not
+  checked; a bedroom carved upstairs but declared as carved from the living room would only be caught by the
+  evaluator's `carved_from`.
 
 ## Options for using it in the product (owner's decision)
 - **(a) Manual sample (no cost, now):** apply the checklist to each new real test and before each publication;
@@ -117,6 +122,6 @@ Decision (owner, 2026-11-01): **(a)**. Options (b) and (c) are not planned; (b) 
 privacy and false-PASS estimate and the owner's approval.
 
 Known gaps (ChatGPT review 0318): one synthetic PASS is an example, not a general guarantee. The evaluator's inventory
-can itself be wrong. The "largest room" rule is HABITA's choice, not the user's: letting the user choose the room to
-divide is a polish item. Negative samples (T1/T3, unmeasured plans, ties, several floors): see "Synthetic sample
+can itself be wrong. The "largest room" rule was HABITA's choice, not the user's; since 2026-11-01 the user chooses the
+room to divide. Negative samples (T1/T3, unmeasured plans, ties, several floors): see "Synthetic sample
 matrix" above.

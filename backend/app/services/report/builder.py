@@ -16,6 +16,7 @@ from app.schemas.report import (
 )
 from app.schemas.sources import OfficialSourceOut, PlanningContext
 from app.services.concepts.catalog import is_plan_change
+from app.services.concepts.rooms import ALLOWED, FLOOR_NAMES, PLACES
 from app.services.report.profile import build_profile
 
 DISCLAIMER = (
@@ -173,6 +174,10 @@ def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list
                               version=s.version, status=s.status, verified_on=s.verified_on) for s in sources],
         assessment=assessment, profile=build_profile(prop, context, sources, evidence, matter, files), pending=pending, demo=demo, afford=afford,
         concepts=[ReportConcept(change_label=c.change_label, created_on=c.created_at.date(),
-                                source="plan" if is_plan_change(c.change) else "photo") for c in concepts],
+                                source="plan" if is_plan_change(c.change) else "photo",
+                                divided_room=ALLOWED[c.room.type][1] if c.room else None,
+                                divided_place=PLACES[c.room.place][0] if c.room else None,
+                                divided_floor=FLOOR_NAMES[c.room.floor] if c.room and c.room.floor is not None
+                                else None) for c in concepts],
         disclaimer=DISCLAIMER,
     )

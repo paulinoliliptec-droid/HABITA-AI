@@ -194,6 +194,31 @@ export interface Concept {
   change: string;
   change_label: string;
   created_at: string;
+  /** The room the user chose to divide (one-more-bedroom view only); `label` is as read on the plan. */
+  room?: { id: string; label: string; type_label: string; place_label: string; floor: number | null } | null;
+}
+
+/** HR-012: a room of a plan the user may choose to divide for the one-more-bedroom view. */
+export interface OfferedRoom {
+  id: string;
+  label: string;
+  type_label: string;
+  area: number | null;
+  place_label: string;
+  floor: number | null;
+  largest: boolean;
+  small: boolean;
+}
+
+export interface RoomOffer {
+  status: "ok" | "unreadable" | "none";
+  floors: (number | null)[];
+  rooms: OfferedRoom[];
+  excluded: { label: string; type: string; reason: "type" | "no_place" | "same_as_another" }[];
+}
+
+export function conceptRooms(matterId: string, token: string, fileId: string): Promise<RoomOffer> {
+  return apiRequest(`${base}/matters/${matterId}/concepts/rooms/${fileId}`, withToken(token));
 }
 
 export function conceptOptions(
@@ -207,9 +232,15 @@ export function listConcepts(matterId: string, token: string): Promise<Concept[]
   return apiRequest(`${base}/matters/${matterId}/concepts`, withToken(token));
 }
 
-export function createConcept(matterId: string, token: string, fileId: string, change: string): Promise<Concept> {
+export function createConcept(
+  matterId: string,
+  token: string,
+  fileId: string,
+  change: string,
+  roomId?: string,
+): Promise<Concept> {
   return apiRequest(`${base}/matters/${matterId}/concepts`, withToken(token, {
-    method: "POST", body: JSON.stringify({ file_id: fileId, change }),
+    method: "POST", body: JSON.stringify({ file_id: fileId, change, ...(roomId ? { room_id: roomId } : {}) }),
   }));
 }
 

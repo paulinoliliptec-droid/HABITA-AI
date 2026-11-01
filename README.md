@@ -167,7 +167,7 @@ on 2026-11-01 to publish them as illustrations with that notice, provided a view
 one-more-bedroom view passed its real test on 2026-11-01 (synthetic two-bedroom plan: the living room divided by a
 light partition with a door, every other room, window and the entrance kept, no stairs or extension). How a view is
 judged against its plan (zero tolerance, fail-closed) is set out in
-[`docs/hr012-plan-fidelity.md`](docs/hr012-plan-fidelity.md) (applied by hand before each publication of plan views, owner's choice of 2026-11-01; not automatic), with a matrix of 27 cases on five synthetic plans (T1, T3, a plan without areas, a tie for the largest room, a duplex) that must pass, fail or stay undecided; letting the user choose the room to divide is a proposal in [`docs/hr012-room-choice-ux.md`](docs/hr012-room-choice-ux.md) (not built);
+[`docs/hr012-plan-fidelity.md`](docs/hr012-plan-fidelity.md) (applied by hand before each publication of plan views, owner's choice of 2026-11-01; not automatic), with a matrix of 27 cases on five synthetic plans (T1, T3, a plan without areas, a tie for the largest room, a duplex) that must pass, fail or stay undecided, and 8 more for the chosen room. **The user chooses the room to divide** (owner, 2026-11-01; [`docs/hr012-room-choice-ux.md`](docs/hr012-room-choice-ux.md); on the branch, not yet published): the plan reading also lists the rooms, only a living room, a bedroom or an office is offered, nothing is preselected ("the largest" is only marked), a very small room carries an RGEU warning, a plan whose rooms can't be read doesn't get this view, and on several floors the user picks the floor first; the instruction names the room in HABITA's fixed words only (type, place, floor), never the label read from the plan;
 a plan is never redrawn by a photo change, since an AI-edited plan could pass for a project. The original and the
 concept are shown side by side, and open large on a
 click. The panel picks up a new photo as soon as it is added. At most 3 per matter and 50
@@ -245,8 +245,8 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-11-01, HR-012 synthetic sample matrix): backend **6960 passed, 14 skipped, 3 expected
-failures** (known limitations kept as strict xfail); frontend **84 passed** (unchanged since its last run), lint, typecheck and build clean. Live tests against
+Last full run (2026-11-01, HR-012 room choice): backend **6995 passed, 14 skipped, 3 expected
+failures** (known limitations kept as strict xfail); frontend **84 passed**, lint, typecheck and build clean. Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 
 ## Roadmap and technical debt

@@ -138,6 +138,12 @@ class ReportConcept(BaseModel):
     created_on: date
     #: What the concept was made from.
     source: Literal["photo", "plan"] = "photo"
+    #: HR-012: the room the user chose to divide, in HABITA's fixed words ("the bedroom", "lower left"); never the
+    #: label read from the plan.
+    divided_room: str | None = None
+    divided_place: str | None = None
+    #: Its floor in fixed words ("first floor"), only on a plan with several floors.
+    divided_floor: str | None = None
 
 
 class PermitReport(BaseModel):

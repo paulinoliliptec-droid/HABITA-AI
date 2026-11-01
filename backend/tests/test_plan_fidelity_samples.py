@@ -35,12 +35,14 @@ def drop(key: str, *ids: str, **update) -> Inventory:
         "entrances": {k: e for k, e in v.entrances.items() if k not in ids}, **update})
 
 
-def carve(key: str, src: str, new_zones: list[str], door_to: str, src_zones: list[str] | None = None) -> Inventory:
-    """One more bedroom (NOVO) carved out of ``src``, with one door to ``door_to``."""
+def carve(key: str, src: str, new_zones: list[str], door_to: str, src_zones: list[str] | None = None,
+          floor: int | None = None) -> Inventory:
+    """One more bedroom (NOVO) carved out of ``src``, with one door to ``door_to``, seen on ``floor``."""
     v = faithful(key)
     rooms = [r.model_copy(update={"zones": src_zones}) if r.id == src and src_zones is not None else r
              for r in v.rooms]
-    return v.model_copy(update={"rooms": [*rooms, Room(id="NOVO", type="bedroom", carved_from=src, zones=new_zones)],
+    new = Room(id="NOVO", type="bedroom", carved_from=src, zones=new_zones, floor=floor)
+    return v.model_copy(update={"rooms": [*rooms, new],
                                 "connections": [*v.connections, ("NOVO", door_to)]})
 
 
@@ -143,6 +145,47 @@ def test_a_realistic_image_of_a_duplex_is_undecided_unless_floors_and_stairs_are
         assert compare(PLANS["duplex"], only("duplex", room.id), "plan_real").verdict == "UNVERIFIED", room.id
     seen = only("duplex", "HALL", floors=2, stairs=True)
     assert compare(PLANS["duplex"], seen, "plan_real").verdict == "PASS"
+
+
+# The room the user chose (owner, 2026-11-01): (case, sample, chosen room, view, verdict, codes among the defects).
+CHOSEN = [
+    ("unmeasured t1, the user chose the living room", "t1-unmeasured", "SALA",
+     lambda: carve("t1-unmeasured", "SALA", ["SW"], "SALA", ["NW", "W"]), "PASS", set()),
+    ("unmeasured t1, chose the living room, bedroom taken from the bedroom", "t1-unmeasured", "SALA",
+     lambda: carve("t1-unmeasured", "QUARTO", ["SE"], "QUARTO"), "FAIL", {"bedroom_not_from_largest_room"}),
+    ("tie, the user chose bedroom 1", "t2-tie", "QUARTO 1",
+     lambda: carve("t2-tie", "QUARTO 1", ["NE"], "HALL"), "PASS", set()),
+    ("tie, chose bedroom 1, the living room divided instead", "t2-tie", "QUARTO 1",
+     lambda: carve("t2-tie", "SALA", ["NW"], "SALA"), "FAIL", {"bedroom_not_from_largest_room"}),
+    ("t3, the user chose bedroom 1 rather than the largest", "t3", "QUARTO 1",
+     lambda: carve("t3", "SALA", ["W"], "HALL", ["NW"]), "FAIL", {"bedroom_not_from_largest_room"}),
+    ("duplex, chose bedroom 1 upstairs, bedroom upstairs", "duplex", "QUARTO 1",
+     lambda: carve("duplex", "QUARTO 1", ["NW"], "QUARTO 1", floor=1), "PASS", set()),
+    ("duplex, chose bedroom 1 upstairs, bedroom seen downstairs", "duplex", "QUARTO 1",
+     lambda: carve("duplex", "QUARTO 1", ["NW"], "QUARTO 1", floor=0), "FAIL", {"bedroom_not_from_largest_room"}),
+    ("duplex, chose bedroom 1, the evaluator can't say the floor", "duplex", "QUARTO 1",
+     lambda: carve("duplex", "QUARTO 1", ["NW"], "QUARTO 1"), "UNVERIFIED", set()),
+]
+
+
+@pytest.mark.parametrize("case,key,room,make,verdict,must", CHOSEN, ids=[m[0] for m in CHOSEN])
+def test_the_chosen_room_replaces_the_largest(case, key, room, make, verdict, must):
+    """An unmeasured plan or a tie can pass once the user chose; the bedroom must come from that room, on its floor."""
+    result = compare(PLANS[key], make(), "plan_3d_bedroom", new_room_id="NOVO", divided_room_id=room)
+    assert result.verdict == verdict, (case, result.defects, result.unclear)
+    assert must <= {d.code for d in result.defects}, (case, result.defects)
+
+
+def test_a_chosen_room_must_be_in_the_plan():
+    with pytest.raises(ValueError):
+        compare(PLANS["t1"], carve("t1", "SALA", ["SW"], "SALA"), "plan_3d_bedroom", new_room_id="NOVO",
+                divided_room_id="SALÃO")
+
+
+def test_a_room_seen_on_another_floor_has_moved():
+    v = faithful("duplex")
+    v.rooms = [r.model_copy(update={"floor": 0}) if r.id == "QUARTO 2" else r for r in v.rooms]
+    assert "room_moved" in {d.code for d in compare(PLANS["duplex"], v, "plan_3d").defects}
 
 
 # Stated limits (Codex hr012g-r1): these views are wrong but PASS, because the criterion only sees rooms by zone of a

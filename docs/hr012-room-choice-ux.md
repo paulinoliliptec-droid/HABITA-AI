@@ -1,8 +1,33 @@
-# HR-012 · Choosing the room to divide (UX proposal)
+# HR-012 · Choosing the room to divide
 
-Status: **proposal only, nothing implemented.** Asked by the owner on 2026-11-01 ("faz a proposta de UX para escolher
-a divisão"); answers ChatGPT review HABITA-REVIEW-20261101-0652, point D. Building it needs the owner's decision on
-the open questions at the end.
+Status: **built on 2026-11-01, on the branch; not yet published.** Asked by the owner on 2026-11-01 ("faz a proposta
+de UX para escolher a divisão"); answers ChatGPT review HABITA-REVIEW-20261101-0652, point D. The owner approved the
+four proposals below on 2026-11-01 ("aprovo as 4 propostas, podes construir"). The paid real test of the chosen-room
+view still needs the owner's specific approval.
+
+## As built
+- **Plan reading** (`backend/app/services/files/service.py`): the same reading also returns `rooms` (label, type from
+  the closed list, area only if written in m², zones on the 3×3 grid, floor 0–4). HABITA gives the ids (R1, R2… in
+  reading order). One malformed room voids the whole list (fail-closed: dropping one could make another look unique
+  or the largest); labels are cleaned of control and direction characters and cut to 40 characters.
+- **The list** (`backend/app/services/concepts/rooms.py`, `GET /matters/{id}/concepts/rooms/{file_id}`): only a
+  living room, a bedroom or an office; each with its place in fixed words (nine places from the middle of its zones)
+  and floor; "the largest" marked only when every room of that floor has an area and there is no tie, never
+  preselected; "small" (under 18 m² as written, an internal caution, not a legal minimum and never shown as a number)
+  adds the RGEU warning. Not offered, with the reason: other types, rooms without a place, and two rooms with the same
+  type, place and floor. No list (nothing read, a plan read before 2026-11-01, floors given for some rooms only, or
+  several floors drawn without saying which room is on which) means "unreadable": this view isn't offered for that
+  plan, the other plan views are.
+- **The request** carries `room_id` (`^R[1-9][0-9]?$`); the backend accepts it only if it is in the list it computes
+  from the stored reading, refuses it for any other view, and refuses the bedroom view without one, all before any
+  spend. The instruction says "divide the living room in the upper-left part of the plan [on the first floor]", from
+  fixed words only; the label never reaches the image service.
+- **The record** (`Concept.room`) keeps the id, the label and the fixed words; the caption shows "(dividing: SALA)";
+  the PDF and the voice say "dividing the living room (upper left)" in HABITA's words only, in PT and EN.
+- **The criterion**: `compare(..., divided_room_id=…)`, with the floor checked (see
+  [`hr012-plan-fidelity.md`](hr012-plan-fidelity.md)).
+- **The panel** (`frontend/src/features/permit/PermitRoomChoice.tsx`): floor (when several), then the room, then a
+  confirmation with the notice and "uses 1 of the 3 plan views" before the paid call.
 
 ## Why
 The "3D view with one more bedroom" asks the image service to divide **the largest room** (it is an instruction,
@@ -103,7 +128,7 @@ PDF preview.
   still an illustration.
 - It does not change the photo concepts.
 
-## Open questions for the owner
+## The owner's decisions (2026-11-01: all four proposals approved)
 1. Is the allowlist right: living room, bedroom, office only? (Proposal: yes; a kitchen divided into a bedroom is
    unusual and raises ventilation questions, and nothing outside the home is ever offered.)
 2. Is it acceptable that a plan whose rooms can't be read doesn't get this view? (Proposal: yes for the first
