@@ -20,15 +20,17 @@ from tests.test_permit_workflow import answer, run
 
 
 class Reader(ScriptedModel):
-    def __init__(self, people=False, plan=False, **kw):
+    def __init__(self, people=False, plan=False, rooms=None, checks=(), **kw):
         super().__init__(**kw)
-        self.people, self.plan = people, plan
+        self.people, self.plan, self.rooms, self.checks = people, plan, rooms, list(checks)
 
     async def chat(self, messages, *, tools=None, response_schema=None, schema_name=None):
         if schema_name != "file_reading":
             return await super().chat(messages, tools=tools, response_schema=response_schema, schema_name=schema_name)
-        return ChatResult(content=json.dumps({"observations": ["A room."], "checks": [], "people": self.people,
-                                              "plan": self.plan}))
+        body = {"observations": ["A room."], "checks": self.checks, "people": self.people, "plan": self.plan}
+        if self.rooms is not None:
+            body["rooms"] = self.rooms
+        return ChatResult(content=json.dumps(body))
 
 
 class Editor:
@@ -554,12 +556,15 @@ def test_photo_only_reports_have_no_plan_notice():
 def test_one_more_bedroom_is_shown_inside_the_home_only():
     """The owner's example (2026-11-01): "quero aumentar mais um quarto" gives a 3D view with that bedroom."""
     editor = Editor()
-    with client_with(editor) as client:
+    room = {"label": "SALA", "type": "living", "area": 30, "zones": ["NW", "W"], "floor": None}
+    with make_client(Reader(rooms=[room]), permit_image_editor=editor, **LIMITS) as client:
         mid = matter(client)
-        res = concept(client, mid, photo(client, mid, png(), kind="plan"), "plan_3d_bedroom")
+        fid = photo(client, mid, png(), kind="plan")
+        res = client.post(f"/api/permit/matters/{mid}/concepts",
+                          json={"file_id": fid, "change": "plan_3d_bedroom", "room_id": "R1"})
     assert res.status_code == 201 and res.json()["change_label"] == "3D view with one more bedroom"
     prompt = editor.calls[0][1]
-    assert prompt == catalog.instruction("plan_3d_bedroom")
+    assert prompt == catalog.instruction("plan_3d_bedroom", "the living room in the upper-left part of the plan")
     assert "exactly one more bedroom" in prompt and "no extension, no stairs" in prompt and "Do not add any person" in prompt
     assert "every existing interior wall, column" in prompt and "remove or move no wall" in prompt
     assert "only new door in that partition" in prompt

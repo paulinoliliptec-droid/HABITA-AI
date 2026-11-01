@@ -74,8 +74,8 @@ def zones(sample: Sample, box: Box) -> list[str]:
 
 def inventory(sample: Sample) -> Inventory:
     return Inventory(
-        rooms=[Room(id=r.id, type=r.type, area=r.area if sample.measured else None, zones=zones(sample, r))
-               for r in sample.rooms],
+        rooms=[Room(id=r.id, type=r.type, area=r.area if sample.measured else None, zones=zones(sample, r),
+                    floor=r.floor if sample.floors() > 1 else None) for r in sample.rooms],
         connections=list(sample.doors),
         windows={k: list(v) for k, v in sample.windows.items()},
         entrances={k: list(v) for k, v in sample.entrances.items()},

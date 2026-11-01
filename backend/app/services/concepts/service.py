@@ -20,8 +20,8 @@ from pymongo.errors import PyMongoError
 from app.core.errors import NotFoundError, RateLimitedError, StorageUnavailableError, UpstreamServiceError
 from app.core.rate_limit import ResolutionLimiter
 from app.integrations.maps.static_maps import MemoryDailyUsage
-from app.schemas.concepts import Concept
-from app.services.concepts import catalog
+from app.schemas.concepts import Concept, ConceptRoom
+from app.services.concepts import catalog, rooms
 from app.services.concepts.label import PLAN_NOTICE_PT, burn, for_editing
 from app.services.files.inspect import FileRejected, inspect
 from app.services.files.service import InvalidFileError, MatterFiles
@@ -87,7 +87,17 @@ class Concepts:
     async def list(self, matter_id: str) -> list[Concept]:
         return await self._repo.list(matter_id)
 
-    async def create(self, matter_id: str, intent: str | None, file_id: str, change: str) -> Concept:
+    async def rooms(self, matter_id: str, file_id: str) -> rooms.RoomOffer:
+        """The rooms the user may choose to divide on this plan (HR-012, owner 2026-11-01)."""
+        plan = next((f for f in await self._files.list(matter_id) if f.file_id == file_id), None)
+        if plan is None:
+            raise NotFoundError("This file doesn't exist.")
+        if not (plan.kind == "plan" or plan.is_plan is True):
+            raise InvalidFileError("These views are made only from a plan.")
+        return rooms.offer(plan)
+
+    async def create(self, matter_id: str, intent: str | None, file_id: str, change: str,
+                     room_id: str | None = None) -> Concept:
         # Every refusal comes before any spend.
         from_plan = catalog.is_plan_change(change)
         if change not in (catalog.plan_options(intent) if from_plan else catalog.options(intent)):
@@ -105,6 +115,13 @@ class Concepts:
                                    "or the realistic image.")
         if photo.people_visible is not False:
             raise InvalidFileError("HABITA makes concepts only from photos it has checked and found no people in.")
+        # The room to divide: chosen by the user from the rooms read on this plan, never assumed (owner, 2026-11-01).
+        room = rooms.chosen(photo, room_id) if change in catalog.NEEDS_ROOM else None
+        if change in catalog.NEEDS_ROOM and room is None:
+            raise InvalidFileError("Choose the room to divide from the list read from your plan.")
+        if change not in catalog.NEEDS_ROOM and room_id is not None:
+            raise InvalidFileError("A room is chosen only for the view with one more bedroom.")
+        prompt = catalog.instruction(change, rooms.describe(room) if room is not None else None)
         # The rate comes first and the whole job holds a concurrency slot, so repeated requests can't pile up decodes.
         # The photo is prepared before any count is taken, so a missing or unreadable photo costs nothing.
         slots = self._limiter.admit()
@@ -133,7 +150,7 @@ class Concepts:
             except Exception:  # noqa: BLE001 - without a reliable count, spend is not allowed
                 raise StorageUnavailableError(_UNAVAILABLE) from None
             try:
-                generated = await self._editor.edit(source, catalog.instruction(change))
+                generated = await self._editor.edit(source, prompt)
             except UpstreamServiceError:
                 # The image service refused or failed, so nothing was made: the attempt doesn't count.
                 await self._give_back(lifetime, day)
@@ -154,7 +171,10 @@ class Concepts:
             raise NotFoundError("This photo was deleted while the concept was being made.")
         concept = Concept(concept_id=f"cn_{secrets.token_hex(8)}", matter_id=matter_id, file_id=file_id,
                           change=change, change_label=catalog.ALL_CHANGES[change][0], created_at=datetime.now(UTC),
-                          model_id=self._editor.model_id)
+                          model_id=self._editor.model_id,
+                          room=ConceptRoom(id=room.id, label=room.label, type=room.type, type_label=room.type_label,
+                                           place=room.place, place_label=room.place_label, floor=room.floor)
+                          if room else None)
         await self._repo.add(concept)
         try:
             await self._storage.put(_key(matter_id, concept.concept_id), labelled, "image/jpeg")

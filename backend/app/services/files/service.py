@@ -10,10 +10,11 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import re
 import logging
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Protocol
+from typing import Protocol, get_args
 
 from fastapi.concurrency import run_in_threadpool
 from pymongo import ASCENDING
@@ -30,7 +31,7 @@ from app.core.errors import (
 )
 from app.core.rate_limit import ResolutionLimiter
 from app.integrations.maps.static_maps import MemoryDailyUsage
-from app.schemas.files import CHECK_TEXT, CONSENT_VERSION, FileKind, MatterFile
+from app.schemas.files import CHECK_TEXT, CONSENT_VERSION, FileKind, MatterFile, PlanRoom, RoomType, Zone
 from app.services.files.inspect import MAX_FILES, NEAR_METRES, FileRejected, distance_m, inspect
 from app.services.files.storage import FileStorage
 from app.services.permit.model import ReasoningModel
@@ -61,6 +62,14 @@ Also return "checks": only the items below that the file clearly shows; none if 
 - "kitchen_or_bathroom": a kitchen or a bathroom.
 - "facade_or_window": an outside wall, a window or a balcony.
 - "several_floors": more than one floor or level.
+Also return "rooms": only for a floor plan, every room drawn on it, in any order; an empty list for anything else or
+if you can't read the plan room by room. For each room:
+- "label": the room's name exactly as written on the plan (e.g. "SALA", "QUARTO 1"), or "" if none is written.
+- "type": one of living, kitchen, bedroom, bathroom, hall, storage, office, other (a corridor is a hall; a balcony,
+  terrace or garage is other).
+- "area": the area only if the plan writes it in m2 next to that room, as a number; otherwise null. Never estimate.
+- "zones": the parts of the drawing the room covers, on a 3x3 grid of the whole drawing: NW, N, NE, W, C, E, SW, S, SE.
+- "floor": the floor the room is on if the plan shows more than one (0 = ground floor, 1 = first floor); otherwise null.
 """
 
 READER_SCHEMA = {
@@ -70,10 +79,51 @@ READER_SCHEMA = {
         "checks": {"type": "array", "items": {"type": "string", "enum": sorted(CHECK_TEXT)}},
         "people": {"type": "boolean"},
         "plan": {"type": "boolean"},
+        "rooms": {"type": "array", "items": {
+            "type": "object",
+            "properties": {
+                "label": {"type": "string"},
+                "type": {"type": "string", "enum": list(get_args(RoomType))},
+                "area": {"type": ["number", "null"]},
+                "zones": {"type": "array", "items": {"type": "string", "enum": list(get_args(Zone))}},
+                "floor": {"type": ["integer", "null"]},
+            },
+            "required": ["label", "type", "area", "zones", "floor"],
+            "additionalProperties": False,
+        }},
     },
-    "required": ["observations", "checks", "people", "plan"],
+    "required": ["observations", "checks", "people", "plan", "rooms"],
     "additionalProperties": False,
 }
+
+
+_ROOM_KEYS = {"label", "type", "area", "zones", "floor"}
+_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069]")
+MAX_ROOMS = 30
+
+
+def plan_rooms(raw) -> list[PlanRoom] | None:
+    """HR-012: the rooms the reader listed, or None if the list can't be trusted as a whole. One malformed room voids
+    the list (fail-closed): dropping it could hide a room and make another look unique or the largest."""
+    if not isinstance(raw, list) or not raw or len(raw) > MAX_ROOMS:
+        return None
+    out: list[PlanRoom] = []
+    for n, r in enumerate(raw, 1):
+        if not isinstance(r, dict) or set(r) != _ROOM_KEYS or not isinstance(r["label"], str):
+            return None
+        area, floor, zones = r["area"], r["floor"], r["zones"]
+        if area is not None and (isinstance(area, bool) or not isinstance(area, int | float) or not 0 < area < 10000):
+            return None
+        if floor is not None and (isinstance(floor, bool) or not isinstance(floor, int) or not 0 <= floor <= 4):
+            return None
+        if not isinstance(zones, list) or len(set(zones)) != len(zones) or not all(z in get_args(Zone) for z in zones):
+            return None
+        if r["type"] not in get_args(RoomType):
+            return None
+        label = " ".join(_CONTROL.sub("", r["label"]).split())[:40]
+        out.append(PlanRoom(id=f"R{n}", label=label, type=r["type"], area=float(area) if area is not None else None,
+                            zones=zones, floor=floor))
+    return out
 
 
 class FileRepository(Protocol):
@@ -224,9 +274,10 @@ class MatterFiles:
             await self._storage.delete(_key(record))
             await self._repo.remove(matter_id, record.file_id)
             raise
-        status, observations, checks, people, plan, model_id = await self._read(checked.readable)
+        status, observations, checks, people, plan, rooms, model_id = await self._read(checked.readable)
         record = record.model_copy(update={"read_status": status, "observations": observations, "checks": checks,
-                                           "people_visible": people, "is_plan": plan, "model_id": model_id})
+                                           "people_visible": people, "is_plan": plan, "rooms": rooms,
+                                           "model_id": model_id})
         await self._repo.replace(record)
         return record
 
@@ -252,13 +303,13 @@ class MatterFiles:
             picture = await run_in_threadpool(inspect, image)
         except FileRejected:
             return True
-        status, _, _, people, _, _ = await self._read(picture.readable)
+        status, _, _, people, _, _, _ = await self._read(picture.readable)
         return status != "read" or people is not False
 
     async def _read(self, picture: bytes | None) -> tuple[str, list[str], list[str], bool | None, bool | None,
-                                                          str | None]:
+                                                          list[PlanRoom] | None, str | None]:
         if picture is None:
-            return "unreadable", [], [], None, None, None
+            return "unreadable", [], [], None, None, None, None
         url = "data:image/jpeg;base64," + base64.b64encode(picture).decode()
         try:
             result = await self._model.chat(
@@ -272,10 +323,11 @@ class MatterFiles:
             checks = list(dict.fromkeys(c for c in parsed.get("checks", []) if c in CHECK_TEXT))
             people = parsed.get("people") if isinstance(parsed.get("people"), bool) else None
             plan = parsed.get("plan") if isinstance(parsed.get("plan"), bool) else None
+            rooms = plan_rooms(parsed.get("rooms"))  # used only for a plan (chosen as one, or recognised)
         except (UpstreamServiceError, ValueError, KeyError, TypeError, AttributeError):
             logger.warning("HR-010 file reading failed")
-            return "failed", [], [], None, None, None
+            return "failed", [], [], None, None, None, None
         except Exception:  # noqa: BLE001 - a model fault must not lose the user's file
             logger.exception("HR-010 file reading failed unexpectedly")
-            return "failed", [], [], None, None, None
-        return "read", observations, checks, people, plan, self._model.model_id
+            return "failed", [], [], None, None, None, None
+        return "read", observations, checks, people, plan, rooms, self._model.model_id

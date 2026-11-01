@@ -20,10 +20,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-RoomType = Literal["living", "kitchen", "bedroom", "bathroom", "hall", "storage", "office", "other"]
+from app.schemas.files import RoomType, Zone  # one closed list for the reader and the criterion
+
 Side = Literal["N", "E", "S", "W"]
-#: Where a room sits on the drawing, as a 3×3 grid (C = centre).
-Zone = Literal["NW", "N", "NE", "W", "C", "E", "SW", "S", "SE"]
 Verdict = Literal["PASS", "FAIL", "UNVERIFIED"]
 DefectCode = Literal[
     "room_added", "room_removed", "room_type_changed", "bedroom_not_added", "bedroom_not_from_largest_room",
@@ -44,6 +43,8 @@ class Room(BaseModel):
     zones: list[Zone] = Field(default_factory=list)
     #: View only, for the one-more-bedroom view: the plan room the evaluator sees the new bedroom carved out of.
     carved_from: str | None = None
+    #: The floor the room is on (0 = ground floor); None when the plan has one floor or doesn't say.
+    floor: int | None = None
 
 
 class Inventory(BaseModel):
@@ -90,12 +91,14 @@ def _largest(plan: Inventory) -> str | None:
     return biggest[0] if len(biggest) == 1 else None  # a tie has no single "largest room"
 
 
-def compare(plan: Inventory, view: Inventory, change: str, *, new_room_id: str | None = None) -> FidelityResult:
+def compare(plan: Inventory, view: Inventory, change: str, *, new_room_id: str | None = None,
+            divided_room_id: str | None = None) -> FidelityResult:
     """Apply the zero-tolerance rules for ``change`` (plan_3d, plan_real or plan_3d_bedroom).
 
     For plan_3d_bedroom, ``new_room_id`` names the bedroom the evaluator sees as new. It must be carved out of the
-    plan's largest room (``carved_from``), have exactly one door, to that room or a hall, and no entrance; it is the
-    only allowed addition. Its windows count as the largest room's, on the same walls."""
+    room the user chose (``divided_room_id``; for a view made before the choice existed, the plan's largest room),
+    on that room's floor, have exactly one door, to that room or a hall, and no entrance; it is the only allowed
+    addition. Its windows count as the divided room's, on the same walls."""
     if change not in PLAN_VIEWS:
         raise ValueError(f"not a plan view: {change}")
     out: list[Defect] = []
@@ -114,32 +117,48 @@ def compare(plan: Inventory, view: Inventory, change: str, *, new_room_id: str |
     added = set(view_rooms) - set(plan_rooms)
     removed = set() if partial else set(plan_rooms) - set(view_rooms)
 
+    unclear = list(view.unclear)
     new: str | None = None
-    largest = _largest(plan)
+    if divided_room_id is not None and divided_room_id not in plan_rooms:
+        raise ValueError(f"the chosen room {divided_room_id!r} is not in the plan inventory")
+    # The room the bedroom must come from: the user's choice, or the largest for views made before the choice.
+    target = divided_room_id if divided_room_id is not None else _largest(plan)
     if change == "plan_3d_bedroom":
         if new_room_id is None or new_room_id not in added or view_rooms[new_room_id].type != "bedroom":
             out.append(Defect(code="bedroom_not_added", detail="no new bedroom identified in the view"))
         else:
             new = new_room_id
             src = view_rooms[new].carved_from
-            if largest is None or src != largest or largest not in view_rooms:
+            if target is None or src != target or target not in view_rooms:
                 out.append(Defect(code="bedroom_not_from_largest_room",
-                                  detail=f"new bedroom carved from {src!r}; the plan's largest room is {largest!r}"))
+                                  detail=f"new bedroom carved from {src!r}; the room to divide is {target!r}"))
             new_doors = [p for p in view.connections if new in p]
             ends = {b if a == new else a for a, b in new_doors}
             if len(new_doors) != 1:
                 out.append(Defect(code="door_added" if len(new_doors) > 1 else "door_removed",
                                   detail=f"the new bedroom has {len(new_doors)} doors; exactly one is allowed"))
-            elif not ends <= {largest, *(r.id for r in plan.rooms if r.type == "hall")}:
+            elif not ends <= {target, *(r.id for r in plan.rooms if r.type == "hall")}:
                 out.append(Defect(code="bedroom_not_from_largest_room",
-                                  detail=f"the new bedroom opens onto {sorted(ends)}, not the largest room or a hall"))
+                                  detail=f"the new bedroom opens onto {sorted(ends)}, not the divided room or a hall"))
             if view.entrances.get(new):
                 out.append(Defect(code="entrance_changed", detail="the new bedroom has an entrance from outside"))
+            # Chosen-room views only: views made before the choice keep their criterion (zones carry no floor).
+            if divided_room_id is not None and plan.floors > 1:
+                want, got = plan_rooms[target].floor, view_rooms[new].floor
+                if want is None or got is None:
+                    unclear.append(f"{new}: floor not stated in the {'plan' if want is None else 'view'}")
+                elif want != got:
+                    out.append(Defect(code="bedroom_not_from_largest_room",
+                                      detail=f"the new bedroom is on floor {got}; {target} is on floor {want}"))
+    for rid in sorted(set(plan_rooms) & set(view_rooms)):
+        if plan.floors > 1 and plan_rooms[rid].floor is not None and view_rooms[rid].floor is not None \
+                and plan_rooms[rid].floor != view_rooms[rid].floor:
+            out.append(Defect(code="room_moved", detail=f"{rid}: floor {plan_rooms[rid].floor} on the plan, "
+                                                         f"{view_rooms[rid].floor} in the view"))
     for rid in sorted(added - {new}):
         out.append(Defect(code="room_added", detail=f"{rid} ({view_rooms[rid].type}) is not in the plan"))
     for rid in sorted(removed):
         out.append(Defect(code="room_removed", detail=f"{rid} ({plan_rooms[rid].type}) is missing from the view"))
-    unclear = list(view.unclear)
     for rid in sorted(set(plan_rooms) & set(view_rooms)):
         if plan_rooms[rid].type != view_rooms[rid].type:
             out.append(Defect(code="room_type_changed",
@@ -147,19 +166,19 @@ def compare(plan: Inventory, view: Inventory, change: str, *, new_room_id: str |
         pz, vz = set(plan_rooms[rid].zones), set(view_rooms[rid].zones)
         if not pz or not vz:
             unclear.append(f"{rid}: position not stated in the {'plan' if not pz else 'view'}")
-        elif pz and vz and vz != pz and not (rid == largest and new and vz < pz):
+        elif pz and vz and vz != pz and not (rid == target and new and vz < pz):
             # Only the room the new bedroom was carved from may cover fewer zones than on the plan.
             out.append(Defect(code="room_moved", detail=f"{rid}: {sorted(pz)} on the plan, {sorted(vz)} in the view"))
-    if new and largest and plan_rooms[largest].zones:
+    if new and target and plan_rooms[target].zones:
         nz = set(view_rooms[new].zones)
         if not nz:
             unclear.append(f"{new}: position not stated in the view")
-        elif not nz <= set(plan_rooms[largest].zones):
+        elif not nz <= set(plan_rooms[target].zones):
             out.append(Defect(code="bedroom_not_from_largest_room",
-                              detail=f"the new bedroom covers {sorted(nz)}, outside {largest}'s zones"))
-        elif largest in view_rooms and not set(plan_rooms[largest].zones) <= nz | set(view_rooms[largest].zones):
+                              detail=f"the new bedroom covers {sorted(nz)}, outside {target}'s zones"))
+        elif target in view_rooms and not set(plan_rooms[target].zones) <= nz | set(view_rooms[target].zones):
             out.append(Defect(code="room_removed",
-                              detail=f"part of {largest} is neither {largest} nor the new bedroom in the view"))
+                              detail=f"part of {target} is neither {target} nor the new bedroom in the view"))
 
     shown = set(view_rooms) if partial else set(plan_rooms) | set(view_rooms)
     plan_doors = Counter({p: n for p, n in _doors(plan.connections).items() if set(p) & shown})
@@ -177,8 +196,8 @@ def compare(plan: Inventory, view: Inventory, change: str, *, new_room_id: str |
             if counts[rid]:
                 out.append(Defect(code=code, detail=f"{field} on {rid}, which is not a room of the view"))
     view_windows = {k: list(v) for k, v in view.windows.items()}
-    if new and largest:
-        view_windows[largest] = view_windows.get(largest, []) + view_windows.pop(new, [])
+    if new and target:
+        view_windows[target] = view_windows.get(target, []) + view_windows.pop(new, [])
     for field, plan_c, view_c, more, fewer in (
             ("windows", plan.windows, view_windows, "window_added", "window_removed"),
             ("entrances", plan.entrances, view.entrances, "entrance_changed", "entrance_changed")):

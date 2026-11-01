@@ -18,6 +18,7 @@ from app.schemas.afford import AffordInputs, AffordReport
 from app.schemas.concepts import Concept, ConceptOption
 from app.schemas.files import FileKind, MatterFile
 from app.services.concepts import catalog
+from app.services.concepts.rooms import RoomOffer
 from app.services.afford.compute import afford
 from app.services.files.inspect import MAX_BYTES
 from app.services.files.service import InvalidFileError, MatterFiles
@@ -229,6 +230,8 @@ ConceptId = Annotated[str, Path(pattern=r"^cn_[0-9a-f]{16}$")]
 class ConceptRequest(BaseModel):
     file_id: str = Field(pattern=r"^fl_[0-9a-f]{16}$")
     change: str = Field(max_length=40)
+    #: HR-012: for the one-more-bedroom view, the id of the room chosen from the plan's list (R1, R2…).
+    room_id: str | None = Field(default=None, pattern=r"^R[1-9][0-9]?$")
 
 
 @router.get("/matters/{matter_id}/concepts/options", response_model=list[ConceptOption])
@@ -249,7 +252,14 @@ async def list_concepts(matter_id: MatterId, request: Request) -> list[Concept]:
 async def create_concept(matter_id: MatterId, body: ConceptRequest, request: Request, workflow: Workflow) -> Concept:
     matter = await workflow.get(matter_id)
     return await request.app.state.concepts.create(matter_id, matter.intent or matter.requested_intent, body.file_id,
-                                                   body.change)
+                                                   body.change, body.room_id)
+
+
+@router.get("/matters/{matter_id}/concepts/rooms/{file_id}", response_model=RoomOffer)
+async def concept_rooms(matter_id: MatterId, file_id: Annotated[str, Path(pattern=r"^fl_[0-9a-f]{16}$")],
+                        request: Request, workflow: Workflow) -> RoomOffer:
+    await workflow.get(matter_id)
+    return await request.app.state.concepts.rooms(matter_id, file_id)
 
 
 @router.get("/matters/{matter_id}/concepts/{concept_id}/content")

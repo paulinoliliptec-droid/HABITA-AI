@@ -51,9 +51,9 @@ PLAN_CHANGES: dict[str, tuple[str, str]] = {
                   "Turn this floor plan into one photorealistic photograph of the inside of the same home: its largest "
                   "room as drawn, at eye level, in daylight. " + _KEEP),
     "plan_3d_bedroom": (msg("3D view with one more bedroom"),
-                        _3D + " Show exactly one more bedroom than the plan has: divide the largest room with one "
-                        "light, non-structural partition with its only new door in that partition, and furnish the new part as a bedroom with a "
-                        "bed. " + _ONE_MORE),
+                        _3D + " Show exactly one more bedroom than the plan has: divide {room} with one light, "
+                        "non-structural partition with its only new door in that partition, and furnish the new part "
+                        "as a bedroom with a bed. " + _ONE_MORE),
 }
 ALL_CHANGES = {**CHANGES, **PLAN_CHANGES}
 #: The second line burned into a view from a plan: the image service doesn't follow a plan exactly (real test,
@@ -69,7 +69,15 @@ def is_plan_change(change: str) -> bool:
     return change in PLAN_CHANGES
 
 
-def instruction(change: str) -> str:
+#: The views that need the user to choose a room first (owner, 2026-11-01: the user picks; HABITA never assumes).
+NEEDS_ROOM = frozenset({"plan_3d_bedroom"})
+
+
+def instruction(change: str, room: str | None = None) -> str:
+    """``room`` is HABITA's fixed description of the chosen room (rooms.describe), never text from the plan."""
+    if (change in NEEDS_ROOM) != (room is not None):
+        raise ValueError(f"{change}: a room is {'required' if change in NEEDS_ROOM else 'not allowed'}")
     if change in PLAN_CHANGES:
-        return PLAN_CHANGES[change][1] + _NO_PEOPLE
+        text = PLAN_CHANGES[change][1]
+        return (text.replace("{room}", room) if room is not None else text) + _NO_PEOPLE
     return _RULES + CHANGES[change][1]
