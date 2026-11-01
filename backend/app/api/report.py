@@ -38,7 +38,8 @@ async def _property_report(request: Request, property_id: str, lang: str, matter
         raise NotFoundError("This property hasn't been resolved yet.")
     planning = await planning_response(request.app.state, prop)
     report = build_report(prop, planning.planning_context, planning.sources, matter, evidence, verification,
-                          files=list(files), afford=afford, concepts=list(concepts))
+                          files=list(files), afford=afford, concepts=list(concepts),
+                          aerial=await request.app.state.aerial.get(property_id))
     return await localize_report(report, lang, request.app.state.translator)
 
 

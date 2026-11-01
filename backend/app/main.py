@@ -13,6 +13,7 @@ from app.api import maintenance as maintenance_api
 from app.api import permit as permit_api
 from app.api import planning as planning_api
 from app.api import voice as voice_api
+from app.api import aerial as aerial_api
 from app.api import property as property_api
 from app.api import report as report_api
 from app.core.config import Settings, get_settings
@@ -31,8 +32,11 @@ from app.integrations.speech.client import ElevenLabsClient
 from app.integrations.translate.client import GoogleTranslateClient
 from app.integrations.meta.image import MetaImageEditor
 from app.integrations.meta.transcribe import MetaTranscriber
+from app.integrations.meta.segment import MetaSegmenter
+from app.integrations.dgt.orthophoto import DgtOrthophotoClient
 from app.services.concepts.service import Concepts, InMemoryConceptRepository, MongoConceptRepository
 from app.services.dictation import Dictation
+from app.services.aerial.service import AerialAnalysis, InMemoryAerialRepository, MongoAerialRepository
 from app.services.afford.repository import InMemoryAffordRepository, MongoAffordRepository
 from app.services.files.service import InMemoryFileRepository, MatterFiles, MongoFileRepository
 from app.services.files.storage import GcsFileStorage, InMemoryFileStorage, UnconfiguredFileStorage
@@ -111,6 +115,8 @@ def create_app(
     permit_model: ReasoningModel | None = None,
     permit_image_editor=None,
     dictation_transcriber=None,
+    aerial_segmenter=None,
+    aerial_orthophotos=None,
 ) -> FastAPI:
     settings = settings or get_settings()
 
@@ -251,6 +257,21 @@ def create_app(
                 daily_limit=settings.dictation_daily_limit, per_caller_daily=settings.dictation_per_caller_daily,
                 caller_key=settings.meta_api_key.get_secret_value().encode() if settings.meta_api_key else b"",
             )
+            segment_http = httpx.AsyncClient(timeout=settings.meta_segmentation_timeout_seconds,
+                                             transport=meta_transport)
+            app.state.aerial = AerialAnalysis(
+                MongoAerialRepository(mongo, settings.mongodb_db_name) if mongo is not None
+                else InMemoryAerialRepository(),
+                file_storage,
+                aerial_orthophotos or DgtOrthophotoClient(http),
+                aerial_segmenter or MetaSegmenter(
+                    segment_http, api_key=settings.meta_api_key.get_secret_value() if settings.meta_api_key else None,
+                    base_url=settings.meta_api_base_url, model_id=settings.meta_segmentation_model),
+                limiter=ResolutionLimiter(settings.aerial_rate_per_minute, settings.aerial_burst, 1),
+                usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"], "aerial")
+                if mongo is not None else MemoryDailyUsage(),
+                daily_limit=settings.aerial_daily_limit,
+            )
             app.state.permit_workflow = PermitWorkflow(
                 repository=permit_repo,
                 properties=property_service,
@@ -276,6 +297,7 @@ def create_app(
                     ingestion.cancel()
                 await meta_http.aclose()
                 await transcribe_http.aclose()
+                await segment_http.aclose()
                 if mongo is not None:
                     await mongo.close()
 
@@ -299,6 +321,7 @@ def create_app(
     app.include_router(planning_api.router)
     app.include_router(report_api.router)
     app.include_router(voice_api.router)
+    app.include_router(aerial_api.router)
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:

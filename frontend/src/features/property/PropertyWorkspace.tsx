@@ -6,6 +6,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Notice } from "@/components/ui/Notice";
 import { PermitSection } from "@/features/permit/PermitSection";
+import { AerialSection } from "@/features/aerial/AerialSection";
 import { MapPostIts } from "@/features/report/MapPostIts";
 import { useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
@@ -58,6 +59,7 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
                 propertyId={property.property_id}
                 authorityName={property.jurisdiction.local_authority?.name ?? null}
               />
+              <AerialSection propertyId={property.property_id} precision={property.precision} />
               <LocationSection property={property} />
             </>
           ) : failed ? (

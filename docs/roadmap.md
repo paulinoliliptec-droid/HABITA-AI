@@ -211,7 +211,7 @@ scope or acceptance criteria** yet; numbering and order are the owner's decision
 
 | Module | Where it is named | What is defined |
 |---|---|---|
-| SAM 3.1 segmentation | architecture §6.2 | planned for the polish stage (owner 2026-11-01: real satellite images first); proposal to come |
+| SAM 3.1 segmentation | architecture §6.2 | **built 2026-11-01**: the aerial view on the DGT orthophotos (buildings, annexes, pools; conditions to confirm) |
 | Muse Voice Transcribe (voice input) | architecture §6.3 | **built 2026-11-01**: dictation of the question and answers (owner's decision; batch, 60 s, nothing kept, text reviewed before sending) |
 | Muse Image (image generation/editing, renovation visualisation) | architecture §6.4 | **built**: HR-012 concepts and plan views |
 | Afford (affordability) | README, HR-001/HR-002 out-of-scope | name only |

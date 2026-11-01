@@ -1,0 +1,67 @@
+.purpose,
+.hint,
+.legend {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  font-size: var(--text-sm);
+  color: var(--color-danger, #b42318);
+}
+
+.result {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.thumb {
+  display: block;
+  padding: 0;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: none;
+  cursor: zoom-in;
+}
+
+.thumb img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.list {
+  margin: 0;
+  padding-left: var(--space-5);
+  font-size: var(--text-sm);
+}
+
+.check {
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.swatchBuilding,
+.swatchSmall,
+.swatchPool {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.swatchBuilding {
+  background: rgb(255 110 0);
+}
+
+.swatchSmall {
+  background: rgb(255 40 120);
+}
+
+.swatchPool {
+  background: rgb(0 170 255);
+}

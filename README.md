@@ -25,6 +25,7 @@ the evidence does not support it.
 | AI | Meta Model API — **Muse Spark** (`muse-spark-1.3`) | planning, tool calls over official sources, drafting, a review that can only make a verdict stricter; reading the user's photos and plans (observations, people, plan or photo, the rooms of a plan) |
 | Images | Meta Model API — **Muse Image** (`muse-image-1.0`, edit endpoint) | before/after concepts from the user's photos and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses), always from HABITA's fixed instruction, with notices burned in (HR-012) |
 | Language | Google Cloud Translation | Portuguese reading view of answers; fixed texts in reviewed catalogs |
+| Aerial view | DGT official orthophotos (WMS, 2018) + Meta Model API — **SAM 3.1** (`sam-3.1`, masks decoded with Meta's `meta-sam-parser`) | buildings, small separate buildings and pools around the address point, measured from the image scale; observations that only add conditions to confirm with the Câmara |
 | Voice input | Meta Model API — **Muse Voice Transcribe** (`muse-voice-transcribe-1.0`) | dictating the question or an answer instead of typing; the text goes into the box to review before sending; the recording is not kept |
 | Voice output | ElevenLabs | spoken report, one voice per language; the browser's own voice as fallback |
 | Hosting | Google Cloud Run + Artifact Registry + Secret Manager | containers deployed manually; private staging with IAM authentication |
@@ -200,6 +201,7 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Photos and plans read as observations (HR-010) | Live; acceptance pending (consent wording not legally reviewed) |
 | Costs, financing and market price (HR-011) | Live; acceptance pending |
 | Before/after concepts from the user's photos, views from a plan, and the room the user chooses to divide (HR-012) | Live; acceptance pending |
+| Seen from the air: DGT orthophoto + SAM 3.1 (buildings, annexes, pools; conditions to confirm) | Built 2026-11-01; real SAM and DGT calls tested; publication pending |
 | Dictation with Muse Voice Transcribe (question and answers, PT/EN) | Live since 2026-11-01 (`b9a256b`); real transcription checked on the live candidate; owner's browser test pending |
 | HR-013 … HR-015 | Pending definition |
 
@@ -248,7 +250,7 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-11-01, dictation): backend **7018 passed, 14 skipped, 3 expected
+Last full run (2026-11-01, aerial view): backend **7032 passed, 14 skipped, 3 expected
 failures** (known limitations kept as strict xfail); frontend **89 passed**, lint, typecheck and build clean. Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 
