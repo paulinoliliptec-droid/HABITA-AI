@@ -17,8 +17,8 @@
                 │  ├─ API layer (REST)                         │
                 │  ├─ Orchestrator  ──► Jurisdiction agents    │
                 │  ├─ Meta Model API client                    │
-                │  │   (Muse Spark · Muse Image)               │
-                │  │                                           │
+                │  │   (Muse Spark · Muse Image ·              │
+                │  │    Muse Voice Transcribe)                 │
                 │  ├─ Google Maps server client                │
                 │  └─ Data access (MongoDB)                    │
                 └──────┬───────────────┬───────────────┬───────┘
@@ -45,7 +45,7 @@
 - **Planned modules** (names are indicative):
   - `api/`: HTTP routers (properties, jurisdictions, permits, media, voice).
   - `agents/`: orchestrator plus per-jurisdiction agents (§9).
-  - `integrations/meta/`: thin client for the Meta Model API (Muse Spark text and image reading, Muse Image edits).
+  - `integrations/meta/`: thin client for the Meta Model API (Muse Spark text and image reading, Muse Image edits, Muse Voice Transcribe).
   - `integrations/maps/`: geocoding, places, and parcel/location resolution.
   - `db/`: Mongo connection, repositories, indexes.
   - `core/`: settings loaded from env, logging (with secret redaction), errors.
@@ -96,18 +96,26 @@
 - Role: the reasoning engine behind the orchestrator and jurisdiction agents. It reads regulations, PDFs and photos, plans steps, calls tools (geocode, DB lookup, retrieval), and produces structured outputs (JSON schemas) with citations.
 - Contributor-mode variants (`-contributor`) allow Meta to train on our data, so **don't use them** with user property data.
 
-### 6.2 SAM 3.1: segmentation — not used (dropped from the MVP, 2026-11-01)
-_Kept as a record of the original design; nothing below is built or planned for the hackathon._
+### 6.2 SAM 3.1: segmentation — planned for the polish stage (owner, 2026-11-01)
+_Owner: mainly to identify features on real satellite images, later possibly on the "after" concepts. Not built yet; current proposal: [`sam-proposal.md`](sam-proposal.md). The design below is the original one._
 - Model: `sam-3.1` via `POST /v1/responses`. The Files API lets us reuse uploaded clips.
 - Role: segment site photos, aerial imagery or plans into structures, footprints, pools, driveways and similar. Results feed measurements and permit-relevant feature detection, e.g. "detached structure present".
 - **Imagery reference (contract for the SAM slice, not implemented).** Every SAM input is an explicit image reference: `{provider, source_id/url, captured_at, center {lat,lng} or bbox, zoom, ground_resolution_m_per_px, license}`. Styled interactive-map pixels are never a segmentation input. The workspace's Map/Satellite toggle is a view concern only.
 - **Attachment point.** Segmentation outputs (masks, measured features) are stored on `cases` / `agent_runs` and reference `property_id` plus the imagery reference. They never mutate the property document.
 
-### 6.3 Muse Voice Transcribe: speech to text — not used (dropped from the MVP, 2026-11-01)
-_Kept as a record of the original design. The spoken report (HR-007) goes the other way, text to speech, with ElevenLabs._
-- Model: `muse-voice-transcribe-1.0`. Batch: `POST /v1/asr/transcribe`. Realtime: `wss://api.meta.ai/v1/asr/realtime`.
-- Role: voice-first intake, e.g. a homeowner describes the project or an inspector dictates notes. The backend proxies the audio so the browser never holds the API key. Transcripts are passed to Muse Spark.
-- **Transport constraint for the voice slice.** The current API is one JSON request → one JSON response, and CORS allows only `GET`/`POST` with `Content-Type`. Voice needs a WebSocket or chunked-upload route with its own partial/final message envelope, a CORS and header update (multipart for uploads), and a check of Cloud Run's behaviour for long-lived connections (request timeout, HTTP/2, session affinity).
+### 6.3 Muse Voice Transcribe: speech to text — in use for dictation (owner, 2026-11-01)
+- Model: `muse-voice-transcribe-1.0`, batch endpoint `POST /v1/asr/transcribe` (`backend/app/integrations/meta/transcribe.py`).
+  Request format, found by a real call on 2026-11-01: multipart with a `request` part (JSON `{"model", "audioEncoding":
+  "WAV"}`) and an `audio` part (16-bit mono PCM WAV, 16 or 24 kHz); answer `{"transcript", "audioDurationMs"}`.
+- Role: the user dictates the permit question or an answer instead of typing (🎤 Dictate under each box). The browser
+  records, encodes a 16 kHz WAV and posts it to `POST /api/voice/transcribe`; the backend checks it (mono, 16-bit,
+  0.3–60 s), rewrites it without extra chunks, sends it with the server's key and keeps nothing. The text is only added
+  to the box for the user to review and correct before sending: a transcription error can't reach Muse Spark unseen.
+- Spend: per-process rate and concurrency, a daily cap per caller (30; the caller is a day-scoped keyed hash of the
+  address Cloud Run appends last to X-Forwarded-For, never stored as an address) and across instances (500 recordings
+  of at most 60 s), taken before the call; a call that writes nothing (failure, cancellation) gives the counts back.
+  Neither audio nor text is logged. Leaving the page releases the microphone and sends nothing.
+- Not built: the realtime WebSocket endpoint (`wss://api.meta.ai/v1/asr/realtime`); batch is enough for a question.
 
 ### 6.4 Muse Image: image editing — in use (HR-012)
 - Model: `muse-image-1.0`, edit endpoint (`backend/app/integrations/meta/image.py`).
@@ -122,7 +130,7 @@ _Kept as a record of the original design. The spoken report (HR-007) goes the ot
 ## 7. Request flow example (target)
 1. User enters an address (Places Autocomplete suggests, optional) → frontend → `POST /api/property/resolve-location`. **Implemented.**
 2. Backend geocodes it (Geocoding API), re-reads it in the country's official language when a jurisdiction adapter asks for one, resolves the jurisdiction chain from Maps components (`backend/app/services/jurisdiction/`), and upserts `properties`. **Implemented** (Maps components only; Mongo geo lookup not yet).
-3. User describes the project in text (voice input was dropped from the MVP).
+3. User describes the project in text, or dictates it (Muse Voice Transcribe) and reviews the text. **Implemented.**
 4. Orchestrator (Muse Spark) selects the jurisdiction agent(s) → the agents retrieve rules and reason → structured permit checklist with citations.
 5. Optional: upload photos and plans → Muse Spark reads them as observations (never evidence) → Muse Image makes before/after concepts and plan views. **Implemented** (HR-010, HR-012).
 6. Results are stored in `agent_runs` / `cases` → rendered in the UI.
@@ -219,6 +227,7 @@ property is to *which law applies*, behind one interface per jurisdiction:
   (Phase 1 closed operationally) and Phase 2: property identity binding of the VERIFIED commit, grounding false
   positives. Open problems are tracked in `.ai-review/HABITA-AI-TECHNICAL-DEBT.md`.
 - **Done since:** Muse Image concepts and plan views (HR-012), costs and price (HR-011), the spoken report with ElevenLabs (HR-007); see the README for the live state.
-- **Not used:** SAM 3.1 and Muse Voice Transcribe (dropped from the MVP, 2026-11-01).
+- **Done since (2026-11-01):** dictation with Muse Voice Transcribe.
+- **Planned (polish stage):** SAM 3.1 on real satellite imagery (proposal to come).
 - **Not started:** HABITA Live, broader jurisdiction coverage and sources
   (JurisdictionAdapter proposal, §9.5).

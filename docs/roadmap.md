@@ -15,7 +15,7 @@ are not global milestones.
 | HR-002 | Meta-powered Permit Intelligence Foundation | first agentic workflow GOAL → CHECKLIST → TOOLS → EVIDENCE → DRAFT → INDEPENDENT VERIFICATION → FINAL STATE on Muse Spark: persisted states and resume, structured tools, evidence model, regulatory-source abstraction (curated PT/Cascais), independent verifier, MongoDB, API, Permit section (`reviews/HR-002-…`) | review HR-002: Codex ACCEPTED, Muse ACCEPTED | **DONE** (RESOLVED / CLOSED, `main` @ `c556334`) |
 | HR-003 | Official Sources, Zoning & Regulatory Retrieval Foundation | coordinates → jurisdiction → official source registry → planning context → provenance-bearing evidence → Permit workflow, **Cascais only**; owner decisions of 2026-10-28 (manual confirmation without a validated connector; `pypdf`, no OCR; initial trusted corpus) (`reviews/HR-003-…`, `plans/HR-003-official-sources-plan.md`); MU-9 structural verification as its follow-up (`plans/HR-003-MU9-final-candidate.md`) | see below | **IN PROGRESS** |
 | HR-004 | Intelligent Map Experience | interactive map, highlighted property, informative post-its, planning conditions, risks and consultable legal sources; zoning layers only as verified official data, otherwise the absence is stated (owner, 2026-10-29) | AC4.1–AC4.8 below | **MVP COMPLETE** — tested headless on staging; owner's real-browser check pending (TD-049) |
-| HR-005 | Visual Reasoning Graph (*proposed*, Drive master roadmap 30/10) | progressive, clickable graph property → jurisdiction/rules → evidence/conditions → conclusion with uncertainty → documents → next steps; relations traceable to sources; no invented causality or authorisation | AC5.1–AC5.7, approved by the owner 2026-10-30 (Drive report HABITA-I18N-20261030-1400) | **IMPLEMENTED locally** — not deployed; browser QA pending |
+| HR-005 | Visual Reasoning Graph (*proposed*, Drive master roadmap 30/10) | progressive, clickable graph property → jurisdiction/rules → evidence/conditions → conclusion with uncertainty → documents → next steps; relations traceable to sources; no invented causality or authorisation | AC5.1–AC5.7, approved by the owner 2026-10-30 (Drive report HABITA-I18N-20261030-1400) | **LIVE, acceptance pending** — on the original services since 2026-10-31 (`984750b`, with the spoken report); browser QA by the owner pending |
 | HR-006 | Premium PDF Report | professional export: property identification, analysis summary, conditions, risks, official sources, verifiable references and conclusion status; VERIFIED / REJECTED / pending clearly distinct; evidence provenance and version preserved (owner, 2026-10-29) | AC6.1–AC6.9 below | **MVP COMPLETE** — Clássico PDF live on the original services since 2026-10-30 (`5fae732`, backend `00019-kew`, frontend `00014-jiy`); real Portuguese run VERIFIED on staging with 3 images; browser QA pending (TD-049) |
 | HR-007 | Voice Explanation | audio explanation of results with listen/pause/repeat; audio is not legal proof | proposed by Claude from the master roadmap, owner approved starting 2026-10-30: spoken only from the report, opens with "not legal proof", same status rule as the PDF, EN/PT, sentence on screen, owner changed 2026-10-31: ElevenLabs behind the backend, one voice per language, browser voice as fallback | **LIVE, acceptance pending** — on the original services since 2026-10-31 (`984750b`, backend `00029-tuq`, frontend `00024-wuw`); real audio in PT and EN from the server; owner's listening test pending |
 | HR-008 | Property Intelligence | property profile with provenance; official facts, observations and user declarations kept apart | AC8.1–AC8.8 below, approved by the owner 2026-10-31 | **LIVE, acceptance pending** — on the original services since 2026-10-31 (`360699b`, backend `00031-ron`, frontend `00026-muj`); panel, PDF and voice |
@@ -211,9 +211,9 @@ scope or acceptance criteria** yet; numbering and order are the owner's decision
 
 | Module | Where it is named | What is defined |
 |---|---|---|
-| SAM 3.1 segmentation | architecture §6.2 | integration point only |
-| Muse Voice Transcribe (voice input) | architecture §6.3, §1 | integration point only |
-| Muse Image (image generation/editing, renovation visualisation) | architecture §6.4 | integration point only |
+| SAM 3.1 segmentation | architecture §6.2 | planned for the polish stage (owner 2026-11-01: real satellite images first); proposal to come |
+| Muse Voice Transcribe (voice input) | architecture §6.3 | **built 2026-11-01**: dictation of the question and answers (owner's decision; batch, 60 s, nothing kept, text reviewed before sending) |
+| Muse Image (image generation/editing, renovation visualisation) | architecture §6.4 | **built**: HR-012 concepts and plan views |
 | Afford (affordability) | README, HR-001/HR-002 out-of-scope | name only |
 | HABITA Live | HR-001/HR-002 out-of-scope, architecture §10 | name only |
 | Broader jurisdictions (JurisdictionAdapter) | architecture §9.1, §9.5 (proposal) | proposal; after a stable Cascais MVP |
@@ -232,9 +232,7 @@ What each candidate needs before it can start, from what the repository already 
 
 | Module | Already in place | Needs from the owner |
 |---|---|---|
-| Voice input (Muse Voice Transcribe) | `integrations/meta/` client; Permit question entry point; architecture §1 voice path (WebSocket) | HR number, scope (languages, max duration, consent/retention), acceptance criteria, Meta ASR model access |
 | Segmentation (SAM 3.1) | Meta client; property workspace with map | HR number, input source (user photos vs imagery), output use, acceptance criteria |
-| Muse Image (visualisation) | Meta client | HR number, scope (renovation visualisation?), disclaimers, acceptance criteria |
 | Afford | — | definition |
 | HABITA Live | — | definition |
 

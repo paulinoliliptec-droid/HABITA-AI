@@ -27,6 +27,7 @@ import { PermitResult } from "./PermitResult";
 import { INTENT_LABEL, SUGGESTED_QUESTIONS, sourcesLine } from "./present";
 import { STABLE_STATES, type Evidence, type PermitIntent, type PermitMatter } from "./types";
 import styles from "./Permit.module.css";
+import { DictateButton } from "@/features/voice/DictateButton";
 
 const POLL_MS = 1500;
 
@@ -266,6 +267,10 @@ function GoalForm({ onAsk, onCancel }: { onAsk: (question: string) => Promise<vo
         placeholder={t("e.g. Can I convert this property into two residential units?")}
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
+      />
+      <DictateButton
+        disabled={submitting}
+        onText={(text) => setQuestion((q) => (q.trim() ? `${q.trim()} ${text}` : text).slice(0, 500))}
       />
       <div className={styles.suggestions}>
         {SUGGESTED_QUESTIONS.map((q) => (

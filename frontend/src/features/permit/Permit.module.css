@@ -587,3 +587,11 @@ a.ref:hover {
   color: #e8ece9;
   cursor: pointer;
 }
+
+/* Dictation: the button, its notice and any error, under the box it writes into. */
+.dictate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}

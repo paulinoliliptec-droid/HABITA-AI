@@ -6,6 +6,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { INPUT_CHOICES } from "./present";
 import type { MissingInput } from "./types";
 import styles from "./Permit.module.css";
+import { DictateButton } from "@/features/voice/DictateButton";
 
 const OTHER = "__other__";
 
@@ -103,6 +104,15 @@ export function PermitInputs({
               disabled={busy}
               aria-describedby={`${id}-why`}
               onChange={(e) => setAnswers((a) => ({ ...a, [item.input_key]: e.target.value }))}
+            />
+            <DictateButton
+              disabled={busy}
+              onText={(text) =>
+                setAnswers((a) => {
+                  const now = (a[item.input_key] ?? "").trim();
+                  return { ...a, [item.input_key]: (now ? `${now} ${text}` : text).slice(0, 2000) };
+                })
+              }
             />
             <p id={`${id}-why`} className={styles.fieldHint}>
               {shown(item.reason)}

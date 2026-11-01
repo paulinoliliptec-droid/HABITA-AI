@@ -14,7 +14,7 @@ The template is in [`/.env.example`](../.env.example) and holds placeholders onl
 | `META_REASONING_EFFORT` | backend | No | Optional `reasoning_effort` (`minimal`…`max`); omitted when unset. |
 | `META_IMAGE_MODEL` | backend | No | `muse-image-1.0` |
 | `USER_FILES_BUCKET` | backend | No | HR-010 private bucket for users' files (`habita-ai-512916-user-files` on the original: uniform access, public access prevention, no soft delete). Unset: files are kept in memory with `ALLOW_EPHEMERAL_STORAGE`, refused otherwise. |
-| `META_TRANSCRIBE_MODEL` | backend | No | `muse-voice-transcribe-1.0` |
+| `META_TRANSCRIBE_MODEL` | backend | No | `muse-voice-transcribe-1.0` (dictation). Also `META_TRANSCRIBE_TIMEOUT_SECONDS` (30), `DICTATION_RATE_PER_MINUTE` (10, per process), `DICTATION_BURST` (5), `DICTATION_DAILY_LIMIT` (500 a day, across instances), `DICTATION_PER_CALLER_DAILY` (30). |
 | `META_SEGMENTATION_MODEL` | backend | No | `sam-3.1` |
 | `GOOGLE_MAPS_API_KEY` | backend | **Yes** | Server-side key for Geocoding/Places. Restrict to required APIs. |
 | `MAPS_STATIC_API_KEY` | backend | No | Dedicated server key for the HR-006 PDF images, restricted to the Maps Static API and the Street View Static API (secret `maps-static-api-key`). No other key is reused: unset, the PDF says the maps are unavailable. Set a daily quota for both APIs. |

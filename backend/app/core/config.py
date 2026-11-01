@@ -89,6 +89,13 @@ class Settings(BaseSettings):
     concept_daily_limit: int = 50  # per UTC day, across instances (owner 2026-10-31)
     concept_per_matter: int = 3  # owner 2026-10-31
     meta_timeout_seconds: float = 90.0
+    # Dictation (owner 2026-11-01): the user speaks instead of typing; Muse Voice Transcribe, text reviewed before sending.
+    meta_transcribe_model: str = "muse-voice-transcribe-1.0"
+    meta_transcribe_timeout_seconds: float = 30.0
+    dictation_rate_per_minute: float = 10  # per process
+    dictation_burst: int = 5
+    dictation_daily_limit: int = 500  # recordings per UTC day, across instances, 60 s at most each
+    dictation_per_caller_daily: int = 30  # per caller address and UTC day
     # Optional reasoning effort ("minimal" … "max"); omitted from requests when unset.
     meta_reasoning_effort: str | None = None
 
