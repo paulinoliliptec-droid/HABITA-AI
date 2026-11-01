@@ -165,7 +165,9 @@ and the spoken report, "May not match your plan exactly" / "Pode não correspond
 because in the real test of 2026-11-01 the model added a store room to one view and a stair to the other (owner chose
 on 2026-11-01 to publish them as illustrations with that notice, provided a view does what is asked). The
 one-more-bedroom view passed its real test on 2026-11-01 (synthetic two-bedroom plan: the living room divided by a
-light partition with a door, every other room, window and the entrance kept, no stairs or extension);
+light partition with a door, every other room, window and the entrance kept, no stairs or extension). How a view is
+judged against its plan (zero tolerance, fail-closed) is set out in
+[`docs/hr012-plan-fidelity.md`](docs/hr012-plan-fidelity.md) (proposed criterion, with tests; not yet run on every view);
 a plan is never redrawn by a photo change, since an AI-edited plan could pass for a project. The original and the
 concept are shown side by side, and open large on a
 click. The panel picks up a new photo as soon as it is added. At most 3 per matter and 50
@@ -243,8 +245,8 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-11-01, HR-012 plan views): backend **6906 passed, 14 skipped, 3 expected failures**
-(known limitations kept as strict xfail; the report and concept suites re-run after the last review fix); frontend **84 passed**, lint, typecheck and build clean. Live tests against
+Last full run (2026-11-01, HR-012 plan-view fidelity criterion): backend **6925 passed, 14 skipped, 3 expected
+failures** (known limitations kept as strict xfail); frontend **84 passed** (unchanged since its last run), lint, typecheck and build clean. Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 
 ## Roadmap and technical debt
