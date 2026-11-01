@@ -163,7 +163,9 @@ ask for a 3D view or a realistic image of the home, kept to the plan's layout, o
 extension), with its own allowance of 3 per matter. These views carry a second burned-in notice, repeated in the PDF
 and the spoken report, "May not match your plan exactly" / "Pode não corresponder exatamente à sua planta",
 because in the real test of 2026-11-01 the model added a store room to one view and a stair to the other (owner chose
-on 2026-11-01 to publish them as illustrations with that notice);
+on 2026-11-01 to publish them as illustrations with that notice, provided a view does what is asked). The
+one-more-bedroom view passed its real test on 2026-11-01 (synthetic two-bedroom plan: the living room divided by a
+light partition with a door, every other room, window and the entrance kept, no stairs or extension);
 a plan is never redrawn by a photo change, since an AI-edited plan could pass for a project. The original and the
 concept are shown side by side, and open large on a
 click. The panel picks up a new photo as soon as it is added. At most 3 per matter and 50
@@ -202,8 +204,8 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-11-01 to commit `c883ef0` (backend
-revision `00053`, frontend `00049`), with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, and before/after concepts. The MU-9 migration of its database
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-11-01 to commit `d9684d3` (backend
+revision `00057`, frontend `00054`), with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom). The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
