@@ -234,8 +234,10 @@ class ConceptRequest(BaseModel):
 @router.get("/matters/{matter_id}/concepts/options", response_model=list[ConceptOption])
 async def concept_options(matter_id: MatterId, workflow: Workflow) -> list[ConceptOption]:
     matter = await workflow.get(matter_id)
-    return [ConceptOption(key=k, label=catalog.CHANGES[k][0])
-            for k in catalog.options(matter.intent or matter.requested_intent)]
+    intent = matter.intent or matter.requested_intent
+    return ([ConceptOption(key=k, label=catalog.CHANGES[k][0]) for k in catalog.options(intent)]
+            + [ConceptOption(key=k, label=catalog.PLAN_CHANGES[k][0], source="plan")
+               for k in catalog.plan_options(intent)])
 
 
 @router.get("/matters/{matter_id}/concepts", response_model=list[Concept])

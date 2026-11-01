@@ -58,4 +58,6 @@ class MatterFile(BaseModel):
     checks: list[FileCheck] = Field(default_factory=list)
     #: HR-012: whether the reader saw any person. None (not read, or read before this was asked) counts as yes.
     people_visible: bool | None = None
+    #: HR-012: whether the reader saw a floor plan or technical drawing (whatever kind the user chose).
+    is_plan: bool | None = None
     model_id: str | None = None

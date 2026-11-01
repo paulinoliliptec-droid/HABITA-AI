@@ -74,6 +74,7 @@ export interface MatterFile {
   observations: string[];
   checks: FileCheck[];
   people_visible: boolean | null;
+  is_plan: boolean | null;
 }
 
 /** What a file can point out; the server sends the key, and this is HABITA's fixed wording for it. */
@@ -195,7 +196,10 @@ export interface Concept {
   created_at: string;
 }
 
-export function conceptOptions(matterId: string, token: string): Promise<{ key: string; label: string }[]> {
+export function conceptOptions(
+  matterId: string,
+  token: string,
+): Promise<{ key: string; label: string; source: "photo" | "plan" }[]> {
   return apiRequest(`${base}/matters/${matterId}/concepts/options`, withToken(token));
 }
 

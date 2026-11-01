@@ -8,7 +8,7 @@ from PIL import Image
 
 from app.core.errors import RateLimitedError, UpstreamServiceError
 from app.services.concepts import catalog
-from app.services.concepts.label import NOTICE_EN, NOTICE_PT, burn
+from app.services.concepts.label import NOTICE_EN, NOTICE_PT, PLAN_NOTICE_PT, burn
 from app.services.concepts.service import Concepts, InMemoryConceptRepository
 from app.services.files.service import InMemoryFileRepository, InvalidFileError, MatterFiles
 from app.services.files.storage import InMemoryFileStorage
@@ -20,14 +20,15 @@ from tests.test_permit_workflow import answer, run
 
 
 class Reader(ScriptedModel):
-    def __init__(self, people=False, **kw):
+    def __init__(self, people=False, plan=False, **kw):
         super().__init__(**kw)
-        self.people = people
+        self.people, self.plan = people, plan
 
     async def chat(self, messages, *, tools=None, response_schema=None, schema_name=None):
         if schema_name != "file_reading":
             return await super().chat(messages, tools=tools, response_schema=response_schema, schema_name=schema_name)
-        return ChatResult(content=json.dumps({"observations": ["A room."], "checks": [], "people": self.people}))
+        return ChatResult(content=json.dumps({"observations": ["A room."], "checks": [], "people": self.people,
+                                              "plan": self.plan}))
 
 
 class Editor:
@@ -468,3 +469,107 @@ async def test_error_fields_are_logged_only_when_they_look_like_codes(caplog):
     deep = b"[" * 100000 + b"]" * 100000
     with pytest.raises(UpstreamServiceError):
         await editor_with(lambda r: httpx.Response(400, content=deep)).edit(b"img", "p")
+
+
+
+# --- plans: 3D view and realistic image (owner 2026-11-01) --------------------------------------------------------
+
+
+def test_a_plan_gets_its_own_views_with_their_instruction():
+    editor = Editor()
+    with client_with(editor) as client:
+        mid = matter(client)
+        options = client.get(f"/api/permit/matters/{mid}/concepts/options").json()
+        plan_id = photo(client, mid, png(), kind="plan")
+        made = [concept(client, mid, plan_id, k) for k in ("plan_3d", "plan_real")]
+    assert {o["key"] for o in options if o["source"] == "plan"} == {"plan_3d", "plan_real", "plan_3d_bedroom"}
+    assert [r.status_code for r in made] == [201, 201]
+    assert [r.json()["change_label"] for r in made] == ["3D view of the plan", "Realistic image of the home"]
+    for (_, prompt), key in zip(editor.calls, ("plan_3d", "plan_real")):
+        assert prompt == catalog.instruction(key)
+        assert "do not add, remove, enlarge or move any room" in prompt and "Do not add any person" in prompt
+
+
+def test_a_plan_is_never_redrawn_by_a_photo_change():
+    """The owner's test: a plan added as a photo got an extra partition. The reader now tells plans apart."""
+    editor = Editor()
+    with make_client(Reader(plan=True), permit_image_editor=editor, **LIMITS) as client:
+        mid = matter(client)
+        as_photo = photo(client, mid, png(), kind="photo")
+        refused = concept(client, mid, as_photo, "new_kitchen")
+        allowed = concept(client, mid, as_photo, "plan_3d")
+    assert refused.status_code == 422 and "3D view" in refused.text
+    assert allowed.status_code == 201 and len(editor.calls) == 1
+
+
+def test_plan_views_need_a_plan():
+    editor = Editor()
+    with client_with(editor) as client:
+        mid = matter(client)
+        assert concept(client, mid, photo(client, mid), "plan_3d").status_code == 422
+    assert editor.calls == []
+
+
+def test_a_pdf_plan_is_sent_as_its_image():
+    editor = Editor()
+    with client_with(editor) as client:
+        mid = matter(client)
+        res = concept(client, mid, photo(client, mid, pdf(), kind="plan"), "plan_real")
+    assert res.status_code == 201
+    with Image.open(io.BytesIO(editor.calls[0][0])) as sent:
+        assert sent.format == "JPEG"
+
+
+def test_plan_views_have_their_own_allowance():
+    editor = Editor()
+    with client_with(editor, concept_burst=100, concept_rate_per_minute=100) as client:
+        mid = matter(client)
+        fid, pid = photo(client, mid), photo(client, mid, png(), kind="plan")
+        assert [concept(client, mid, fid).status_code for _ in range(3)] == [201] * 3
+        assert [concept(client, mid, pid, "plan_3d").status_code for _ in range(3)] == [201] * 3
+        assert concept(client, mid, pid, "plan_real").status_code == 429
+        assert concept(client, mid, fid).status_code == 429
+
+
+
+def test_reports_say_a_plan_view_came_from_the_plan():
+    with client_with() as client:
+        mid = matter(client)
+        concept(client, mid, photo(client, mid, png(), kind="plan"), "plan_3d")
+        lines = client.get(f"/api/permit/matters/{mid}/report/voice").json()["lines"]
+        pt = client.get(f"/api/permit/matters/{mid}/report", params={"lang": "pt"}).json()
+    assert any("3D view of the plan, from your plan" in line for line in lines)
+    assert pt["concepts"][0]["source"] == "plan"
+    assert "May not match your plan exactly" in lines
+
+
+def test_photo_only_reports_have_no_plan_notice():
+    with client_with() as client:
+        mid = matter(client)
+        concept(client, mid, photo(client, mid, png()))
+        lines = client.get(f"/api/permit/matters/{mid}/report/voice").json()["lines"]
+    assert not any("May not match your plan" in line for line in lines)
+
+
+def test_one_more_bedroom_is_shown_inside_the_home_only():
+    """The owner's example (2026-11-01): "quero aumentar mais um quarto" gives a 3D view with that bedroom."""
+    editor = Editor()
+    with client_with(editor) as client:
+        mid = matter(client)
+        res = concept(client, mid, photo(client, mid, png(), kind="plan"), "plan_3d_bedroom")
+    assert res.status_code == 201 and res.json()["change_label"] == "3D view with one more bedroom"
+    prompt = editor.calls[0][1]
+    assert prompt == catalog.instruction("plan_3d_bedroom")
+    assert "exactly one more bedroom" in prompt and "no extension, no stairs" in prompt and "Do not add any person" in prompt
+    assert "every existing interior wall, column" in prompt and "remove or move no wall" in prompt
+    assert "only new door in that partition" in prompt
+    assert PINNED["3D view with one more bedroom"] == "Vista 3D com mais um quarto"
+
+
+def test_a_plan_view_also_says_it_may_not_match_the_plan():
+    assert PINNED[catalog.PLAN_NOTICE_EN] == PLAN_NOTICE_PT
+    out = io.BytesIO()
+    Image.new("RGB", (800, 600), "white").save(out, "PNG")
+    with Image.open(io.BytesIO(burn(out.getvalue()))) as plain, \
+            Image.open(io.BytesIO(burn(out.getvalue(), (PLAN_NOTICE_PT, catalog.PLAN_NOTICE_EN)))) as plan:
+        assert plan.height > plain.height  # the extra notice takes room of its own; nothing is clipped

@@ -15,6 +15,7 @@ from app.schemas.report import (
     ReportStatement, ReportStatus, ReportVerification,
 )
 from app.schemas.sources import OfficialSourceOut, PlanningContext
+from app.services.concepts.catalog import is_plan_change
 from app.services.report.profile import build_profile
 
 DISCLAIMER = (
@@ -171,6 +172,7 @@ def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list
         sources=[ReportSource(source_id=s.source_id, title=s.title, publisher=s.publisher, url=s.official_url,
                               version=s.version, status=s.status, verified_on=s.verified_on) for s in sources],
         assessment=assessment, profile=build_profile(prop, context, sources, evidence, matter, files), pending=pending, demo=demo, afford=afford,
-        concepts=[ReportConcept(change_label=c.change_label, created_on=c.created_at.date()) for c in concepts],
+        concepts=[ReportConcept(change_label=c.change_label, created_on=c.created_at.date(),
+                                source="plan" if is_plan_change(c.change) else "photo") for c in concepts],
         disclaimer=DISCLAIMER,
     )

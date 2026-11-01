@@ -107,7 +107,9 @@ Out of scope: bank offers or live rates, taxes such as IMT or IMI, a certified v
 | AC12.9 | Concepts are stored privately like files (HR-010), visible only with the matter's access, and deleted with their photo or on request. |
 | AC12.10 | Site, PDF and voice say what each concept is and is not, in English and Portuguese. |
 
-Out of scope: 3D, video, plans or drawings generated from scratch, street or aerial imagery, measurements from concepts.
+Plan views (owner, 2026-11-01): from a plan, a 3D view, a realistic image, or a 3D view with one more bedroom made inside the home; never a redrawn plan. They carry the extra notice "May not match your plan exactly", since the model doesn't follow a plan exactly.
+
+Out of scope: video, plans or drawings generated from scratch, street or aerial imagery, measurements from concepts.
 
 ### Bilingual system (PT/EN) — owner decision 2026-10-30
 
