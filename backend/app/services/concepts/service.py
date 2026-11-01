@@ -23,6 +23,7 @@ from app.integrations.maps.static_maps import MemoryDailyUsage
 from app.schemas.concepts import Concept
 from app.services.concepts import catalog
 from app.services.concepts.label import burn, for_editing
+from app.services.files.inspect import FileRejected, inspect
 from app.services.files.service import InvalidFileError, MatterFiles
 from app.services.files.storage import FileStorage
 
@@ -88,13 +89,20 @@ class Concepts:
 
     async def create(self, matter_id: str, intent: str | None, file_id: str, change: str) -> Concept:
         # Every refusal comes before any spend.
-        if change not in catalog.options(intent):
+        from_plan = catalog.is_plan_change(change)
+        if change not in (catalog.plan_options(intent) if from_plan else catalog.options(intent)):
             raise InvalidFileError("This change is not covered for this type of request.")
         photo = next((f for f in await self._files.list(matter_id) if f.file_id == file_id), None)
         if photo is None:
             raise NotFoundError("This file doesn't exist.")
-        if photo.kind != "photo" or photo.content_type not in ("image/jpeg", "image/png"):
-            raise InvalidFileError("Concepts are made only from your photos.")
+        looks_like_plan = photo.kind == "plan" or photo.is_plan is True
+        if from_plan and not looks_like_plan:
+            raise InvalidFileError("These views are made only from a plan.")
+        if not from_plan and (photo.kind != "photo" or photo.is_plan is not False
+                              or photo.content_type not in ("image/jpeg", "image/png")):
+            # An AI-edited plan could pass for a project: plans get their own views, never a redrawn plan.
+            raise InvalidFileError("Concepts of a change are made only from your photos; for a plan, use the 3D view "
+                                   "or the realistic image.")
         if photo.people_visible is not False:
             raise InvalidFileError("HABITA makes concepts only from photos it has checked and found no people in.")
         # The rate comes first and the whole job holds a concurrency slot, so repeated requests can't pile up decodes.
@@ -103,15 +111,21 @@ class Concepts:
         async with slots:
             _, original = await self._files.content(matter_id, file_id)
             try:
+                if photo.content_type == "application/pdf":  # the plan's image, as the reader saw it
+                    original = (await run_in_threadpool(inspect, original)).readable
+                    if original is None:
+                        raise ValueError("no readable image in this PDF")
                 source = await run_in_threadpool(for_editing, original)
-            except (OSError, ValueError):
-                raise InvalidFileError("This photo can't be used for a concept.") from None
+            except (OSError, ValueError, FileRejected):
+                raise InvalidFileError("This file can't be used for a concept.") from None
             day = datetime.now(UTC).date().isoformat()
+            # Plan views have their own allowance per matter, beside the photo concepts.
+            lifetime = f"{'plan_lifetime' if from_plan else 'lifetime'}:{matter_id}"
             try:
                 # The day first: a full day takes nothing from the matter. The matter's cap is for its whole life.
                 if await self._usage.take(day, self._daily) is None:
                     raise RateLimitedError(f"At most {self._daily} concepts are made a day. Please try again tomorrow.")
-                if await self._usage.take(f"lifetime:{matter_id}", self._per_matter) is None:
+                if await self._usage.take(lifetime, self._per_matter) is None:
                     await self._usage.give_back(day)
                     raise RateLimitedError(f"A matter can have at most {self._per_matter} concepts.")
             except RateLimitedError:
@@ -122,7 +136,7 @@ class Concepts:
                 generated = await self._editor.edit(source, catalog.instruction(change))
             except UpstreamServiceError:
                 # The image service refused or failed, so nothing was made: the attempt doesn't count.
-                await self._give_back(matter_id, day)
+                await self._give_back(lifetime, day)
                 raise UpstreamServiceError("The image service could not make this concept. It does not count "
                                            "against your limit; please try again.") from None
         try:
@@ -138,7 +152,7 @@ class Concepts:
         if not any(f.file_id == file_id for f in await self._files.list(matter_id)):
             raise NotFoundError("This photo was deleted while the concept was being made.")
         concept = Concept(concept_id=f"cn_{secrets.token_hex(8)}", matter_id=matter_id, file_id=file_id,
-                          change=change, change_label=catalog.CHANGES[change][0], created_at=datetime.now(UTC),
+                          change=change, change_label=catalog.ALL_CHANGES[change][0], created_at=datetime.now(UTC),
                           model_id=self._editor.model_id)
         await self._repo.add(concept)
         try:
@@ -157,9 +171,9 @@ class Concepts:
             raise NotFoundError("This photo or concept was deleted while the concept was being made.")
         return concept
 
-    async def _give_back(self, matter_id: str, day: str) -> None:
+    async def _give_back(self, lifetime: str, day: str) -> None:
         try:
-            await self._usage.give_back(f"lifetime:{matter_id}")
+            await self._usage.give_back(lifetime)
             await self._usage.give_back(day)
         except Exception:  # noqa: BLE001 - a lost refund only makes the limit stricter
             logger.warning("HR-012 could not give back a concept count")

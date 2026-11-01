@@ -136,6 +136,8 @@ class ProfileItem(BaseModel):
 class ReportConcept(BaseModel):
     change_label: str
     created_on: date
+    #: What the concept was made from.
+    source: Literal["photo", "plan"] = "photo"
 
 
 class PermitReport(BaseModel):

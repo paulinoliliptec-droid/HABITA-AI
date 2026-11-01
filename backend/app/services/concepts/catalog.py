@@ -35,5 +35,33 @@ def options(intent: str | None) -> list[str]:
     return list(BY_INTENT.get(intent or "", ()))
 
 
+
+
+#: From a plan (owner, 2026-11-01): a 3D view and a realistic image of the home, kept to the plan's layout. The plan
+#: itself is never redrawn: an AI-edited plan could pass for a project.
+_PLAN_RULES = ("Keep the layout of this floor plan exactly: do not add, remove, enlarge or move any room, wall, door or "
+               "window, and add no floor. Simple neutral furniture. Do not add any person, animal, text, label, logo "
+               "or brand. ")
+PLAN_CHANGES: dict[str, tuple[str, str]] = {
+    "plan_3d": (msg("3D view of the plan"),
+                "Turn this floor plan into a 3D isometric cutaway view of the same home, seen from above at an angle "
+                "with the walls cut at mid height."),
+    "plan_real": (msg("Realistic image of the home"),
+                  "Turn this floor plan into one photorealistic photograph of the inside of the same home: its largest "
+                  "room as drawn, at eye level, in daylight."),
+}
+ALL_CHANGES = {**CHANGES, **PLAN_CHANGES}
+
+
+def plan_options(intent: str | None) -> list[str]:
+    return list(PLAN_CHANGES) if (intent or "") in BY_INTENT else []
+
+
+def is_plan_change(change: str) -> bool:
+    return change in PLAN_CHANGES
+
+
 def instruction(change: str) -> str:
+    if change in PLAN_CHANGES:
+        return PLAN_CHANGES[change][1] + " " + _PLAN_RULES
     return _RULES + CHANGES[change][1]
