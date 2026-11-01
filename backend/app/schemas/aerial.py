@@ -20,6 +20,8 @@ AERIAL_CHECK_TEXT: dict[str, str] = {
 }
 AERIAL_NOTICE = ("Seen from the air on the DGT orthophoto of {year}, segmented by Meta SAM 3.1. Outlines and areas are "
                  "approximate, may miss recent works, are not a survey or a parcel boundary, and prove no licence.")
+#: The orthophotos are CC BY 4.0 (dados.gov.pt); this is DGT's attribution text.
+AERIAL_ATTRIBUTION = "Informação geográfica cedida pela Direção-Geral do Território (CC BY 4.0)."
 
 
 class AerialSource(BaseModel):

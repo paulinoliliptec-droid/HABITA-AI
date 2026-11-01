@@ -90,3 +90,17 @@ A residential street in Cascais (38.7065, -9.4440, rooftop framing, 0.117 m/px),
 service: a building of about 190 m² at 1 m from the point, a pool of about 25 m² at 8 m, buildings of 140, 780 and
 655 m², and a small separate building of about 20 m² at 25 m; conditions for the small building and the pool.
 Image: [`evidence/aerial/cascais-real-20261101.jpg`](evidence/aerial/cascais-real-20261101.jpg).
+
+## Terms checked (2026-11-01, before publication)
+- **DGT:** dados.gov.pt lists "Ortofotos 25 cm - Portugal Continental - 2018" (DGT) under **CC BY** with the WMS as one
+  of its resources; the WMS capabilities say "Fees: no conditions apply", "AccessConstraints: None". DGT's open-data
+  page: free use with the obligation to name DGT as the owner. HABITA shows "Informação geográfica cedida pela
+  Direção-Geral do Território (CC BY 4.0)" on the image, the panel and the report, and states the change ("outlines
+  added by HABITA").
+- **Meta Model API terms** (dev.meta.ai, updated 2026-10-09) and geographic policy (2026-10-12): SAM 3.1, Muse Voice
+  Transcribe and Muse Image are Standard models (no training on request content, §5.1); outputs are ours (§4.1); no
+  restriction for Portugal or the EU (Muse Image is restricted in India only). Relevant duties: disclose limitations
+  and keep labels/provenance (AUP), no professional legal advice, no decisions on individuals' rights without
+  qualified review, end users must be 18+, no access from restricted territories, no Meta marks as branding (§7).
+  Open items for the polish stage: an 18+ notice, geo-restriction of restricted territories, and confirming the
+  non-commercial demo under §1 (the services are "intended for your commercial use").

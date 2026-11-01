@@ -104,11 +104,14 @@ export function AerialSection({ propertyId, precision }: { propertyId: string; p
           <p className={styles.hint}>
             {t("Seen from the air on the DGT orthophoto of {year}, segmented by Meta SAM 3.1. Outlines and areas are approximate, may miss recent works, are not a survey or a parcel boundary, and prove no licence.", { year: report.source.year })}
           </p>
+          <p className={styles.hint}>
+            Informação geográfica cedida pela Direção-Geral do Território (CC BY 4.0) · {t("outlines added by HABITA")}
+          </p>
           {large && (
             <ImageViewer
               src={aerialImageUrl(report)}
               alt={t("Aerial image with the outlines HABITA found")}
-              caption={`DGT Ortos ${report.source.year} · Meta SAM 3.1`}
+              caption={`Informação geográfica cedida pela Direção-Geral do Território (CC BY 4.0) · Ortos ${report.source.year} · Meta SAM 3.1`}
               onClose={() => setLarge(false)}
             />
           )}

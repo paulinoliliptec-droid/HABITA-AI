@@ -15,7 +15,7 @@ from app.schemas.report import (
     ReportStatement, ReportStatus, ReportVerification,
 )
 from app.schemas.sources import OfficialSourceOut, PlanningContext
-from app.schemas.aerial import AERIAL_CHECK_TEXT, AERIAL_NOTICE
+from app.schemas.aerial import AERIAL_ATTRIBUTION, AERIAL_CHECK_TEXT, AERIAL_NOTICE
 from app.services.concepts.catalog import is_plan_change
 from app.services.concepts.rooms import ALLOWED, FLOOR_NAMES, PLACES
 from app.services.report.profile import build_profile
@@ -173,6 +173,7 @@ def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list
     if aerial is not None and aerial.checks:
         pending += [f"Condition: {AERIAL_CHECK_TEXT[key]}" for key in AERIAL_CHECK_TEXT if key in aerial.checks]
         pending.append(f"Condition: {AERIAL_NOTICE.replace('{year}', str(aerial.source.year))}")
+        pending.append(f"Condition: {AERIAL_ATTRIBUTION}")
     return PermitReport(
         generated_at=now or datetime.now(UTC), property=_property(prop), planning=planning,
         sources=[ReportSource(source_id=s.source_id, title=s.title, publisher=s.publisher, url=s.official_url,

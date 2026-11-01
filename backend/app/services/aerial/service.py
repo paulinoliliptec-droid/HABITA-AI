@@ -40,6 +40,7 @@ SMALL_M2 = 40
 #: can't say which buildings are the property's, so they get no analysis.
 FRAMING = {"rooftop": (60.0, 25), "interpolated": (80.0, 60)}
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+BAND = 56  # two lines of 18 px text under the image
 _UNAVAILABLE = "The aerial analysis is temporarily unavailable. Please try again later."
 
 
@@ -179,10 +180,14 @@ def overlay(photo: Orthophoto, kept: list[tuple[Segment, AerialObject]], radius_
     draw.line((c, c - 8, c, c + 8), fill=(255, 255, 255, 255), width=2)
     out = Image.alpha_composite(base, layer).convert("RGB")
     font = ImageFont.truetype(FONT, 18)
-    band = Image.new("RGB", (SIZE, SIZE + 34), (20, 20, 20))
+    band = Image.new("RGB", (SIZE, SIZE + BAND), (20, 20, 20))
     band.paste(out, (0, 0))
-    ImageDraw.Draw(band).text((10, SIZE + 7), f"DGT Ortos {YEAR} · Meta SAM 3.1 · approximate outlines, not a survey "
-                                              "or a parcel boundary", font=font, fill=(255, 255, 255))
+    # CC BY 4.0 (dados.gov.pt, "Ortofotos 25 cm - Portugal Continental - 2018"): attribution, and the change stated.
+    pen = ImageDraw.Draw(band)
+    pen.text((10, SIZE + 6), f"Informação geográfica cedida pela Direção-Geral do Território (CC BY 4.0) · Ortos {YEAR}",
+             font=font, fill=(255, 255, 255))
+    pen.text((10, SIZE + 30), "Outlines added by HABITA with Meta SAM 3.1: approximate, not a survey or a parcel boundary",
+             font=font, fill=(255, 255, 255))
     buf = io.BytesIO()
     band.save(buf, "JPEG", quality=85)
     return buf.getvalue()

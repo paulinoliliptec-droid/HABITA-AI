@@ -100,10 +100,10 @@ def test_an_analysis_lists_what_is_near_the_point_with_conditions_to_confirm():
     assert body["source"]["provider"] == "DGT" and body["source"]["layer"] == "Ortos2018-RGB"
     assert image.status_code == 200 and image.headers["content-type"] == "image/jpeg"
     with Image.open(io.BytesIO(image.content)) as img:
-        assert img.size == (SIZE, SIZE + 34)  # the source line is burned in under the image
+        assert img.size == (SIZE, SIZE + 56)  # attribution and source lines are burned in under the image
     pending = " ".join(report["pending"])
     assert "small separate building is visible from the air" in pending and "swimming pool is visible" in pending
-    assert "not a survey or a parcel boundary" in pending
+    assert "not a survey or a parcel boundary" in pending and "cedida pela Direção-Geral do Território" in pending
     assert report["assessment"] is None  # nothing about the property's assessment changes
 
 
