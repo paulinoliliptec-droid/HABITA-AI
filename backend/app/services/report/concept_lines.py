@@ -1,6 +1,7 @@
 """HR-012 in words, for the PDFs and the voice: what each concept is and is not (AC12.10)."""
 
 from app.schemas.report import PermitReport
+from app.services.concepts.catalog import PLAN_NOTICE_EN
 from app.services.concepts.label import NOTICE_EN
 from app.services.i18n.translator import msg, translator_for
 
@@ -15,7 +16,10 @@ def rows(report: PermitReport) -> list[tuple[str, str]]:
     t = translator_for(report.language)
     out = [(t("Concept"), t(_FROM[c.source], change=c.change_label, date=c.created_on.isoformat()))
            for c in report.concepts]
-    return [*out, ("", t(NOT)), ("", t(NOTICE_EN))] if out else []
+    if not out:
+        return []
+    plan = [("", t(PLAN_NOTICE_EN))] if any(c.source == "plan" for c in report.concepts) else []
+    return [*out, ("", t(NOT)), ("", t(NOTICE_EN)), *plan]
 
 
 def sentences(report: PermitReport) -> list[str]:

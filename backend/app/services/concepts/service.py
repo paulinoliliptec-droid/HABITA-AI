@@ -22,7 +22,7 @@ from app.core.rate_limit import ResolutionLimiter
 from app.integrations.maps.static_maps import MemoryDailyUsage
 from app.schemas.concepts import Concept
 from app.services.concepts import catalog
-from app.services.concepts.label import burn, for_editing
+from app.services.concepts.label import PLAN_NOTICE_PT, burn, for_editing
 from app.services.files.inspect import FileRejected, inspect
 from app.services.files.service import InvalidFileError, MatterFiles
 from app.services.files.storage import FileStorage
@@ -140,7 +140,8 @@ class Concepts:
                 raise UpstreamServiceError("The image service could not make this concept. It does not count "
                                            "against your limit; please try again.") from None
         try:
-            labelled = await run_in_threadpool(burn, generated)
+            extra = (PLAN_NOTICE_PT, catalog.PLAN_NOTICE_EN) if from_plan else None
+            labelled = await run_in_threadpool(burn, generated, extra)
         except Exception:  # noqa: BLE001 - whatever came back is not shown unless it is an image we could label
             logger.warning("HR-012 concept was not a usable image")
             raise UpstreamServiceError("The image service returned an unusable image. Please try again.") from None

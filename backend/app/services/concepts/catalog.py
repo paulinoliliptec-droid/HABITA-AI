@@ -35,22 +35,30 @@ def options(intent: str | None) -> list[str]:
     return list(BY_INTENT.get(intent or "", ()))
 
 
-
-
-#: From a plan (owner, 2026-11-01): a 3D view and a realistic image of the home, kept to the plan's layout. The plan
-#: itself is never redrawn: an AI-edited plan could pass for a project.
-_PLAN_RULES = ("Keep the layout of this floor plan exactly: do not add, remove, enlarge or move any room, wall, door or "
-               "window, and add no floor. Simple neutral furniture. Do not add any person, animal, text, label, logo "
-               "or brand. ")
+#: From a plan (owner, 2026-11-01): a 3D view and a realistic image of the home, kept to the plan's layout, and a 3D
+#: view with one more bedroom (owner, 2026-11-01: "quero aumentar mais um quarto"). The plan itself is never redrawn:
+#: an AI-edited plan could pass for a project. The extra bedroom is made inside the home, never as an extension.
+_NO_PEOPLE = "Simple neutral furniture. Do not add any person, animal, text, label, logo or brand."
+_KEEP = ("Keep the layout of this floor plan exactly: do not add, remove, enlarge or move any room, wall, door or "
+         "window, and add no floor. ")
+_ONE_MORE = ("Keep the outer walls, every existing interior wall, column, door and window, and every other room of "
+             "this floor plan exactly; remove or move no wall; add no floor, no extension, no stairs and no other room. ")
+_3D = ("Turn this floor plan into a 3D isometric cutaway view of the same home, seen from above at an angle with the "
+       "walls cut at mid height.")
 PLAN_CHANGES: dict[str, tuple[str, str]] = {
-    "plan_3d": (msg("3D view of the plan"),
-                "Turn this floor plan into a 3D isometric cutaway view of the same home, seen from above at an angle "
-                "with the walls cut at mid height."),
+    "plan_3d": (msg("3D view of the plan"), _3D + " " + _KEEP),
     "plan_real": (msg("Realistic image of the home"),
                   "Turn this floor plan into one photorealistic photograph of the inside of the same home: its largest "
-                  "room as drawn, at eye level, in daylight."),
+                  "room as drawn, at eye level, in daylight. " + _KEEP),
+    "plan_3d_bedroom": (msg("3D view with one more bedroom"),
+                        _3D + " Show exactly one more bedroom than the plan has: divide the largest room with one "
+                        "light, non-structural partition with its only new door in that partition, and furnish the new part as a bedroom with a "
+                        "bed. " + _ONE_MORE),
 }
 ALL_CHANGES = {**CHANGES, **PLAN_CHANGES}
+#: The second line burned into a view from a plan: the image service doesn't follow a plan exactly (real test,
+#: 2026-11-01: it added a store room in one view and a stair in another), so the view is labelled as such.
+PLAN_NOTICE_EN = msg("May not match your plan exactly")
 
 
 def plan_options(intent: str | None) -> list[str]:
@@ -63,5 +71,5 @@ def is_plan_change(change: str) -> bool:
 
 def instruction(change: str) -> str:
     if change in PLAN_CHANGES:
-        return PLAN_CHANGES[change][1] + " " + _PLAN_RULES
+        return PLAN_CHANGES[change][1] + _NO_PEOPLE
     return _RULES + CHANGES[change][1]
