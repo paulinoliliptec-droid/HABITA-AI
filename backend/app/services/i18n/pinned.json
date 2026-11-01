@@ -273,6 +273,7 @@
   "The aerial analysis is not configured on the server (META_API_KEY).": "A análise aérea não está configurada no servidor (META_API_KEY).",
   "The aerial analysis is temporarily unavailable. Please try again later.": "A análise aérea está temporariamente indisponível. Tente mais tarde.",
   "The aerial analysis of this property was already tried today. Please try again tomorrow.": "A análise aérea deste imóvel já foi tentada hoje. Tente amanhã.",
+  "The aerial view needs an exact address, with the door number. This address points to an area (a square or a street), not to one building, so HABITA can't say which buildings belong to it.": "A vista aérea precisa de uma morada exata, com o número de porta. Esta morada aponta para uma zona (uma praça ou uma rua), não para um edifício, por isso o HABITA não consegue dizer que edifícios lhe pertencem.",
   "The aerial view uses the DGT orthophotos, which cover mainland Portugal only.": "A vista aérea usa os ortofotomapas da DGT, que só cobrem Portugal continental.",
   "The area actually renovated.": "A área efetivamente intervencionada.",
   "The assessment has not been verified yet.": "A avaliação ainda não foi verificada.",

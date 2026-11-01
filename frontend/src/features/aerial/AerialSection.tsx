@@ -61,15 +61,19 @@ export function AerialSection({ propertyId, precision }: { propertyId: string; p
       <p className={styles.purpose}>
         {t("HABITA looks at the official DGT orthophoto around this address with Meta SAM 3.1 and lists the buildings and pools it sees. It is an observation to confirm, not a survey, a parcel boundary or proof of a licence.")}
       </p>
-      {!report && (
-        <>
-          <Button variant="secondary" onClick={() => void analyse()} disabled={busy || !precise}>
-            {busy ? t("Analysing the aerial image… this can take a minute") : t("Analyse the aerial image")}
-          </Button>
-          {!precise && (
-            <p className={styles.hint}>{t("This address is too imprecise to say which buildings belong to it, so the aerial view isn't available for it.")}</p>
-          )}
-        </>
+      {!report && precise && (
+        <Button variant="primary" onClick={() => void analyse()} disabled={busy}>
+          {busy ? t("Analysing the aerial image… this can take a minute") : `🛰️ ${t("Analyse the aerial image")}`}
+        </Button>
+      )}
+      {!report && !precise && (
+        // No dead button (owner, 2026-11-01: "o botão está seco"): say why and what to do instead.
+        <div className={styles.check} role="note">
+          <p>
+            {t("The aerial view needs an exact address, with the door number. This address points to an area (a square or a street), not to one building, so HABITA can't say which buildings belong to it.")}
+          </p>
+          <p className={styles.hint}>{t("Search for the address with its number, for example “Rua Frederico Arouca 30, Cascais”.")}</p>
+        </div>
       )}
       {error && (
         <p className={styles.error} role="alert">
