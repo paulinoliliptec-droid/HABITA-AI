@@ -256,7 +256,7 @@ MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentia
 
 ## Roadmap and technical debt
 - Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002
-  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete; HR-005, HR-007, HR-008 and HR-009 to HR-012 live, acceptance pending;
+  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete (why, and what would make them full: roadmap "Why HR-004 and HR-006 are MVP complete"); HR-005, HR-007, HR-008 and HR-009 to HR-012 live, acceptance pending;
   HR-013…HR-015 pending definition.
 - Main open items: redeploy staging with the latest HR-004/HR-006 code (including the real PDF images); set Google
   Cloud API quotas and review the Maps Platform terms for imagery in PDFs; improve answers to procedure questions (repeated zoning conditions, missing RJUE
