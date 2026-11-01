@@ -1,8 +1,7 @@
-# SAM 3.1 in HABITA — proposal (polish stage, not built)
+# SAM 3.1 in HABITA — the aerial view (satellite slice built 2026-11-01; "after" uses proposed)
 
-Status: **proposal**, asked by the owner on 2026-11-01 ("vamos usar o SAM principalmente para identificar as imagens
-reais dos satélites e depois podemos usar também no depois, mas ajuda-me a encaixar bem para dar sentido"). Nothing is
-built; building it needs the owner's approval and a paid access test of `sam-3.1`.
+Status: **satellite slice built 2026-11-01** (owner: DGT imagery, option a; Meta's parser as a dependency, option a); the "after" uses stay a proposal. Asked by the owner on 2026-11-01 ("vamos usar o SAM principalmente para identificar as imagens
+reais dos satélites e depois podemos usar também no depois, mas ajuda-me a encaixar bem para dar sentido"). Access test passed on 2026-11-01 (`POST /v1/responses`, model `sam-3.1`, image as a data URL plus a text prompt).
 
 ## Why SAM fits HABITA
 HABITA already *reasons* (Muse Spark), *hears* (Muse Voice Transcribe), *speaks* (ElevenLabs) and *shows* ideas (Muse
@@ -69,3 +68,25 @@ SAM on the images HR-012 makes, to make them more honest:
 1. Access test of `sam-3.1` with one image (paid, small) and the DGT licence check: half a day.
 2. Satellite slice (imagery, segmentation, areas, profile, map/PDF overlay, conditions, PT/EN, tests): about 2 days.
 3. The "after" uses: about 1 day each.
+
+## As built (satellite slice)
+- `backend/app/integrations/dgt/orthophoto.py`: DGT WMS `ortos2018`, layer `Ortos2018-RGB`, a 1024 px square of 120 m
+  (rooftop addresses, 0.117 m/px) or 160 m (interpolated); blank answers refused; mainland only.
+- `backend/app/integrations/meta/segment.py`: SAM 3.1 through the Responses API; records parsed and masks decoded with
+  Meta's `meta-sam-parser` 0.0.5; malformed or out-of-image records skipped.
+- `backend/app/services/aerial/service.py`: prompts `building` and `swimming pool`; objects within 25 m (rooftop) or
+  60 m (interpolated) of the point; area from the mask's pixels; a building under 40 m² not under the point is a
+  "small separate building"; fixed conditions for small buildings and pools; the image with HABITA's outlines and the
+  source line burned in; one analysis per property; one paid attempt per property and day and a daily cap of 40, both taken before the
+  calls and given back only when no SAM call was made; a malformed SAM answer is an error, never "nothing found"; a
+  small building within 1 m of another building is part of it, not separate.
+  Coarser addresses and places outside the mainland get no analysis.
+- API: `GET/POST /api/property/{id}/aerial`, `GET …/aerial/image`. The report adds the conditions (PDF, voice,
+  post-its). Panel "Seen from the air" in the property workspace. PT/EN.
+- Not built yet: comparison with the declared area, the "after" uses.
+
+## Real run (2026-11-01)
+A residential street in Cascais (38.7065, -9.4440, rooftop framing, 0.117 m/px), real DGT and SAM calls through the
+service: a building of about 190 m² at 1 m from the point, a pool of about 25 m² at 8 m, buildings of 140, 780 and
+655 m², and a small separate building of about 20 m² at 25 m; conditions for the small building and the pool.
+Image: [`evidence/aerial/cascais-real-20261101.jpg`](evidence/aerial/cascais-real-20261101.jpg).

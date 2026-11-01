@@ -15,6 +15,7 @@ from app.schemas.report import (
     ReportStatement, ReportStatus, ReportVerification,
 )
 from app.schemas.sources import OfficialSourceOut, PlanningContext
+from app.schemas.aerial import AERIAL_CHECK_TEXT, AERIAL_NOTICE
 from app.services.concepts.catalog import is_plan_change
 from app.services.concepts.rooms import ALLOWED, FLOOR_NAMES, PLACES
 from app.services.report.profile import build_profile
@@ -151,7 +152,7 @@ def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list
                  matter: PermitMatter | None = None, evidence: list[Evidence] = (),
                  verification: VerificationReport | None = None, *, demo: bool = False,
                  now: datetime | None = None, files: list[MatterFile] = (),
-                 afford: AffordReport | None = None, concepts: list = ()) -> PermitReport:
+                 afford: AffordReport | None = None, concepts: list = (), aerial=None) -> PermitReport:
     planning = _planning(context)
     assessment = _assessment(matter, list(evidence), verification) if matter is not None else None
     pending: list[str] = []
@@ -168,6 +169,10 @@ def build_report(prop: ResolvedProperty, context: PlanningContext, sources: list
     # What the files point out, in HABITA's fixed wording, once each, in the closed list's order.
     pointed = {c for f in files for c in f.checks}
     pending += [f"Condition: {text}" for key, text in CHECK_TEXT.items() if key in pointed]
+    # Seen from the air (DGT orthophoto + SAM 3.1): only conditions to confirm, in HABITA's fixed wording.
+    if aerial is not None and aerial.checks:
+        pending += [f"Condition: {AERIAL_CHECK_TEXT[key]}" for key in AERIAL_CHECK_TEXT if key in aerial.checks]
+        pending.append(f"Condition: {AERIAL_NOTICE.replace('{year}', str(aerial.source.year))}")
     return PermitReport(
         generated_at=now or datetime.now(UTC), property=_property(prop), planning=planning,
         sources=[ReportSource(source_id=s.source_id, title=s.title, publisher=s.publisher, url=s.official_url,

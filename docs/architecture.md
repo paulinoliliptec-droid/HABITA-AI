@@ -18,7 +18,7 @@
                 │  ├─ Orchestrator  ──► Jurisdiction agents    │
                 │  ├─ Meta Model API client                    │
                 │  │   (Muse Spark · Muse Image ·              │
-                │  │    Muse Voice Transcribe)                 │
+                │  │    Muse Voice Transcribe · SAM 3.1)       │
                 │  ├─ Google Maps server client                │
                 │  └─ Data access (MongoDB)                    │
                 └──────┬───────────────┬───────────────┬───────┘
@@ -96,11 +96,11 @@
 - Role: the reasoning engine behind the orchestrator and jurisdiction agents. It reads regulations, PDFs and photos, plans steps, calls tools (geocode, DB lookup, retrieval), and produces structured outputs (JSON schemas) with citations.
 - Contributor-mode variants (`-contributor`) allow Meta to train on our data, so **don't use them** with user property data.
 
-### 6.2 SAM 3.1: segmentation — planned for the polish stage (owner, 2026-11-01)
-_Owner: mainly to identify features on real satellite images, later possibly on the "after" concepts. Not built yet; current proposal: [`sam-proposal.md`](sam-proposal.md). The design below is the original one._
+### 6.2 SAM 3.1: segmentation — built for the aerial view (owner, 2026-11-01)
+_Owner: mainly to identify features on real satellite images, later possibly on the "after" concepts. Satellite slice built on the official DGT orthophotos; see [`sam-proposal.md`](sam-proposal.md) ("As built"). The design below is the original one._
 - Model: `sam-3.1` via `POST /v1/responses`. The Files API lets us reuse uploaded clips.
 - Role: segment site photos, aerial imagery or plans into structures, footprints, pools, driveways and similar. Results feed measurements and permit-relevant feature detection, e.g. "detached structure present".
-- **Imagery reference (contract for the SAM slice, not implemented).** Every SAM input is an explicit image reference: `{provider, source_id/url, captured_at, center {lat,lng} or bbox, zoom, ground_resolution_m_per_px, license}`. Styled interactive-map pixels are never a segmentation input. The workspace's Map/Satellite toggle is a view concern only.
+- **Imagery reference (original contract; the built slice records provider, layer, year, bbox, scale and sha256 in `AerialSource`).** Every SAM input is an explicit image reference: `{provider, source_id/url, captured_at, center {lat,lng} or bbox, zoom, ground_resolution_m_per_px, license}`. Styled interactive-map pixels are never a segmentation input. The workspace's Map/Satellite toggle is a view concern only.
 - **Attachment point.** Segmentation outputs (masks, measured features) are stored on `cases` / `agent_runs` and reference `property_id` plus the imagery reference. They never mutate the property document.
 
 ### 6.3 Muse Voice Transcribe: speech to text — live for dictation (owner, 2026-11-01; `b9a256b`)
@@ -228,6 +228,6 @@ property is to *which law applies*, behind one interface per jurisdiction:
   positives. Open problems are tracked in `.ai-review/HABITA-AI-TECHNICAL-DEBT.md`.
 - **Done since:** Muse Image concepts and plan views (HR-012), costs and price (HR-011), the spoken report with ElevenLabs (HR-007); see the README for the live state.
 - **Done since (2026-11-01):** dictation with Muse Voice Transcribe.
-- **Planned (polish stage):** SAM 3.1 on real satellite imagery (proposal to come).
+- **Done since (2026-11-01):** the aerial view, SAM 3.1 on the DGT orthophotos.
 - **Not started:** HABITA Live, broader jurisdiction coverage and sources
   (JurisdictionAdapter proposal, §9.5).
