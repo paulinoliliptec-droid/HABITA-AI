@@ -1,6 +1,6 @@
 # SAM 3.1 in HABITA — the aerial view (satellite slice built 2026-11-01; "after" uses proposed)
 
-Status: **satellite slice built 2026-11-01** (owner: DGT imagery, option a; Meta's parser as a dependency, option a); the "after" uses stay a proposal. Asked by the owner on 2026-11-01 ("vamos usar o SAM principalmente para identificar as imagens
+Status: **satellite slice live 2026-11-01** (`ac5ff3d`, backend `00063-jam`) (owner: DGT imagery, option a; Meta's parser as a dependency, option a); the "after" uses stay a proposal. Asked by the owner on 2026-11-01 ("vamos usar o SAM principalmente para identificar as imagens
 reais dos satélites e depois podemos usar também no depois, mas ajuda-me a encaixar bem para dar sentido"). Access test passed on 2026-11-01 (`POST /v1/responses`, model `sam-3.1`, image as a data URL plus a text prompt).
 
 ## Why SAM fits HABITA
