@@ -1,6 +1,6 @@
 # HR-012 · Choosing the room to divide
 
-Status: **built on 2026-11-01, on the branch; not yet published.** Asked by the owner on 2026-11-01 ("faz a proposta
+Status: **built and live on 2026-11-01** (commit `7fad9a9`, backend `00059-sic`, frontend `00056-sal`; owner: "faz merge e publica no real"). Asked by the owner on 2026-11-01 ("faz a proposta
 de UX para escolher a divisão"); answers ChatGPT review HABITA-REVIEW-20261101-0652, point D. The owner approved the
 four proposals below on 2026-11-01 ("aprovo as 4 propostas, podes construir"). The paid real test of the chosen-room
 view still needs the owner's specific approval.
