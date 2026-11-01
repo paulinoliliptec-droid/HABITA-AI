@@ -21,7 +21,7 @@ are not global milestones.
 | HR-008 | Property Intelligence | property profile with provenance; official facts, observations and user declarations kept apart | AC8.1–AC8.8 below, approved by the owner 2026-10-31 | **LIVE, acceptance pending** — on the original services since 2026-10-31 (`360699b`, backend `00031-ron`, frontend `00026-muj`); panel, PDF and voice |
 | HR-009 | Intent & Permits | user intent → procedures by municipality and works type; never a specific licence without proof | AC9.1–AC9.8 below, approved by the owner 2026-10-31 | **LIVE, acceptance pending** — on the original services since 2026-10-31, now `729fa7f` (backend `00039-xes`, frontend `00034-pif`): fixed material warnings per type, next actions written by HABITA; last real run 4 of 5 answered VERIFIED with conditions, answers thin (TD-067); no legal review yet |
 | HR-010 | Multimodal Property Understanding (*proposed*) | photos, plans, documents; consent, EXIF, provenance, privacy; segmentation as a conditional sub-capability | AC10.1–AC10.9 below, approved by the owner 2026-10-31 | **LIVE, acceptance pending** — on the original since 2026-10-31, now `0caab9e` (backend `00043-kop`, frontend `00038-cud`): what to confirm from each file and several files at once; real readings of synthetic files before each release |
-| HR-011 | AFFORD / Financial Feasibility (*proposed*) | cost ranges, scenarios, parameterised rates; no financial guarantees | AC11.1–AC11.12 below; AC11.1–AC11.9 approved by the owner 2026-10-31 with a reference table; AC11.10–AC11.12 approved 2026-10-31 (INE first) | **LIVE, acceptance pending** — on the original since 2026-10-31 (`f714c0e`, backend `00048-qet`, frontend `00043-vod`; CORS fix for PUT and DELETE); table approved by the owner; Idealista/Casafari need accounts | not started |
+| HR-011 | AFFORD / Financial Feasibility (*proposed*) | cost ranges, scenarios, parameterised rates; no financial guarantees | AC11.1–AC11.12 below; AC11.1–AC11.9 approved by the owner 2026-10-31 with a reference table; AC11.10–AC11.12 approved 2026-10-31 (INE first) | **LIVE, acceptance pending** — on the original since 2026-10-31 (`f714c0e`, backend `00048-qet`, frontend `00043-vod`; CORS fix for PUT and DELETE); table approved by the owner; Idealista/Casafari need accounts | **LIVE, acceptance pending** — on the original since 2026-10-31 (`372280e`/`60c72e9`/`aebe149`): costs from the owner-approved reference table, financing and INE market price, every number computed by code |
 | HR-012 | Visual Transformation (*proposed*) | before/after concepts, never presented as municipal authorisation | AC12.1–AC12.10 below, approved by the owner 2026-10-31 (3 per matter, 50 a day, no facade) | **LIVE, acceptance pending** — on the original since 2026-10-31 (`622a8d2`, backend `00050-pen`, frontend `00045-tuh`); two real concepts before traffic |
 | HR-013 | Global Jurisdiction (*proposed*) | jurisdiction adapters with verified sources; Cascais first and stable | criteria **PENDING** | not started |
 | HR-014 | Production Readiness (*proposed*) | reliability, privacy, security, isolation, permissions, costs, observability, accessibility | criteria **PENDING** | not started |
@@ -91,6 +91,23 @@ Out of scope: segmentation (SAM) and video (conditional sub-capability, later), 
 | AC11.12 | Without a source for this municipality, HABITA says so and shows no price. |
 
 Out of scope: bank offers or live rates, taxes such as IMT or IMI, a certified valuation, before/after images (HR-012).
+
+### Why HR-004 and HR-006 are "MVP complete", and what would make them full (2026-11-01)
+"MVP complete" means every acceptance criterion approved for the hackathon (AC4.1–AC4.8, AC6.1–AC6.9) is met and
+tested, but the module still lacks things a production product needs. Neither is "DONE" until the owner accepts it.
+
+- **HR-004 map:** zoning always reads "not verified" because no official GIS connector is validated (the honest
+  fail-closed state, not a defect); the owner's real-browser check is pending (TD-049); the phone layout needs work
+  (TD-061). To become full: a validated official planning layer (the PDM/CRUS maps of Cascais through the DGT/SNIG
+  services) shown as a view-only layer with its source, and a zoning classification only from it; the newer modules
+  on the map (the aerial outlines of HABITA's SAM analysis as a layer, file observations, concepts); a parcel outline
+  only from verified cadastral geometry (none today); the browser and phone checks.
+- **HR-006 PDF:** the Clássico PDF meets AC6.1–AC6.9 and was run for real; still open: Latin-1 fonts (TD-021),
+  presentation (TD-046: logo, long source lists), the Google Maps terms for imagery in downloadable PDFs (TD-055), API
+  quotas (TD-054) and the browser check (TD-049). To become full: Unicode fonts, the HABITA visual identity, the
+  newer modules in the PDF (the aerial image with its DGT attribution, the concept images beside their notices, the
+  dictated question shown as the user's text), an integrity seal (hash and verification link or QR), the terms
+  review, and the owner's acceptance.
 
 ### HR-012 acceptance criteria (proposed by Claude 2026-10-31, awaiting the owner)
 
