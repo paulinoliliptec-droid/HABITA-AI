@@ -19,9 +19,11 @@ the evidence does not support it.
 |---|---|---|
 | Web app | Next.js (App Router) + React + TypeScript | address search, property workspace, map with post-its, permit questions, PDF download |
 | API | Python FastAPI | property resolution, jurisdiction, official sources, permit workflow, verifier, reports |
-| Database | MongoDB Atlas | properties, permit matters, evidence, verifications, official-source snapshots |
+| Database | MongoDB Atlas | properties, permit matters, evidence, verifications, official-source snapshots, file readings, concepts |
+| Files | Google Cloud Storage (private bucket) | the user's photos and plans (kept without location or device data) and the generated concepts |
 | Maps | Google Maps Platform | Places autocomplete, Geocoding, Maps JavaScript (map), Maps Static and Street View Static (PDF images, see HR-006) |
-| AI | Meta Model API — **Muse Spark** (`muse-spark-1.3`) | planning, tool calls over official sources, drafting, a review that can only make a verdict stricter |
+| AI | Meta Model API — **Muse Spark** (`muse-spark-1.3`) | planning, tool calls over official sources, drafting, a review that can only make a verdict stricter; reading the user's photos and plans (observations, people, plan or photo, the rooms of a plan) |
+| Images | Meta Model API — **Muse Image** (`muse-image-1.0`, edit endpoint) | before/after concepts from the user's photos and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses), always from HABITA's fixed instruction, with notices burned in (HR-012) |
 | Language | Google Cloud Translation | Portuguese reading view of answers; fixed texts in reviewed catalogs |
 | Voice | ElevenLabs | spoken report, one voice per language; the browser's own voice as fallback |
 | Hosting | Google Cloud Run + Artifact Registry + Secret Manager | containers deployed manually; private staging with IAM authentication |
@@ -191,13 +193,12 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Spoken report in Portuguese and English with ElevenLabs (HR-007) | Live; real audio generated, full listening test pending |
 | Bilingual site, answers and PDF (Portuguese and English) | Live; Portuguese answers are labelled machine translation |
 | Private staging on Cloud Run | Done (IAM-authenticated, isolated database) |
-| Original (public demo) updated with HR-004/HR-006 and MU-9 | Done (2026-10-30), tested in the browser |
-| SAM 3.1 segmentation, Muse Voice Transcribe, Muse Image | Planned (integration points only) |
+| Original (public demo) | Live; last updated 2026-11-01 (commit `7fad9a9`) |
 | Property profile: official, observed, declared (HR-008) | Live; acceptance pending |
 | Request types with correction by the user (HR-009) | Live; acceptance pending |
 | Photos and plans read as observations (HR-010) | Live; acceptance pending (consent wording not legally reviewed) |
 | Costs, financing and market price (HR-011) | Live; acceptance pending |
-| Before/after concepts from the user's photos (HR-012) | Live; acceptance pending |
+| Before/after concepts from the user's photos, views from a plan, and the room the user chooses to divide (HR-012) | Live; acceptance pending |
 | HR-013 … HR-015 | Pending definition |
 
 ## Private staging demo (authenticated)
