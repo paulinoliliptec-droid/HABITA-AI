@@ -49,6 +49,9 @@ Para cada vista, com a planta ao lado:
 4. As janelas e a entrada estão nas mesmas divisões, e com o mesmo número?
 5. Aparece uma escada, um buraco no chão ou um segundo piso?
 6. Há alguma coisa que não consigo decidir? Se sim, a vista fica **por verificar**, nunca aprovada.
+7. (Só o olho apanha; o critério não vê.) **Reprovada** se o quarto novo não estiver fechado por uma divisória (só
+   pousado por cima da sala), se alguma parede entre duas divisões tiver sido aberta por inteiro (cozinha aberta para
+   a sala), ou se uma porta ou janela tiver mudado de sítio na mesma parede.
 
 ## Applied to the real views so far
 | Date | View | Plan | Verdict | Notes |
@@ -63,6 +66,41 @@ The plan and the view are in the repository for anyone to check against the chec
 [`evidence/hr012/plan-t2-synthetic.png`](evidence/hr012/plan-t2-synthetic.png) and
 [`evidence/hr012/plan_3d_bedroom-00057-jaq.jpg`](evidence/hr012/plan_3d_bedroom-00057-jaq.jpg) (synthetic, no
 private data). The earlier failed views stay in the git-ignored review folder, because their plan was not kept.
+
+## Synthetic sample matrix (negative cases)
+Five synthetic plans, drawn from the same geometry that gives their inventory, so the picture and the inventory can't
+drift apart (`backend/tests/plan_samples.py`; redraw with `python -m tests.plan_samples` from `backend/`):
+[T1](evidence/hr012/samples/plan-t1.png), [T3](evidence/hr012/samples/plan-t3.png),
+[T1 without areas](evidence/hr012/samples/plan-t1-unmeasured.png),
+[T2 with two rooms of 30 m²](evidence/hr012/samples/plan-t2-tie.png) and
+[a duplex with stairs](evidence/hr012/samples/plan-duplex.png). The views are inventories an evaluator could write
+down; no image was made and no paid call was used. 27 cases plus 3 stated limits, in `backend/tests/test_plan_fidelity_samples.py`:
+
+| Plan | Must PASS | Must FAIL | Must stay UNVERIFIED |
+|---|---|---|---|
+| T1 | faithful 3D; one more bedroom from the living room; realistic living room | bedroom taken from the bedroom; kitchen left out (drawn as part of the living room); a stair in the realistic image; realistic image without its entrance | |
+| T3 | faithful 3D; one more bedroom from the living room with its door to the hall | store room left out; a window lost; bedroom taken from the kitchen; bedroom 2 door moved from the hall to the living room; bedroom and bathroom swapped; an extra bathroom door | evaluator unsure (door or cupboard?) |
+| T1 without areas | faithful 3D | one more bedroom (no room can be called the largest) | |
+| T2 with a tie | faithful 3D | one more bedroom, from either of the two largest rooms | |
+| Duplex | faithful 3D; one more bedroom from the living room; realistic hall with the stairs and the floor above seen | ground floor only; stairs left out; a third floor | realistic image of any room where the other floor and the stairs aren't seen |
+
+What the matrix shows:
+- **Without areas, or with a tie, the one-more-bedroom view can never pass.** "Divide the largest room" has no
+  answer there. Before such views are offered on plans like these, the user should choose the room to divide
+  (polish item); until then the evaluator records them as FAIL.
+- **A realistic image of a home with several floors stays UNVERIFIED** unless the evaluator records the other floor
+  and the stairs as seen in it (for example a hall with the stairs going up). One room usually can't show them.
+- **Stated limits, kept as tests that PASS** (`test_stated_limits_pass_and_need_the_evaluator`), so only the
+  evaluator's eye catches them:
+  - a new bedroom that overlaps the living room instead of dividing it. At the 3×3 grid this looks the same as a
+    real division, which is also how the real PASS view of 00057-jaq is recorded;
+  - a wall between two rooms opened wide into an open-plan room, both rooms kept. An opening is recorded by the two
+    rooms it joins, not by its width.
+  - a door moved along its wall, between the same two rooms.
+- **Not covered:** a room chosen by the user to divide. `compare` only knows "the largest room"; a user's choice
+  would need its own parameter, which waits for the UX proposal (ChatGPT review 0527, point D).
+- **Stated limit:** zones are per floor, but a room's floor is not recorded. In a duplex, a bedroom carved
+  upstairs but declared as carved from the living room would only be caught by the evaluator's `carved_from`.
 
 ## Options for using it in the product (owner's decision)
 - **(a) Manual sample (no cost, now):** apply the checklist to each new real test and before each publication;
@@ -80,4 +118,5 @@ privacy and false-PASS estimate and the owner's approval.
 
 Known gaps (ChatGPT review 0318): one synthetic PASS is an example, not a general guarantee. The evaluator's inventory
 can itself be wrong. The "largest room" rule is HABITA's choice, not the user's: letting the user choose the room to
-divide is a polish item. Negative samples (T1/T3, unmeasured plans, ties, several floors) are still to be prepared.
+divide is a polish item. Negative samples (T1/T3, unmeasured plans, ties, several floors): see "Synthetic sample
+matrix" above.
