@@ -12,6 +12,7 @@ from pymongo import AsyncMongoClient
 from app.api import maintenance as maintenance_api
 from app.api import permit as permit_api
 from app.api import planning as planning_api
+from app.api import voice as voice_api
 from app.api import property as property_api
 from app.api import report as report_api
 from app.core.config import Settings, get_settings
@@ -29,7 +30,9 @@ from app.integrations.meta.client import MetaChatModel
 from app.integrations.speech.client import ElevenLabsClient
 from app.integrations.translate.client import GoogleTranslateClient
 from app.integrations.meta.image import MetaImageEditor
+from app.integrations.meta.transcribe import MetaTranscriber
 from app.services.concepts.service import Concepts, InMemoryConceptRepository, MongoConceptRepository
+from app.services.dictation import Dictation
 from app.services.afford.repository import InMemoryAffordRepository, MongoAffordRepository
 from app.services.files.service import InMemoryFileRepository, MatterFiles, MongoFileRepository
 from app.services.files.storage import GcsFileStorage, InMemoryFileStorage, UnconfiguredFileStorage
@@ -107,6 +110,7 @@ def create_app(
     meta_transport: httpx.AsyncBaseTransport | None = None,
     permit_model: ReasoningModel | None = None,
     permit_image_editor=None,
+    dictation_transcriber=None,
 ) -> FastAPI:
     settings = settings or get_settings()
 
@@ -234,6 +238,19 @@ def create_app(
                 if mongo is not None else MemoryDailyUsage(),
                 daily_limit=settings.concept_daily_limit, per_matter=settings.concept_per_matter,
             )
+            transcribe_http = httpx.AsyncClient(timeout=settings.meta_transcribe_timeout_seconds,
+                                                transport=meta_transport)
+            app.state.dictation = Dictation(
+                dictation_transcriber or MetaTranscriber(
+                    transcribe_http,
+                    api_key=settings.meta_api_key.get_secret_value() if settings.meta_api_key else None,
+                    base_url=settings.meta_api_base_url, model_id=settings.meta_transcribe_model),
+                limiter=ResolutionLimiter(settings.dictation_rate_per_minute, settings.dictation_burst, 2),
+                usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"], "dictation")
+                if mongo is not None else MemoryDailyUsage(),
+                daily_limit=settings.dictation_daily_limit, per_caller_daily=settings.dictation_per_caller_daily,
+                caller_key=settings.meta_api_key.get_secret_value().encode() if settings.meta_api_key else b"",
+            )
             app.state.permit_workflow = PermitWorkflow(
                 repository=permit_repo,
                 properties=property_service,
@@ -258,6 +275,7 @@ def create_app(
                 if ingestion is not None:
                     ingestion.cancel()
                 await meta_http.aclose()
+                await transcribe_http.aclose()
                 if mongo is not None:
                     await mongo.close()
 
@@ -280,6 +298,7 @@ def create_app(
     app.include_router(permit_api.router)
     app.include_router(planning_api.router)
     app.include_router(report_api.router)
+    app.include_router(voice_api.router)
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:

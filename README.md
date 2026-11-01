@@ -25,7 +25,8 @@ the evidence does not support it.
 | AI | Meta Model API — **Muse Spark** (`muse-spark-1.3`) | planning, tool calls over official sources, drafting, a review that can only make a verdict stricter; reading the user's photos and plans (observations, people, plan or photo, the rooms of a plan) |
 | Images | Meta Model API — **Muse Image** (`muse-image-1.0`, edit endpoint) | before/after concepts from the user's photos and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses), always from HABITA's fixed instruction, with notices burned in (HR-012) |
 | Language | Google Cloud Translation | Portuguese reading view of answers; fixed texts in reviewed catalogs |
-| Voice | ElevenLabs | spoken report, one voice per language; the browser's own voice as fallback |
+| Voice input | Meta Model API — **Muse Voice Transcribe** (`muse-voice-transcribe-1.0`) | dictating the question or an answer instead of typing; the text goes into the box to review before sending; the recording is not kept |
+| Voice output | ElevenLabs | spoken report, one voice per language; the browser's own voice as fallback |
 | Hosting | Google Cloud Run + Artifact Registry + Secret Manager | containers deployed manually; private staging with IAM authentication |
 
 Details: [`docs/architecture.md`](docs/architecture.md), [`docs/environment.md`](docs/environment.md).
@@ -199,6 +200,7 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Photos and plans read as observations (HR-010) | Live; acceptance pending (consent wording not legally reviewed) |
 | Costs, financing and market price (HR-011) | Live; acceptance pending |
 | Before/after concepts from the user's photos, views from a plan, and the room the user chooses to divide (HR-012) | Live; acceptance pending |
+| Dictation with Muse Voice Transcribe (question and answers, PT/EN) | Built 2026-11-01 on the branch; real access tested (PT and EN sentences transcribed exactly); not yet published |
 | HR-013 … HR-015 | Pending definition |
 
 ## Private staging demo (authenticated)
@@ -246,8 +248,8 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-11-01, HR-012 room choice): backend **6995 passed, 14 skipped, 3 expected
-failures** (known limitations kept as strict xfail); frontend **84 passed**, lint, typecheck and build clean. Live tests against
+Last full run (2026-11-01, dictation): backend **7018 passed, 14 skipped, 3 expected
+failures** (known limitations kept as strict xfail); frontend **89 passed**, lint, typecheck and build clean. Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 
 ## Roadmap and technical debt
