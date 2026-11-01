@@ -103,7 +103,7 @@ _Owner: mainly to identify features on real satellite images, later possibly on 
 - **Imagery reference (contract for the SAM slice, not implemented).** Every SAM input is an explicit image reference: `{provider, source_id/url, captured_at, center {lat,lng} or bbox, zoom, ground_resolution_m_per_px, license}`. Styled interactive-map pixels are never a segmentation input. The workspace's Map/Satellite toggle is a view concern only.
 - **Attachment point.** Segmentation outputs (masks, measured features) are stored on `cases` / `agent_runs` and reference `property_id` plus the imagery reference. They never mutate the property document.
 
-### 6.3 Muse Voice Transcribe: speech to text — in use for dictation (owner, 2026-11-01)
+### 6.3 Muse Voice Transcribe: speech to text — live for dictation (owner, 2026-11-01; `b9a256b`)
 - Model: `muse-voice-transcribe-1.0`, batch endpoint `POST /v1/asr/transcribe` (`backend/app/integrations/meta/transcribe.py`).
   Request format, found by a real call on 2026-11-01: multipart with a `request` part (JSON `{"model", "audioEncoding":
   "WAV"}`) and an `audio` part (16-bit mono PCM WAV, 16 or 24 kHz); answer `{"transcript", "audioDurationMs"}`.

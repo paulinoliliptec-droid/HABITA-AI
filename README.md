@@ -194,13 +194,13 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Spoken report in Portuguese and English with ElevenLabs (HR-007) | Live; real audio generated, full listening test pending |
 | Bilingual site, answers and PDF (Portuguese and English) | Live; Portuguese answers are labelled machine translation |
 | Private staging on Cloud Run | Done (IAM-authenticated, isolated database) |
-| Original (public demo) | Live; last updated 2026-11-01 (commit `7fad9a9`) |
+| Original (public demo) | Live; last updated 2026-11-01 (commit `b9a256b`) |
 | Property profile: official, observed, declared (HR-008) | Live; acceptance pending |
 | Request types with correction by the user (HR-009) | Live; acceptance pending |
 | Photos and plans read as observations (HR-010) | Live; acceptance pending (consent wording not legally reviewed) |
 | Costs, financing and market price (HR-011) | Live; acceptance pending |
 | Before/after concepts from the user's photos, views from a plan, and the room the user chooses to divide (HR-012) | Live; acceptance pending |
-| Dictation with Muse Voice Transcribe (question and answers, PT/EN) | Built 2026-11-01 on the branch; real access tested (PT and EN sentences transcribed exactly); not yet published |
+| Dictation with Muse Voice Transcribe (question and answers, PT/EN) | Live since 2026-11-01 (`b9a256b`); real transcription checked on the live candidate; owner's browser test pending |
 | HR-013 … HR-015 | Pending definition |
 
 ## Private staging demo (authenticated)
@@ -209,8 +209,8 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-11-01 to commit `7fad9a9` (backend
-revision `00059`, frontend `00056`), with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-11-01 to commit `b9a256b` (backend
+revision `00061`, frontend `00058`), with dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
