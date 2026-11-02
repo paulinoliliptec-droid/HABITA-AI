@@ -430,3 +430,14 @@ async def test_j_final_r3_a_reservation_listed_with_commas():
     report = await rendered_verify(in_section_claim("The deed, title and registration are not verified."),
                                    [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("established", ["The deed is now verified.", "The deed has now been verified.",
+                                         "A escritura foi entretanto verificada."])
+async def test_j_final_r4_an_adverb_does_not_hide_the_established_fact(established):
+    """Patch (j) final review r4 (Codex 2026-11-02, P1): any word between the verb and the predicate."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", established, status="system_record", title="Câmara Municipal de Cascais")
+    claim = "The deed is not verified." if established.startswith("The") else "A escritura não foi verificada."
+    report = await rendered_verify(in_section_claim(claim), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues

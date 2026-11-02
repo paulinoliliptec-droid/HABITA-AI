@@ -758,7 +758,10 @@ _NEGATIVE_RESERVATION = re.compile(
     r"(?:determinad|confirmad|verificad|apurad|definid)\w*"
     r"|\b(?:e|esta|sao|estao)\s+(?:ainda\s+)?desconhecid\w*")
 _ESTABLISHED = re.compile(
-    r"\b(?:is|are|was|were|has been|have been|foi|foram|esta|estao|e|sao)\s+(?:already\s+|ja\s+)?"
+    # Up to two words of any kind between the verb and the predicate ("is now verified", "has now been verified",
+    # "foi entretanto verificada"; Codex final r4), never a negation. Over-reading only adds refusals.
+    r"\b(?:is|are|was|were|has|have|foi|foram|esta|estao|e|sao)\s+"
+    r"(?:(?!(?:not|never|no|nao|nunca)\b)\w+\s+){0,2}"
     r"(?:confirm|determin|verif|establish|known|settled|resolved|confirmad|verificad|determinad|apurad|definid|"
     r"conhecid)\w*")
 
