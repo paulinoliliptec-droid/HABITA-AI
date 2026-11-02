@@ -232,3 +232,18 @@ def test_hr006_the_seal_links_the_public_property_page_never_a_capability(verifi
     assert f"https://habita.example/property/{verified.property.property_id}" in html
     assert "token" not in html.split("Property in HABITA")[1][:300].lower()
     assert "Property in HABITA" not in render_html(verified, None, "classico")  # no site configured: no link
+
+
+def test_hr006_a_partly_cited_group_is_drawn_dashed(verified):
+    """Codex HR-006 r1 (P2): a group line never implies that every item of the group is cited."""
+    from app.services.report.premium import graph_model, reasoning_graph
+    cols, edges = graph_model(verified)
+    a = verified.assessment
+    cited = {f"sec:{s.section}": set() for s in a.statements} | {"conclusion": set(a.conclusion_evidence_ids)}
+    for s in a.statements:
+        cited[f"sec:{s.section}"] |= set(s.evidence_ids)
+    groups = {n["id"]: n for c in cols for n in c if n["id"].startswith("evg:")}
+    expected = {(g, dst) for g, dst in edges if g in groups and not groups[g]["ids"] <= cited.get(dst, set())}
+    assert expected == {(g["id"], t) for g in groups.values() for t in g.get("partial_to", ())}
+    svg = reasoning_graph(verified)
+    assert svg.count('stroke-dasharray="3 2"') == len(expected)

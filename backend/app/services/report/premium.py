@@ -281,6 +281,9 @@ def graph_model(report: PermitReport) -> tuple[list[list[dict]], list[tuple[str,
     cols.append(section_nodes)
     for node, ids in cited.items():
         edges += [(g["id"], node) for g in evidence if g["ids"] & ids]
+        for g in evidence:  # a section citing only part of a group: drawn dashed (Codex HR-006 r1, P2)
+            if g["ids"] & ids and not g["ids"] <= ids:
+                g.setdefault("partial_to", set()).add(node)
     edges += [("planning", g["id"]) for g in evidence if "planning_context" in g["types"]]
     if p.authority:
         edges += [("authority", g["id"]) for g in evidence if "authority_record" in g["types"]]
@@ -306,6 +309,7 @@ def reasoning_graph(report: PermitReport, color: str = "#2c4d82") -> str:
                              f'stroke="#9aa3b2" stroke-width=".6"/><text x="{x + 6}" y="{y + 12}" font-size="8" '
                              f'font-weight="700">{_e(n["title"])}</text><text x="{x + 6}" y="{y + 24}" '
                              f'font-size="7.4">{lines}</text>')
+    partial = {(n["id"], target) for c in cols for n in c for target in n.get("partial_to", ())}
     edges_svg = []
     for a, b in edges:
         if a in pos and b in pos:
@@ -314,14 +318,16 @@ def reasoning_graph(report: PermitReport, color: str = "#2c4d82") -> str:
             if bx <= ax:  # same column: route around the right side
                 sx, ex = ax + node_w, bx + node_w
             mid = (sx + ex) / 2 if bx > ax else sx + 14
+            dash = ' stroke-dasharray="3 2"' if (a, b) in partial else ""
             edges_svg.append(f'<path d="M{sx},{sy} C{mid},{sy} {mid},{ey} {ex},{ey}" fill="none" stroke="{color}" '
-                             f'stroke-width="1" stroke-opacity=".8"/>')
+                             f'stroke-width="1" stroke-opacity=".8"{dash}/>')
     width = x0 + len(cols) * col_w
     return (f'<figure><svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 {width} {height}" '
             f'font-family="sans-serif">{"".join(edges_svg)}{"".join(nodes_svg)}</svg><figcaption>'
             + t("Reasoning graph: each line is a relation stored in this report (jurisdiction chain, planning status, "
                 "the evidence each statement section and the conclusion cite). It shows how the result was reached; it "
-                "is not a legal determination.") + "</figcaption></figure>")
+                "is not a legal determination.") + " " + t("A dashed line: the section cites only some of the group's items "
+                                                "(the analysis names which).") + "</figcaption></figure>")
 
 
 # ── Document ────────────────────────────────────────────────────────────────────────────────────────────────────
