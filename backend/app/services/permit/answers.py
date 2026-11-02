@@ -38,6 +38,23 @@ _FLOORS = re.compile(rf"(?:\b\d+\b|\b(?:{_NUMBER_WORDS})\b)[\w\s-]{{0,25}}\b(?:f
                      rf"\b(?:per|each|por|cada)\s+(?:floor|storey|piso|andar)\b|\bground\s+floor\b|\bres do chao\b")
 _ACCESS = re.compile(r"\b(?:entrances?|doors?|exits?|access(?:es)?|hall(?:way)?|stair(?:case|s)?|"
                      r"entradas?|portas?|saidas?|acessos?|escadas?|patio|corredor|hall)\b")
+#: How a unit is entered, not just the word "entrance" (Codex r4: "2 floors 60 m2 entrance").
+_ACCESS_HOW = re.compile(r"\b(?:own|separate|independent|private|shared|common|communal|street|road|public|hall(?:way)?|"
+                         r"stair\w*|courtyard|garden|propri\w*|independente\w*|separad\w*|privad\w*|comu\w*|"
+                         r"partilhad\w*|rua|publica|atrio|escada\w*|patio|quintal|jardim|corredor)\b")
+#: Each unit's area: two figures, or one figure applied to each unit ("about 60 m2 each").
+_EACH = re.compile(r"\b(?:each|both|apiece|per unit|per flat|per apartment|cada|ambos|ambas|por fracao|por apartamento)\b")
+
+
+def _area_per_unit(folded: str) -> bool:
+    """Two area figures, or one figure tied to each unit within a few words ("about 60 m2 each", "cada um com 60 m2")."""
+    found = list(_AREA.finditer(folded))
+    if len(found) >= 2:
+        return True
+    return any(_EACH.search(folded[max(0, m.start() - 30):m.end() + 25]) for m in found)
+#: An answer that says part of it is unknown is not complete (Codex r4: "entrance unknown").
+_UNKNOWN = re.compile(r"\b(?:unknown|unsure|not sure|don t know|dont know|no idea|tbd|tba|to be defined|desconhec\w*|"
+                      r"nao sei|sei la|a definir|por definir|indefinid\w*)\b|\?")
 _USE = re.compile(r"\b(?:hous\w*|dwelling\w*|residen\w*|home|flats?|apartments?|habita\w*|moradi\w*|vivend\w*|"
                   r"apartament\w*|fogos?|office\w*|escritori\w*|commerc\w*|comerci\w*|shops?|retail|lojas?|"
                   r"servic\w*|services?|restaurant\w*|cafe|bar|industr\w*|warehouse|armaz\w*|storage|garage\w*|"
@@ -87,12 +104,15 @@ def answer_problem(intent: str | None, key: str, answer: str) -> str | None:
                 "intended_use": NEED_LAYOUT if intent == "unit_conversion" else NEED_USE}.get(key, NOT_AN_ANSWER)
     words = _WORD.findall(folded)
     if key == "current_licensed_use":
-        return None if _USE.search(folded) else NEED_USE
+        return None if _USE.search(folded) and not _UNKNOWN.search(folded) else NEED_USE
     if key == "intended_use":
         if intent == "unit_conversion":
+            if _UNKNOWN.search(folded):
+                return NEED_LAYOUT
             missing = [m for m, ok in ((NEED_LAYOUT_FLOORS, _FLOORS.search(folded)),
-                                       (NEED_LAYOUT_AREA, _AREA.search(folded)),
-                                       (NEED_LAYOUT_ACCESS, _ACCESS.search(folded))) if not ok]
+                                       (NEED_LAYOUT_AREA, _area_per_unit(folded)),
+                                       (NEED_LAYOUT_ACCESS, _ACCESS.search(folded) and _ACCESS_HOW.search(folded)))
+                       if not ok]
             if len(missing) > 1:
                 return NEED_LAYOUT
             return missing[0] if missing else None

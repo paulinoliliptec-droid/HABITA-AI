@@ -181,3 +181,17 @@ def test_td061_every_clarifying_message_has_a_portuguese_text():
     from app.services.permit.answers import MESSAGES
     pt = json.loads((Path(__file__).parents[2] / "frontend" / "src" / "i18n" / "pt.json").read_text(encoding="utf-8"))
     assert [m for m in MESSAGES if not pt.get(m)] == []
+
+
+@pytest.mark.parametrize("answer", [
+    "2 floors, 60 m2, entrance unknown",  # an unknown part
+    "2 floors 60 m2 entrance",  # no area per unit, no way in
+    "Two flats, one per floor, 60 m2, own street doors",  # 60 m2 total or each?
+    "Dois apartamentos, um por piso, 60 m² cada, entrada a definir",
+])
+def test_td061_r4_a_layout_with_an_unknown_or_ambiguous_part_is_refused(client, answer):
+    """TD-061 (Codex 2026-11-02, P1): partial layouts passed the shape check."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {"intended_use": answer}})
+    assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"
