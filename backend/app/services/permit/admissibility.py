@@ -764,6 +764,9 @@ _ESTABLISHED = re.compile(
 
 
 _CLAUSE_BREAK = re.compile(r"[,;:]|\b(?:but|and|while|whereas|although|mas|e|enquanto|embora|porem)\b")
+#: The established side does not break at "and"/"e": "the deed and title are verified" establishes both (r5).
+_STRONG_BREAK = re.compile(r"[,;:]|\b(?:but|while|whereas|although|mas|enquanto|embora|porem)\b")
+_CONJUNCTION = re.compile(r"\b(?:and|e)\b")
 
 
 def _subject_stems(text: str) -> frozenset[str]:
@@ -779,23 +782,23 @@ def reservation_contradiction(text: str, cited: list[Evidence]) -> str | None:
         for x in _sentences(fold(e.excerpt)):
             for m in _ESTABLISHED.finditer(x):
                 # The clause of this predicate only (r4: "the deed is verified, but the plan is not verified").
-                start = max([0] + [k.end() for k in _CLAUSE_BREAK.finditer(x, 0, m.start())])
+                start = max([0] + [k.end() for k in _STRONG_BREAK.finditer(x, 0, m.start())])
                 clause = x[start:m.end()]
                 if not _NEGATION_WORDS.search(clause):
-                    subject = _subject_stems(x[start:m.start()])
-                    if subject:
-                        established.append(subject)
+                    whole = x[start:m.start()]
+                    for subject_text in [whole, *_CONJUNCTION.split(whole)]:
+                        subject = _subject_stems(subject_text)
+                        if subject:
+                            established.append(subject)
     if not established:
         return None
     for sentence in _sentences(fold(text)):
-        m = _NEGATIVE_RESERVATION.search(sentence)
-        if not m:
-            continue
-        start = max([0] + [k.end() for k in _CLAUSE_BREAK.finditer(sentence, 0, m.start())])
-        subject = _subject_stems(sentence[start:m.start()])
-        if subject and subject in established:
-            return ("says a fact is not established that its own cited record states as established (same subject); "
-                    "a reservation can't contradict its evidence")
+        for m in _NEGATIVE_RESERVATION.finditer(sentence):  # every reservation, not only the first (r5)
+            start = max([0] + [k.end() for k in _CLAUSE_BREAK.finditer(sentence, 0, m.start())])
+            subject = _subject_stems(sentence[start:m.start()])
+            if subject and subject in established:
+                return ("says a fact is not established that its own cited record states as established (same "
+                        "subject); a reservation can't contradict its evidence")
     return None
 
 

@@ -387,3 +387,14 @@ async def test_td003_final_r5_two_addresses_in_one_cited_sentence():
     report = await rendered_verify(in_section_claim("North Street 10, Porto."), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", report.issues
 
+
+@pytest.mark.parametrize("record_text,text", [
+    ("The deed is verified. The plan is pending.", "The plan is not verified and the deed is not verified."),
+    ("The deed and title are verified.", "The deed is not verified."),
+])
+async def test_j_r5_every_reservation_and_conjunct_subjects(record_text, text):
+    """Patch (j) review round 5 (Codex 2026-11-02, P1). Fixed after the last round: not re-reviewed."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
