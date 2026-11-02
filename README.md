@@ -275,13 +275,13 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — backend updated on 2026-11-02 to commit `c4b628e`
-(revision `00067`: TD-003 structural containment and the polished premium PDF; safe rollback revision `00065`, which
-has the same containment; `00063` and older are NOT safe rollbacks: they bring back the old verifier with the known
-false-VERIFIED paths), frontend updated on 2026-11-02 to commit
-`3eb66cd` (revision `00070`: landing page at `/`, live demo with the guided Cascais scenario at `/demo`, workspace
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — backend updated on 2026-11-02 to commit `9ed92a8`
+(revision `00069`: TD-003 structural containment, the polished premium PDF and the HR-007…HR-012 polish; safe
+rollback revisions `00067` and `00065`, which have the same containment; `00063` and older are NOT safe rollbacks:
+they bring back the old verifier with the known false-VERIFIED paths), frontend updated on 2026-11-02 to commit
+`9ed92a8` (revision `00072`: landing page at `/`, live demo with the guided Cascais scenario at `/demo`, workspace
 areas, "Property under analysis" map marker, Layers with the aerial view, notes to graph, the reasoning graph polished
-for phones, laptops and keyboard; rollback revision `00068`), with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
+for phones, laptops and keyboard, INE periods for English readers; rollback revision `00070`), with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. A frontend rollback to its previous revision
