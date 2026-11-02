@@ -229,6 +229,12 @@ def _wrap(text: str, width: int, lines: int = 3) -> list[str]:
     return out
 
 
+#: Evidence groups of the PDF graph, by verification status (the web graph's groups).
+EVIDENCE_GROUPS = {"official_text": msg("Official texts"), "curated_reference": msg("Curated references"),
+                   "system_record": msg("HABITA records"), "user_declared": msg("Your statements"),
+                   "other": msg("Other evidence")}
+
+
 def graph_model(report: PermitReport) -> tuple[list[list[dict]], list[tuple[str, str]]]:
     """Columns of nodes and the edges between them, each edge backed by a report field."""
     p, pl, a = report.property, report.planning, report.assessment
@@ -249,8 +255,16 @@ def graph_model(report: PermitReport) -> tuple[list[list[dict]], list[tuple[str,
         cols.append([{"id": "pending", "title": t("Pending"), "text": t("{n} item(s) to confirm", n=len(report.pending))}])
         edges.append(("property", "pending"))
         return cols, edges
-    evidence = [{"id": f"ev:{e.evidence_id}", "title": e.evidence_id, "text": e.title} for e in a.evidence]
-    cols.append(evidence or [{"id": "ev:none", "title": t("Evidence"), "text": t("none cited")}])
+    # HR-006 polish 6: evidence grouped by verification status, as in the web graph (one block per E id made a
+    # tangle of lines); each group names its ids, and its lines are the union of its members' stored relations.
+    groups: dict[str, list] = {}
+    for e in a.evidence:
+        groups.setdefault(e.verification_status if e.verification_status in EVIDENCE_GROUPS else "other", []).append(e)
+    evidence = [{"id": f"evg:{key}", "title": t(EVIDENCE_GROUPS[key]),
+                 "text": t("{n} item(s): {ids}", n=len(items), ids=", ".join(e.evidence_id for e in items)),
+                 "ids": {e.evidence_id for e in items}, "types": {e.source_type for e in items}}
+                for key, items in sorted(groups.items(), key=lambda kv: list(EVIDENCE_GROUPS).index(kv[0]))]
+    cols.append(evidence or [{"id": "ev:none", "title": t("Evidence"), "text": t("none cited"), "ids": set(), "types": set()}])
     section_nodes, cited = [], {}
     for key, name in SECTIONS:
         ids = {i for s in a.statements if s.section == key for i in s.evidence_ids}
@@ -263,11 +277,11 @@ def graph_model(report: PermitReport) -> tuple[list[list[dict]], list[tuple[str,
     cited["conclusion"] = set(a.conclusion_evidence_ids)
     cols.append(section_nodes)
     for node, ids in cited.items():
-        edges += [(f"ev:{i}", node) for i in sorted(ids) if any(e["id"] == f"ev:{i}" for e in evidence)]
-    edges += [("planning", f"ev:{e.evidence_id}") for e in a.evidence if e.source_type == "planning_context"]
+        edges += [(g["id"], node) for g in evidence if g["ids"] & ids]
+    edges += [("planning", g["id"]) for g in evidence if "planning_context" in g["types"]]
     if p.authority:
-        edges += [("authority", f"ev:{e.evidence_id}") for e in a.evidence if e.source_type == "authority_record"]
-    edges += [("jurisdiction", f"ev:{e.evidence_id}") for e in a.evidence if e.source_type == "jurisdiction_record"]
+        edges += [("authority", g["id"]) for g in evidence if "authority_record" in g["types"]]
+    edges += [("jurisdiction", g["id"]) for g in evidence if "jurisdiction_record" in g["types"]]
     return cols, edges
 
 

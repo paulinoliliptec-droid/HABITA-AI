@@ -86,16 +86,20 @@ def test_graph_edges_are_only_stored_relations(verified):
     cited = {(f"ev:{i}", f"sec:{s.section}") for s in a.statements for i in s.evidence_ids}
     cited |= {(f"ev:{i}", "conclusion") for i in a.conclusion_evidence_ids}
     structural = {("property", "jurisdiction"), ("jurisdiction", "authority"), ("property", "planning")}
+    members = {n["id"]: n["ids"] for c in cols for n in c if n["id"].startswith("evg:")}
     for src, dst in edges:
         assert src in nodes and dst in nodes
-        if src.startswith("ev:"):
-            assert (src, dst) in cited  # an evidence edge exists only where the report records the citation
-        elif dst.startswith("ev:"):
-            ev = next(e for e in a.evidence if f"ev:{e.evidence_id}" == dst)
-            assert {"planning": "planning_context", "authority": "authority_record",
-                    "jurisdiction": "jurisdiction_record"}[src] == ev.source_type
+        if src.startswith("evg:"):
+            # a group's edge exists only where the report records a citation by one of its members (polish 6)
+            assert any((f"ev:{i}", dst) in cited for i in members[src])
+        elif dst.startswith("evg:"):
+            kind = {"planning": "planning_context", "authority": "authority_record",
+                    "jurisdiction": "jurisdiction_record"}[src]
+            assert any(e.source_type == kind for e in a.evidence if e.evidence_id in members[dst])
         else:
             assert (src, dst) in structural
+    # every evidence item is in exactly one group, and every group says its ids
+    assert sorted(i for ids in members.values() for i in ids) == sorted(e.evidence_id for e in a.evidence)
 
 
 def test_repeated_statements_become_cross_references_that_keep_their_evidence(verified):

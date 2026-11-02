@@ -706,5 +706,6 @@
   "Links of the official sources": "Ligações das fontes oficiais",
   "Version": "Versão",
   "{n} sources pinned · fingerprint {fp} · full list in the annex": "{n} fontes fixadas · impressão digital {fp} · lista completa no anexo",
-  "D. Seen from the air (DGT {year} · Meta SAM 3.1)": "D. Vista aérea (DGT {year} · Meta SAM 3.1)"
+  "D. Seen from the air (DGT {year} · Meta SAM 3.1)": "D. Vista aérea (DGT {year} · Meta SAM 3.1)",
+  "{n} item(s): {ids}": "{n} item(ns): {ids}"
 }
