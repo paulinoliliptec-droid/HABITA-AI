@@ -171,3 +171,25 @@ def test_no_authority_node_or_edge_when_the_report_names_none(verified):
     cols, edges = graph_model(report)
     assert "authority" not in {n["id"] for c in cols for n in c}
     assert not any("authority" in (src, dst) for src, dst in edges)
+
+
+def _aerial_jpeg() -> bytes:
+    buf = io.BytesIO()
+    PILImage.new("RGB", (64, 70), (90, 110, 90)).save(buf, "JPEG")
+    return buf.getvalue()
+
+
+def test_hr006_the_aerial_view_is_in_the_location_page_with_its_notice(verified):
+    """HR-006 polish 2: the image the SAM analysis saw, its year, and what it is not."""
+    from app.services.report.premium import AerialFigure, render_html
+    html = render_html(verified, None, "classico", AerialFigure(jpeg=_aerial_jpeg(), year=2018))
+    assert "D. Seen from the air (DGT 2018 · Meta SAM 3.1)" in html
+    assert "not a survey or a parcel boundary, and prove no licence" in html
+    assert html.count("data:image/jpeg;base64,") == 1
+    pt = render_html(verified.model_copy(update={"language": "pt"}), None, "classico", AerialFigure(jpeg=_aerial_jpeg(), year=2018))
+    assert "D. Vista aérea (DGT 2018 · Meta SAM 3.1)" in pt and "não provam nenhuma licença" in pt
+
+
+def test_hr006_no_aerial_view_no_figure(verified):
+    from app.services.report.premium import render_html
+    assert "Seen from the air" not in render_html(verified, None, "classico")

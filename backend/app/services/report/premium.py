@@ -17,7 +17,10 @@ from html import escape
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from dataclasses import dataclass
+
 from app.integrations.maps.static_maps import ATTRIBUTION, LocationMaps
+from app.schemas.aerial import AERIAL_NOTICE
 from app.schemas.report import PermitReport
 from app.services.report import afford_lines, concept_lines
 from app.services.i18n.translator import msg, translator_for
@@ -363,12 +366,28 @@ def _glance(report: PermitReport, style: str) -> str:
             f"{reasoning_graph(report, ACCENT[style])}</section>")
 
 
-def _location(maps: LocationMaps | None, t=translator_for("en")) -> str:
+@dataclass(frozen=True)
+class AerialFigure:
+    """HABITA's aerial view for the PDF (HR-006 polish 2): the image the SAM analysis saw, with its year."""
+    jpeg: bytes
+    year: int
+
+
+def _aerial(aerial: AerialFigure | None, t) -> str:
+    """The aerial view, with its notice (approximate, not a survey, no licence); its DGT attribution is in the image."""
+    if aerial is None:
+        return ""
+    return (f'<figure><img class="map" style="width:72%" src="data:image/jpeg;base64,{base64.b64encode(aerial.jpeg).decode()}"/>'
+            f'<figcaption><b>{t("D. Seen from the air (DGT {year} · Meta SAM 3.1)", year=aerial.year)}</b> — '
+            + _e(t(AERIAL_NOTICE, year=aerial.year)) + "</figcaption></figure>")
+
+
+def _location(maps: LocationMaps | None, t=translator_for("en"), aerial: AerialFigure | None = None) -> str:
     if maps is None or not maps.images:
         why = maps.unavailable if maps is not None else "Maps were not requested for this report."
         return (f'<section><h2>{t("Location")}</h2><div class="box"><b>{t("Location maps unavailable.")}</b> {_e(t(why))} '
                 + t("No image has been substituted; use the coordinates in the property identification.")
-                + "</div></section>")
+                + "</div>" + _aerial(aerial, t) + "</section>")
     caps = {"roadmap": t("A. Road map"), "hybrid": t("B. Satellite image (with labels)")}
     figs = [f'<figure><img class="map" src="data:image/jpeg;base64,{base64.b64encode(i.jpeg).decode()}"/><figcaption>'
             f'<b>{caps[i.kind]}</b> — '
@@ -394,7 +413,7 @@ def _location(maps: LocationMaps | None, t=translator_for("en")) -> str:
                   "prove ownership, parcel limits, zoning or the existence of a municipal licence.",
                   radius=maps.radius_m, precision=_e(t(maps.precision)))
               + f" {t('Source:')} {_e(ATTRIBUTION)}.</p>")
-    return f'<section><h2>{t("Location")}</h2>{"".join(figs[:2])}{legend}{"".join(figs[2:])}</section>'
+    return f'<section><h2>{t("Location")}</h2>{"".join(figs[:2])}{legend}{"".join(figs[2:])}{_aerial(aerial, t)}</section>'
 
 
 def _planning(report: PermitReport) -> str:
@@ -574,7 +593,8 @@ def _annex(report: PermitReport) -> str:
     return f'<section><h2>{t("Annex: links and trust pin")}</h2>{"".join(out)}</section>'
 
 
-def render_html(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico") -> str:
+def render_html(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico",
+                aerial: AerialFigure | None = None) -> str:
     if style not in STYLES:
         raise ValueError(f"Unknown style {style!r}; expected one of {', '.join(STYLES)}.")
     t = translator_for(report.language)
@@ -582,11 +602,12 @@ def render_html(report: PermitReport, maps: LocationMaps | None = None, style: s
     return (f'<!doctype html><html lang="{report.language}"><head><meta charset="utf-8"><title>{t("HABITA AI report")}</title><meta name="author" content="HABITA AI">'
             f"<style>{FONT_FACES[style]()}\n{css}\n{CSS_STYLE[style]}</style></head><body class='{style}'>"
             f'<div class="disclaimer-running">{"<b>" + t(DEMO) + ".</b> " if report.demo else ""}{_e(report.disclaimer)}</div>'
-            f"{_cover(report)}{_glance(report, style)}{_location(maps, t)}{_planning(report)}{_profile(report)}{_concepts(report)}{_afford(report)}{_analysis(report)}"
+            f"{_cover(report)}{_glance(report, style)}{_location(maps, t, aerial)}{_planning(report)}{_profile(report)}{_concepts(report)}{_afford(report)}{_analysis(report)}"
             f"{_sources(report)}{_annex(report)}</body></html>")
 
 
-def render_premium_pdf(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico") -> bytes:
+def render_premium_pdf(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico",
+                       aerial: AerialFigure | None = None) -> bytes:
     from weasyprint import HTML  # imported lazily: heavy, and only this renderer needs it
 
-    return HTML(string=render_html(report, maps, style)).write_pdf()
+    return HTML(string=render_html(report, maps, style, aerial)).write_pdf()

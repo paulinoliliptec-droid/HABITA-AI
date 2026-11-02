@@ -20,7 +20,7 @@ from app.schemas.report import PermitReport, VoiceScript
 from app.services.report.builder import build_report
 from app.services.report.localize import localize_report
 from app.services.report.pdf import render_pdf
-from app.services.report.premium import render_premium_pdf
+from app.services.report.premium import AerialFigure, render_premium_pdf
 from app.services.report.voice import build_voice_script, script_version
 
 log = logging.getLogger(__name__)
@@ -53,14 +53,26 @@ async def _matter_report(request: Request, matter_id: str, workflow, lang: str) 
                                   await request.app.state.concepts.list(matter_id))
 
 
+async def _aerial_figure(request: Request, property_id: str) -> AerialFigure | None:
+    """HR-006 polish 2: the property's aerial view, if one was made; never a reason for the PDF to fail."""
+    try:
+        aerial = await request.app.state.aerial.get(property_id)
+        jpeg = await request.app.state.aerial.image(property_id) if aerial is not None else None
+    except Exception:  # noqa: BLE001 - storage or service trouble only drops the figure
+        log.exception("aerial view unavailable for the PDF")
+        return None
+    return AerialFigure(jpeg=jpeg, year=aerial.source.year) if aerial is not None and jpeg else None
+
+
 async def _pdf(request: Request, report: PermitReport, name: str) -> Response:
     p = report.property
     maps = await request.app.state.static_maps.location_maps(p.lat, p.lng, p.precision, place=p.property_id)
     style = request.app.state.settings.report_pdf_style
     content = None
     if style != "legacy":
+        aerial = await _aerial_figure(request, p.property_id)
         try:  # both renderers are CPU-bound: they run off the event loop
-            content = await run_in_threadpool(render_premium_pdf, report, maps, style)
+            content = await run_in_threadpool(render_premium_pdf, report, maps, style, aerial)
         except (ImportError, OSError):  # WeasyPrint or pango missing in this image: the legacy PDF is still correct
             log.exception("premium PDF unavailable; serving the legacy PDF")
     if content is None:
