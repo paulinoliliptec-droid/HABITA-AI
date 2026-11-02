@@ -793,6 +793,10 @@ def reservation_contradiction(text: str, cited: list[Evidence]) -> str | None:
                 if not _NEGATION_WORDS.search(x[far:m.end()]):
                     whole = x[far:m.start()]
                     subjects += [whole, *_CONJUNCTION.split(whole)]
+                # A listed subject ("the deed, title and plan are verified"): every item, as far back as the
+                # sentence stays negation-free (Codex final r2). Over-reading only adds refusals.
+                if not _NEGATION_WORDS.search(x[:m.end()]):
+                    subjects += re.split(r"[,;]|\b(?:and|e)\b", x[:m.start()])
                 for subject_text in subjects:
                     subject = _subject_stems(subject_text)
                     if subject:

@@ -410,3 +410,12 @@ async def test_j_final_r1_nearest_clause_and_conjoined_reservations(record_text,
     rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", report.issues
+
+
+async def test_j_final_r2_a_listed_subject_is_established_item_by_item():
+    """Patch (j) final review r2 (Codex 2026-11-02, P1)."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", "The deed, title and plan are verified.", status="system_record",
+                 title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim("The deed is not verified."), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
