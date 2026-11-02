@@ -31,8 +31,10 @@
 
 .title {
   margin: 0;
-  font-family: var(--font-display, serif);
-  font-size: var(--text-2xl, 1.5rem);
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
 }
 
 .subtitle,
@@ -182,7 +184,7 @@
 }
 
 .detailTitle {
-  font-family: var(--font-display, serif);
+  font-family: var(--font-serif);
   font-size: var(--text-lg, 1.125rem);
 }
 
