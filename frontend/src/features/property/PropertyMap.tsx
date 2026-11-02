@@ -9,7 +9,7 @@ import { importMapsLibrary, MapsUnavailableError, onMapsAuthFailure } from "@/li
 import { getAerial, aerialImageUrl, type AerialReport } from "@/features/aerial/api";
 import { onReportChanged } from "@/features/report/api";
 import { formatCoordinate } from "./format";
-import { bboxBounds } from "./mapLayers";
+import { imageBounds } from "./mapLayers";
 import { MapLayersPanel, type MapMode } from "./MapLayersPanel";
 import type { Coordinates } from "./types";
 import styles from "./PropertyMap.module.css";
@@ -130,12 +130,26 @@ export function PropertyMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || state.status !== "ready" || !aerialOn || !aerial || !aerialBbox) return;
-    const overlay = new google.maps.GroundOverlay(aerialImageUrl(aerial), bboxBounds(aerialBbox), {
-      clickable: false,
-      opacity: 0.92,
-    });
-    overlay.setMap(map);
-    return () => overlay.setMap(null);
+    // The served image is the photo plus an attribution band below it: measure it, then hang the band below the
+    // photo's own extent so outlines sit where SAM found them (Codex HR-004 r1, P1).
+    let overlay: google.maps.GroundOverlay | null = null;
+    let cancelled = false;
+    const url = aerialImageUrl(aerial);
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled) return;
+      const photoHeight = aerial.source.height ?? img.naturalWidth; // the orthophoto is square
+      overlay = new google.maps.GroundOverlay(url, imageBounds(aerialBbox, photoHeight, img.naturalHeight), {
+        clickable: false,
+        opacity: 0.92,
+      });
+      overlay.setMap(map);
+    };
+    img.src = url;
+    return () => {
+      cancelled = true;
+      overlay?.setMap(null);
+    };
   }, [aerialOn, aerial, aerialBbox, state.status]);
 
   if (state.status === "unavailable") {

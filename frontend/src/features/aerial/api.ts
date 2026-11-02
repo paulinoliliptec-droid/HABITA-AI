@@ -22,6 +22,9 @@ export interface AerialReport {
     metres_per_pixel: number;
     retrieved_at: string;
     bbox?: [number, number, number, number];
+    /** Pixel size of the orthophoto itself (the served image adds an attribution band below it). */
+    width?: number;
+    height?: number;
   };
   model_id: string;
   radius_m: number;

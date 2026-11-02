@@ -8,6 +8,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
 import { downloadReportPdf, getReport, onReportChanged } from "./api";
 import { buildPostIts } from "./postits";
+import { buildGraph } from "./reasoningGraph";
 import { profileSummary } from "./profile";
 import { ProfilePanel } from "./ProfilePanel";
 import { ReasoningGraph } from "./ReasoningGraph";
@@ -63,6 +64,10 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
   // A report read before the matter changed is never shown next to the new matter's PDF.
   if (!shown || shown.version !== version) return null;
   const { report, own, lang: reportLang } = shown;
+  // "See in the graph" only where the graph has that note's block (Codex HR-004 r1, P2: no sources, no sources block).
+  const graphIds = new Set(buildGraph(report, t).nodes.map((n) => n.id));
+  const hasBlock = (target: string) =>
+    target === "evidence" ? [...graphIds].some((id) => id.startsWith("ev:")) : graphIds.has(target);
 
   async function download() {
     setDownloading(true);
@@ -126,16 +131,18 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
                   {line}
                 </p>
               ))}
-              <button
-                type="button"
-                className={styles.toGraph}
-                onClick={() => {
-                  setGraphStart(GRAPH_BLOCK[n.id]);
-                  setGraphOpen(true);
-                }}
-              >
-                {t("See in the graph")}
-              </button>
+              {GRAPH_BLOCK[n.id] && hasBlock(GRAPH_BLOCK[n.id]) && (
+                <button
+                  type="button"
+                  className={styles.toGraph}
+                  onClick={() => {
+                    setGraphStart(GRAPH_BLOCK[n.id]);
+                    setGraphOpen(true);
+                  }}
+                >
+                  {t("See in the graph")}
+                </button>
+              )}
               {n.links.length > 0 && (
                 <p className={styles.links}>
                   {n.links.map((l) => (

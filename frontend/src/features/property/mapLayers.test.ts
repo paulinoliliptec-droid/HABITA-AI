@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bboxBounds, mercatorToLatLng } from "./mapLayers";
+import { bboxBounds, imageBounds, mercatorToLatLng } from "./mapLayers";
 
 describe("map layers", () => {
   it("converts Web Mercator metres to degrees", () => {
@@ -17,5 +17,19 @@ describe("map layers", () => {
     expect(b.west).toBeLessThan(b.east);
     expect(b.south).toBeLessThan(b.north);
     expect(b.east - b.west).toBeCloseTo((200 / 6378137) * (180 / Math.PI), 9);
+  });
+
+  it("hangs an attribution band below the photo instead of squeezing the photo", () => {
+    const bbox = [-1048900, 4677500, -1048700, 4677700] as const;
+    const photo = bboxBounds(bbox);
+    const withBand = imageBounds(bbox, 1024, 1080);
+    expect(withBand.north).toBeCloseTo(photo.north, 12);
+    expect(withBand.east).toBeCloseTo(photo.east, 12);
+    expect(withBand.west).toBeCloseTo(photo.west, 12);
+    expect(withBand.south).toBeLessThan(photo.south);
+    // 56 extra rows of a 1024-row photo: the extent grows by 56/1024 of the photo's height.
+    const growth = (photo.north - withBand.south) / (photo.north - photo.south);
+    expect(growth).toBeCloseTo(1080 / 1024, 3);
+    expect(imageBounds(bbox, 1024, 1024)).toEqual(photo);
   });
 });
