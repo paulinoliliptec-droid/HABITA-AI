@@ -324,7 +324,8 @@ export function buildGraph(report: PermitReport, t: Translate = english): Reason
 }
 
 export const NODE_WIDTH = 168;
-export const NODE_HEIGHT = 76;
+// Room for a two-line title and two lines of text (HR-005 polish 3: "Câmara Municipal de …" was cut to one line).
+export const NODE_HEIGHT = 92;
 const COLUMN_GAP = 56;
 const ROW_GAP = 16;
 const HEADER = 32;

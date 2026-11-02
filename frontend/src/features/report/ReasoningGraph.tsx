@@ -269,6 +269,7 @@ export function ReasoningGraph({
                   data-flow={flow.nodes.has(n.id) || undefined}
                   data-out={flow.nodes.has(n.id) ? undefined : true}
                   aria-pressed={n.id === node.id}
+                  title={n.text ? `${n.title}: ${n.text}` : n.title}
                   style={{ left: x, top: y, width: NODE_WIDTH, height: NODE_HEIGHT, "--column": n.column } as CSSProperties}
                   onClick={() => setSelected(n.id)}
                 >
