@@ -30,6 +30,7 @@ E41 = record("E41", "regulatory_source", "Interior works never need a licence in
              basis="curated_reference", title="Blog de obras (TEST FIXTURE)")
 RECORDS = [*A.RECORDS, civil("E7"), E40, E41]
 SETS = {**A.EVIDENCE_SETS, "civil": ["E7"], "sintra": ["E40"], "blog": ["E41"]}
+PLANNING_IDS = {"E20"}
 
 
 async def outcome(text, cites, basis, section, quote=None):
@@ -38,7 +39,7 @@ async def outcome(text, cites, basis, section, quote=None):
     d = reconcile_citations(d, RECORDS, matter(), CHAIN, await TRUSTED.trusted_ids(CHAIN))
 
     async def state(_m):
-        return resolved_state() if "E20" in ids else None
+        return resolved_state() if PLANNING_IDS & set(ids) else None
     report = await Verifier(Reviewer(VERIFIED), TRUSTED, state).verify(matter(), checklist(), d, RECORDS, CHAIN)
     return report.outcome, sorted({i.code for i in report.issues})
 
@@ -48,8 +49,35 @@ def upper95_zero(n):
     return round(1 - 0.05 ** (1 / n), 4) if n else None
 
 
+def load_fixtures(corpus: dict) -> None:
+    """Optional case-file fixtures (holdout authors): extra TEST FIXTURE records and citation sets.
+
+    "fixtures": [{"id": "H1", "source_type": "regulatory_source", "text": "...", "source": "cascais-pdm",
+                  "basis": "official_text", "authority_class": "municipal_instrument", "jurisdiction": "pt/lisboa/cascais",
+                  "title": "... (TEST FIXTURE)", "status": "official_text"}],
+    "sets": {"h1": ["H1"]}
+    A source id outside the trusted registry (cascais-pdm, cascais-urbanismo-faq, pt-rjue,
+    pt-codigo-civil-propriedade-horizontal) behaves as untrusted or retired. "planning": true makes the record the
+    property's resolved planning context (classification label in "label")."""
+    for f in corpus.get("fixtures", []):
+        if f.get("planning"):
+            from tests.test_permit_admissibility import planning
+            rec = planning(f["id"], status="resolved", classification={"label": f.get("label", "Espaço central"),
+                                                                        "land_class": "Solo urbano",
+                                                                        "category": f.get("label", "Espaço central")})
+            PLANNING_IDS.add(f["id"])
+        else:
+            rec = record(f["id"], f.get("source_type", "regulatory_source"), f["text"], source=f.get("source"),
+                         basis=f.get("basis", "curated_reference"), authority_class=f.get("authority_class"),
+                         jurisdiction=f.get("jurisdiction", "pt/lisboa/cascais"), title=f.get("title", "TEST FIXTURE"),
+                         status=f.get("status", "curated_reference"))
+        RECORDS.append(rec)
+    SETS.update(corpus.get("sets", {}))
+
+
 async def main(path):
     corpus = json.loads(Path(path).read_text(encoding="utf-8"))
+    load_fixtures(corpus)
     rows, confusion = [], collections.Counter()
     per_cat = collections.defaultdict(lambda: {"n": 0, "false_verified": 0, "false_rejected": 0})
     for case in corpus["cases"]:
