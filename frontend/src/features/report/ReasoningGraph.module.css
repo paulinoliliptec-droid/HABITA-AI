@@ -475,7 +475,7 @@
 }
 
 @keyframes word-in {
-  from { opacity: 0.25; }
+  from { opacity: 0.6; }
   to { opacity: 1; }
 }
 
@@ -701,4 +701,24 @@
 
 .arc {
   display: none;
+}
+
+/* HR-005 polish 2: six columns (about 1,290 px) don't fit beside the 22rem detail panel on common laptop and desktop
+   widths, so the last column hid behind it. Until the screen is wide enough for both, the detail goes under the
+   graph and the graph gets the full width. */
+@media (min-width: 901px) and (max-width: 1640px) {
+  .body {
+    flex-direction: column;
+    flex: none;
+  }
+
+  .scroller {
+    flex: none;
+  }
+
+  .detail {
+    flex: none;
+    max-width: 48rem;
+    overflow: visible;
+  }
 }
