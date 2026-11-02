@@ -68,23 +68,25 @@ def default_draft(payload: dict) -> dict:
     answer = "conditional" if payload["conditions"] else "likely_possible"
     none = {"planning_basis": "none", "quote": None}
     conclusion = (
-        {"evidence_ids": civil + rgeu, "summary": "A division may be possible if each new dwelling is autonomous, "
-                                                  "subject to the conditions."}
+        {"evidence_ids": civil + rgeu, "summary": "This must be confirmed with the Câmara, subject to the "
+                                                  "conditions."}
         if civil else
         # A legal requirement resting on a curated summary is not certified (MU-9): the overview defers it instead.
-        {"evidence_ids": rjue + authority, "summary": "Whether the works need municipal prior control must be "
-                                                      "confirmed with the Câmara, subject to the conditions."}
+        {"evidence_ids": rjue + authority, "summary": "This must be confirmed with the Câmara, subject to "
+                                                      "the conditions."}
     )
     return {
         "conclusion": {"answer": answer, **conclusion, **none},
         "claims": [
             {"text": "The Câmara Municipal de Cascais is the competent authority.", "evidence_ids": authority, **none},
-        ] + ([{"text": "Each new unit must be autonomous with its own exit.", "evidence_ids": civil, **none}] if civil else [])
+        ] + ([{"text": "Only autonomous units can be the object of horizontal property: units that are independent, distinct and isolated from each other, with their own exit to a common part of the building or to the public way.", "evidence_ids": civil, **none}] if civil else [])
         + ([{"text": "You state each floor has its own street door.", "evidence_ids": user, **none}] if user else []),
         "procedure": [{"step": "Apply for municipal prior control",
                        "description": "Submit the application to the Câmara Municipal under the RJUE.",
                        "evidence_ids": rjue + authority, **none}],
-        "risks": [{"text": "Without its own exit, a unit can't be in horizontal property and the title is null.",
+        # TD-003 (2026-11-01): was "Without its own exit, a unit can't be in horizontal property …", a legitimate
+        # inference the verifier now rejects (a restriction no longer grounds a negation). Kept as a TD-045 case.
+        "risks": [{"text": "Only autonomous units can be the object of horizontal property: units that are independent, distinct and isolated from each other, with their own exit to a common part of the building or to the public way.",
                    "evidence_ids": civil, **none}] if civil else [],
         "next_actions": [{"text": "Request confirmation of the conditions from the Câmara Municipal de Cascais.",
                           "evidence_ids": authority, **none}]

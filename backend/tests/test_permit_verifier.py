@@ -314,12 +314,12 @@ async def test_evidence_from_an_incompatible_jurisdiction_cannot_satisfy_a_claim
 
 async def test_fully_cited_draft_can_still_be_verified():
     # (HR-003 CX-1: parcel planning prose is HABITA's condition, so these sections avoid it.)
-    d = draft(next_actions=[NextAction(text="Ask the Câmara which documents the application needs.", evidence_ids=["E1"])],
+    d = draft(next_actions=[NextAction(text="Confirm this with the Câmara.", evidence_ids=["E1"])],
               procedure=[ProcedureStep(step="Apply", description="Submit the prior-control application.", evidence_ids=["E1"])],
               risks=[Risk(text="Requirements not confirmed may delay the works.", evidence_ids=["E1"])])
     # Free text must be grounded in what it cites (HR-003 CX-1), so E1 carries realistic wording here.
     grounded = ev("E1").model_copy(update={"excerpt": "An application for prior control must be submitted to the "
-                                                      "Câmara with the documents it needs; requirements not confirmed "
+                                                      "Câmara with the documents it needs. Requirements not confirmed "
                                                       "may delay the works."})
     report, _ = await verify(d, [grounded])
     assert report.outcome == "VERIFIED" and report.checks["claims_supported"]
@@ -335,3 +335,13 @@ async def test_a_model_material_false_label_cannot_exempt_a_claim():
     # Even if a stored claim says material=False, every model-written claim is checked.
     report, _ = await verify(draft(Claim(claim_id="K1", text="Already approved.", material=False, evidence_ids=[])))
     assert report.outcome == "REJECTED" and "unsupported_claim" in codes(report.issues)
+
+
+async def test_td003_structural_a_question_of_procedural_words_is_an_availability_cost():
+    """TD-003 structural (2026-11-02): a question carries only a whole cited sentence or nothing factual; "which
+    documents the application needs" names only procedure, and the Câmara is the addressee."""
+    d = draft(next_actions=[NextAction(text="Ask the Câmara which documents the application needs.", evidence_ids=["E1"])])
+    grounded = ev("E1").model_copy(update={"excerpt": "An application for prior control must be submitted to the "
+                                                      "Câmara with the documents it needs."})
+    report, _ = await verify(d, [grounded])
+    assert report.outcome != "VERIFIED"  # TD-003 r3: a question carries a pointer or a whole cited sentence only

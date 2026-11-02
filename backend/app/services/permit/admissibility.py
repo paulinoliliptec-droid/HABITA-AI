@@ -310,10 +310,11 @@ def asserted(sentence: str) -> str:
 _ABBREVIATIONS = {"art", "arts", "n", "no", "al", "cf", "eg", "ie", "etc", "p", "pp", "dr", "sr", "min", "max"}
 
 
-def _sentences(text: str) -> list[str]:
-    """Split on . ! ? ; — but not after an abbreviation or a number ("Art. 67.º")."""
+def _sentences(text: str, semicolon: bool = True) -> list[str]:
+    """Split on . ! ? ; — but not after an abbreviation or a number ("Art. 67.º"). ``semicolon=False`` keeps a
+    semicolon inside its sentence (a cited sentence's "; except …" belongs to it: TD-003 candidate review, Codex P1)."""
     out, start = [], 0
-    for m in re.finditer(r"[.!?;]+(?=\s|$)", text):
+    for m in re.finditer(r"[.!?;]+(?=\s|$)" if semicolon else r"[.!?]+(?=\s|$)", text):
         before = _WORD.findall(text[start:m.start()])
         if m.group().startswith(".") and before and (before[-1] in _ABBREVIATIONS or text[m.start() - 1].isdigit()):
             continue
@@ -541,17 +542,61 @@ def rendered_text(basis: str, quote: str | None, cited: list[Evidence], matter: 
 #: Neutral location predicates (EN + PT), a narrow subset of ``_ATTRIBUTION``. Usable in a free-text statement only
 #: when it cites HABITA's own location evidence (jurisdiction or property record), and they ground nothing else.
 _LOCATION_PREDICATES = ("located", "situated", "localizado", "localizada", "situado", "situada")
+#: The subject of a location restatement and the levels of HABITA's jurisdiction record ("in the parish of …").
+_LOCATION_SUBJECTS = ("property", "building", "parcel", "site", "imovel", "predio", "edificio", "parcela", "parish",
+                      "municipality", "district", "country", "freguesia", "concelho", "municipio", "distrito", "pais")
 _LOCATION_RECORDS = ("jurisdiction_record", "property_record")
 #: Neutral competence predicates (EN + PT): usable only when restating a cited authority record.
 _COMPETENCE_PREDICATES = ("handled", "handles", "responsible", "competent", "competence", "trata", "tratado",
                           "tratada", "competente", "responsavel")
 
 
-_NEGATION_WORDS = re.compile(r"\b(?:no|not|never|none|nor|nobody|nothing|cannot|nao|nunca|nenhum|nenhuma|nem|ninguem|nada)\b"
+_NEGATION_WORDS = re.compile(r"\b(?:no|not|never|none|nor|neither|nobody|nothing|cannot|without|nao|nunca|nenhum|nenhuma|"
+                             r"nem|ninguem|nada|sem)\b"
                              r"|\b\w+n['’]t\b")
 _RESTRICTIVE_WORDS = re.compile(r"\b(?:only|exclusively|solely|unless|except\w*|apenas|somente|exclusivamente|"
                                 r"salvo|exceto|excepto)\b")
 _NUMBER = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)?")
+_SEQUENCE_TOKEN = re.compile(r"[a-z]+|(?:[-−–—‒‑+±]\s*)?\d+(?:[.,]\d+)?|[<>≤≥=≠%]")
+#: TD-003 final review (Codex 2026-11-02, P1): words and signs that change what a rule says. A free-text sentence with
+#: any of them (or a number) verifies only as a verbatim restatement of one cited sentence: modality ("can" → "must",
+#: "pode" → "deve"), restriction ("only", "apenas", "exceto"), comparison and limits ("more than", "até", "mínimo"),
+#: and numbers with their signs and units.
+#: "Confirm with the Câmara whether the works need a licence": the embedded question of an instruction to check asserts
+#: nothing, so its operators are not claims. Only a single clause with no negation qualifies (no ", they don't").
+_CHECK_QUESTION = re.compile(r"^\s*(?:please\s+)?(?:confirm|check|ask|verify|request|find out|confirme|verifique|"
+                             r"pergunte|solicite|consulte|confirmar|verificar)\b[^,;:]*?"
+                             r"\b(?:whether|if|which|what|how|se|quais|qual|que|como)\b([^,;:]*)$")
+#: "Whether the works need prior control must be confirmed with the Câmara" (FP-4): the subject question asserts nothing.
+_WHETHER_SUBJECT = re.compile(r"^\s*(?:whether|se)\b([^,;:]*?)\b(?:must|should|has to|have to|needs? to|tem de|deve|devem|"
+                              r"precisa(?:m)? de)\s+(?:still\s+|ainda\s+)?(?:be\s+|ser\s+)?(?:confirm|check|verif|determin|"
+                              r"assess|establish|clarif|apur|avali)\w*")
+_OPERATOR_WORDS = re.compile(
+    r"\b(?:can|cannot|may|might|must|shall|should|will|would|need|needs|required?|requires|mandatory|obligatory|"
+    r"allowed|permitted|prohibited|forbidden|banned|exempt\w*|admitted|admissible|only|exclusively|solely|unless|"
+    r"except\w*|minimum|maximum|exceed\w*|pode|podem|podera|poderao|deve|devem|devera|deverao|obrigatori\w*|"
+    r"permitid\w*|proibid\w*|interdit\w*|isent\w*|admitid\w*|admissive\w*|apenas|somente|exclusivamente|salvo|"
+    r"exceto|excepto|superior\w*|inferior\w*|minim\w*|maxim\w*|excede\w*)\b"
+    r"|\b(?:more|less|fewer|greater|smaller|higher|lower|larger)\s+than\b|\bat\s+(?:least|most)\b|\bup\s+to\b"
+    r"|\b(?:mais|menos|maior|menor)\s+(?:de|do|da|que)\b|\bno\s+(?:minimo|maximo)\b"
+    r"|\b(?:has|have|had)\s+to\b|\b(?:is|are|was|were)\s+to\b|\bought\b|\b(?:tem|teem|tinha)\s+de\b|\bha\s+que\b"
+    r"|\b(?:precis|necessit|carec|obrigad|requer|exig)\w*"
+    r"|[-−–—‒‑+±]\s*\d"
+    r"|\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|hundred|thousand|"
+    r"single|double|twice|half|first|second|third|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|"
+    r"doze|vinte|trinta|cem|cento|mil|metade|dobro|primeir\w*|segund\w*|terceir\w*)\b"
+    r"|\b(?:could|necess\w*|compulsory|eligib\w*|ineligib\w*|poderia\w*|higher|lower|larger|smaller|greater|"
+    r"bigger|maior|maiores|menor|menores)\b"
+    r"|\b(?:able|unable|entitled|capable|authori[sz]ed|licensed|empowered|capaz|capazes|habilitad\w*|autorizad\w*|"
+    r"licenciad\w*|consegu\w*|impossib\w*|impossivel|infeasib\w*|inviavel)\b"
+    r"|\b(?:over|under|above|below|ate|acima\s+de|abaixo\s+de|entre)\s+[-−+±]?\d"
+    r"|[<>≤≥=≠%±−–—]|\d")
+_LOCATED_AT = re.compile(r"^(?:the\s+)?(?:property|building|house|flat|site|imovel|predio|edificio|casa|moradia|"
+                         r"apartamento|o\s+imovel|o\s+predio)?\s*(?:is\s+|fica\s+|esta\s+|situa\s+se\s+|e\s+)?"
+                         r"(?:located\s+|situated\s+|localizad[oa]\s+|situad[oa]\s+)?(?:at|in|on|em|na|no|nas|nos)\s+")
+#: An epistemic hedge on the answer ("a division may be possible") is not a permission: its modal is not an operator.
+_HEDGE = re.compile(r"\b(?:may|might|could|can)\s+(?:still\s+)?(?:be|become)\s+(?:possible|feasible|viable)\b"
+                    r"|\b(?:pode|podera)\s+(?:ainda\s+)?ser\s+(?:possivel|viavel)\b")
 
 
 _STATUS = r"(?:licen\w*|approv\w*|aprov\w*|authori[sz]\w*|autoriz\w*|permit\w*|legal\w*|conform\w*|compliant|valid\w*)"
@@ -603,13 +648,16 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
     # A negation is a function word for ``_tokens``, so it was never grounded ("The Câmara handles no applications"
     # against "handles applications"): every negation a free-text statement asserts must be in a cited record.
     # Only the statement's own cited records can state a negation (an uncited address's PT "no" is not one).
-    cited_text = fold(" ".join(" ".join((e.excerpt, e.source_title)) for e in cited if not is_user_declared(e)))
-    stated = set(_NEGATION_WORDS.findall(cited_text))
-    if _RESTRICTIVE_WORDS.search(cited_text):
-        # "Only autonomous units can …" states that the others can't: a restriction grounds a negation.
-        stated |= set(_NEGATION_WORDS.findall(fold(text)))
-    asserted_text = " ".join(_DEFERRAL.sub(" ", _subject_question_removed(x, names)) for x in _sentences(fold(text)))
-    ungrounded += sorted(set(_NEGATION_WORDS.findall(asserted_text)) - stated)
+    # A restriction in the record ("Only X can …") does NOT ground a negation: without scope analysis it verified the
+    # opposite claim ("X cannot …"), TD-003 (Codex 2026-11-01, P1). Negation scope is research (TD-045); until then a
+    # negation must be the record's own word, fail-closed.
+    # TD-003 rounds 2-3 (Codex 2026-11-01, P1): a negation word anywhere in the records verified the opposite of an
+    # unrelated sentence ("X cannot A. X can B." → "X cannot B."), or moved between clauses of one sentence ("cannot
+    # A, but can B" → "can A, but cannot B"), or borrowed words from a title. Negation scope is research (TD-045):
+    # until then a statement sentence with a negation is grounded only when its whole word sequence, negation
+    # included and in order, is contiguous in ONE cited sentence (a verbatim restatement). Fail-closed: a negated
+    # paraphrase does not verify. A deferral ("… is not confirmed") is removed first, as before: it asserts nothing.
+    ungrounded += operator_problems(text, cited, names)
     # Numbers aren't words for ``_tokens``, so they were never grounded ("Confirm the 3 documents …"): every number a
     # free-text statement asserts must be one of its cited records'.
     numbers = {n for e in [*cited, *case_facts] if not is_user_declared(e)
@@ -619,6 +667,241 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
     if len(ungrounded) > UNGROUNDED_ALLOWED:
         return f"is not grounded in its cited evidence (unsupported words: {', '.join(ungrounded)})"
     return None
+
+
+#: A segment naming a street is another address, never a skippable locality ("Centro Historico" may be omitted).
+_STREET = re.compile(r"\b(?:street|st|road|rd|avenue|av|ave|square|lane|way|rua|avenida|praca|largo|travessa|estrada|"
+                     r"alameda|calcada|beco|rotunda|azinhaga|caminho)\b")
+
+
+def _sequence(text: str) -> str:
+    return " " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(text)) + " "
+
+
+#: Whole-sentence comparison keeps the punctuation that changes meaning ("No, taxes are due." is not "No taxes are
+#: due.": TD-003 candidate review r2, Codex P1): commas, colons, semicolons and parentheses are tokens.
+_SENTENCE_TOKEN = re.compile(r"[a-z]+|(?:[-−–—‒‑+±]\s*)?\d+(?:[.,]\d+)?|[<>≤≥=≠%]|[,;:()]")
+
+
+#: The addressee of a check at the end of what is carried ("this with the Câmara"): "with"/"com"/"junto de" a
+#: municipality only. "to/from/by the authority" is a participant, not an addressee (Codex/Muse candidate review r3).
+_ADDRESSEE = re.compile(r"\s*,?\s*\b(?:with|from|to|by|com|junto\s+d[aeo]s?|pela|pelo|na|no)\s+(?:the\s+|a\s+|o\s+)?"
+                        r"(?:camara|municipality|municipal\s+council|council|municipio)(?:\s+municipal)?"
+                        r"(?:\s+de\s+[a-z]+)*\s*$")
+#: What a question or reservation may carry without restating a record: a pronoun pointing at what was said before
+#: ("This must be confirmed with the Câmara"). A closed set: anything else is held to the whole-sentence rule
+#: (Muse candidate review r3, P0 (b): procedural words carried modality flips).
+_ANAPHORS = {"this", "that", "it", "these", "those", "them", "isto", "isso", "aquilo", "tal", "este", "esta", "estes",
+             "estas", "esse", "essa", "esses", "essas",
+             # HABITA's own listed conditions ("Confirm the conditions with the Câmara"), with their articles
+             "conditions", "condicoes", "requirements", "requisitos", "confirmation", "confirmacao", "verification",
+             "verificacao", "the", "of", "o", "a", "os", "as", "de", "da",
+             "do", "das", "dos"}
+
+
+def _sentence_sequence(text: str) -> str:
+    return " " + " ".join(re.sub(r"\s+", "", t) for t in _SENTENCE_TOKEN.findall(text)) + " "
+
+
+def _whole_sentence(sentence: str, cited_sequences: list[str]) -> bool:
+    """``sentence`` is, token for token and punctuation included, one whole cited sentence (as ``cited_sequences``)."""
+    sequence = _sentence_sequence(sentence)
+    return sequence.strip() != "" and any(sequence == c for c in cited_sequences)
+
+
+#: The canonical competence sentences HABITA derives from an authority record "<Authority>: <activity>." (FP-3):
+#: "<activity> is handled by <Authority>", "<Authority> handles <activity>", "<Authority> is responsible for / competent
+#: for <activity>", PT "<atividade> é tratado/a pela <Autoridade>". Nothing else of the record may change.
+_COMPETENCE_FORMS = (
+    "{a} is handled by {t}", "{a} are handled by {t}", "{a} is handled by the {t}", "{a} are handled by the {t}",
+    "{t} handles {a}", "the {t} handles {a}", "{t} is responsible for {a}", "the {t} is responsible for {a}",
+    "{t} is competent for {a}", "the {t} is competent for {a}", "{a} e tratado pela {t}", "{a} e tratada pela {t}",
+    "{a} sao tratados pela {t}", "{a} sao tratadas pela {t}", "a {t} trata {a}", "{t} trata {a}",
+    "a {t} e competente para {a}", "{t} e competente para {a}", "a {t} e responsavel por {a}",
+    "{t} e responsavel por {a}",
+)
+
+
+def competence_sentences(cited: list[Evidence]) -> list[str]:
+    """The canonical competence sentences (as sequences) of the cited authority records."""
+    out = []
+    for e in cited:
+        if e.source_type != "authority_record" or is_user_declared(e):
+            continue
+        title = fold(e.source_title).strip()
+        for x in _sentences(fold(e.excerpt), semicolon=False):
+            head, sep, activity = x.partition(":")
+            if not sep or _sequence(head) != _sequence(title):
+                continue
+            # The whole activity, parentheses included: "(except alterations)" is not a gloss to drop (TD-003
+            # candidate review, Codex P1).
+            activity = activity.strip().rstrip(".")
+            if re.search(r"\d", activity):
+                continue  # a figure is never restated by a canonical form (Codex r2/r3 P2: no new VERIFIED path)
+            out += [_sentence_sequence(form.format(a=activity, t=title)) for form in _COMPETENCE_FORMS]
+    return out
+
+
+_LEVEL_PREFIX = re.compile(r"^(?:(?:in|at|on|em|na|no|nas|nos)\s+)?(?:(?:the|a|o)\s+)?(?:(?:parish|municipality|district|"
+                           r"country|freguesia|concelho|municipio|distrito|pais)\s+(?:of|de|do|da)\s+)?")
+_POSTCODE = re.compile(r"^ \d{4} -\d{3} ")
+
+
+def _location_values(cited: list[Evidence]) -> tuple[list[set[str]], list[list[str]]]:
+    """HABITA's own location records as whole values: the jurisdiction levels ("Country: Portugal → … → Parish: …"),
+    and each address as its ordered comma-separated segments (a segment may drop its leading postcode)."""
+    levels: list[set[str]] = []  # one set per jurisdiction record: levels never mix records (Codex r3)
+    addresses: list[list[str]] = []
+    for e in cited:
+        if is_user_declared(e) or e.source_type not in _LOCATION_RECORDS:
+            continue
+        text = re.sub(r"\s*\([^()]*precision\)\s*\.?\s*$", "", fold(e.excerpt)).strip().rstrip(".")
+        if e.source_type == "jurisdiction_record":
+            levels.append({_sequence(v.split(":", 1)[-1]) for v in text.split("→")})
+        else:
+            for x in _sentences(text, semicolon=False):
+                addresses.append([_sequence(seg) for seg in x.rstrip(".").split(",")])
+    return levels, addresses
+
+
+def _location_statement(sentence: str, cited: list[Evidence]) -> bool:
+    """TD-003 structural (candidate review, Codex P0/P1): a statement resting only on HABITA's location records is
+    the canonical "<the property> <is located> in <part>, <part> …", and every part is a WHOLE value of the record: a
+    jurisdiction level, or address segments in their order (no other numbered or street segment between them).
+    "The owner sold the south unit" or "North Street 10" from "Old North Street 10" is none of them."""
+    levels, addresses = _location_values(cited)
+    located = _LOCATED_AT.match(sentence.strip())
+    rest = sentence.strip()[located.end():] if located else sentence.strip()
+    parts = [_sequence(_LEVEL_PREFIX.sub("", p.strip())) for p in re.split(r"[,;]", rest.rstrip(".!?"))]
+    parts = [p for p in parts if p.strip()]
+    if not parts:
+        return False
+    level_sets = levels or [set()]
+    for one in level_sets:
+        street = [p for p in parts if p not in one]
+        if not street:
+            return True
+        if _address_holds(street, addresses):
+            return True
+    return False
+
+
+def _address_holds(street: list[str], addresses: list[list[str]]) -> bool:
+    """The parts, in order, as whole segments of ONE address (a segment may drop its postcode)."""
+    for segments in addresses:
+        options = [{seg, _POSTCODE.sub(" ", seg)} for seg in segments]
+        position = -1
+        for part in street:
+            found = next((k for k in range(position + 1, len(options)) if part in options[k]), None)
+            if found is None or (position >= 0 and any(re.search(r"\d", segments[k]) or _STREET.search(segments[k])
+                                                       for k in range(position + 1, found))):
+                break
+            position = found
+        else:
+            return True
+    return False
+
+
+def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list[str]:
+    """TD-003: the operators (negation, modality, restriction, comparison, numbers and signs) of each sentence of a
+    free-text statement that is not a verbatim restatement of one cited sentence. Empty when every such sentence is."""
+    ungrounded: list[str] = []
+    # Numbers are part of the sequence (TD-003 round 4: "1 cannot …, 2 can …" → "2 cannot …, 1 can …").
+    # The cited sentences go through the same deferral removal as the statement, so both sides compare alike.
+    # The cited sentence as written: its own reservation is part of it ("… remains unknown" establishes nothing), and a
+    # cited question establishes nothing (Codex candidate review r3, P0/P1).
+    cited_sequences = [_sentence_sequence(x) for e in cited if not is_user_declared(e)
+                       for x in _sentences(fold(e.excerpt), semicolon=False) if not x.rstrip().endswith("?")]
+    cited_sequences += competence_sentences(cited)  # HABITA's canonical competence sentences (FP-3)
+    # The hedge is exempt only when the cited records state no modality at all (final review r3: "must be allowed"
+    # → "may be possible" is refused).
+    speaks_of_possible = any(_NEGATION_WORDS.search(x) or _OPERATOR_WORDS.search(re.sub(r"\d", "", x))
+                             for e in cited if not is_user_declared(e) for x in [fold(e.excerpt)])
+    only_locations = bool(cited) and all(e.source_type in _LOCATION_RECORDS for e in cited if not is_user_declared(e))
+    free = {_stem(w) for w in _META}
+    if any(e.source_type in _LOCATION_RECORDS for e in cited):  # "The property is located in Cascais, …"
+        free |= {_stem(w) for w in (*_LOCATION_PREDICATES, *_LOCATION_SUBJECTS)}
+    if any(e.source_type == "authority_record" for e in cited):  # "… is handled by the Câmara" (FP-3)
+        free |= {_stem(w) for w in _COMPETENCE_PREDICATES}
+    titles = {_stem(w) for e in cited if not is_user_declared(e) for w in _tokens(e.source_title)}
+    for sentence in _sentences(fold(text)):
+        plain = _subject_question_removed(sentence, names).strip().rstrip(".!?")
+        question = _CHECK_QUESTION.match(plain)
+        if question and not _NEGATION_WORDS.search(question.group(1)):
+            plain = plain[:question.start(1)]
+        subject = _WHETHER_SUBJECT.match(plain)
+        if subject and not _NEGATION_WORDS.search(subject.group(1)):
+            plain = plain[:subject.start(1)] + plain[subject.end(1):]
+        asserted_sentence = _DEFERRAL.sub(" ", plain)
+        # TD-003 structural (Muse candidate review r1, P0-2/P0-3): a question or a reservation asserts nothing, but
+        # it shows the statement it carries ("Confirm whether the south unit is 10 m2", "The owner sold the south
+        # unit must be confirmed"). That statement passes the same rule: one whole cited sentence, or nothing factual
+        # (only procedural words, the authority's name). The closed FP-4 status shape is removed before this.
+        reserved = _DEFERRAL.search(plain)
+        embedded = (question.group(1) if question else subject.group(1) if subject
+                    else plain[:reserved.start()] if reserved and plain[:reserved.start()].strip()
+                    else plain[reserved.end():] if reserved else None)  # what is to be confirmed ("Confirm X …")
+        if embedded is not None:
+            # Only a pronoun (with its addressee), or one whole cited sentence as written (Muse candidate review r2,
+            # r3: case-fact words, figures, excerpts, procedural words and participants all carried false content).
+            # Safe to drop the addressee here: what remains must be a pointer only, so no fact can hide in it.
+            pointer = [w for w in re.findall(r"\w+", _ADDRESSEE.sub("", embedded.strip().rstrip(".!?")))
+                       if w not in names]
+            if not (set(pointer) <= _ANAPHORS) and not _whole_sentence(embedded, cited_sequences):
+                ungrounded.append("(a question or reservation carries a statement that is not one whole cited "
+                                  "sentence)")
+                continue
+        # The hedge is not an operator unless the records themselves speak of what is possible (then "must be
+        # possible" → "may be possible" changes the rule: final review r2, Codex P1).
+        operators_text = asserted_sentence if speaks_of_possible else _HEDGE.sub(" possible ", asserted_sentence)
+        operators = sorted(set(_NEGATION_WORDS.findall(operators_text))
+                           | {o.strip() for o in _OPERATOR_WORDS.findall(operators_text)})
+        if only_locations and (operators or asserted_sentence.split() == plain.split()) and not (question or subject):
+            # HABITA's own location records only: the canonical location sentence, part by part (TD-003 structural).
+            if _location_statement(asserted_sentence, cited) or _whole_sentence(asserted_sentence, cited_sequences):
+                continue
+            needed_here = {_stem(w) for w in _tokens(asserted_sentence) if w not in names} - {
+                _stem(w) for w in (*_META, *_LOCATION_PREDICATES, *_LOCATION_SUBJECTS)}
+            if operators or needed_here:
+                ungrounded.append("(not HABITA's location record restated part by part)")
+            continue
+        if not operators:
+            # Final review r4 (Codex P1): an operator-free sentence can't drop the negation or operator of the
+            # sentence it restates ("The deed is not verified" → "The deed is verified"). If every cited sentence
+            # holding all its content words carries a negation or a word operator, it is a deletion, not a
+            # restatement. (Numbers alone don't count here: an address restated without its postcode is fine.)
+            # A reservation or an instruction to check asserts nothing, so it can't drop anything.
+            if question or subject or asserted_sentence.split() != plain.split():
+                continue
+
+            def word_operators(x: str) -> set[str]:
+                # Numbers count too (Muse r1: "The fee is 10 euros" → "The fee is euros"), except in HABITA's own
+                # location records, where an address may be restated without its postcode.
+                x = re.sub(r"\d", "", x) if only_locations else x
+                return set(_NEGATION_WORDS.findall(x)) | {o.strip() for o in _OPERATOR_WORDS.findall(x)}
+            content = {_stem(w) for w in _tokens(asserted_sentence) if w not in names}
+            holders = [x for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))
+                       if content and content <= {_stem(w) for w in _tokens(x)}]
+            if holders and all(word_operators(x) for x in holders):
+                ungrounded.append("(drops an operator of its cited sentence)")
+            # Muse review r2 (P0): the content words must all come from ONE cited sentence, not from anywhere in the
+            # records ("The north unit has a balcony. The south unit has a garage." can't give "The north unit has a
+            # garage"). Free: the authority's name, the closed connective list, location predicates.
+            needed = content - free - titles
+            if needed and not _whole_sentence(asserted_sentence, cited_sequences):
+                # TD-003 structural containment (owner 2026-11-02, Muse r5 P0): which word a phrase attaches to
+                # ("the owner OF THE SOUTH UNIT sold …", "the tenant LEASING the shop …"), a condition, a time or a
+                # scope ("If …, ", "Before …, ", "In …, ") can't be read by word lists. A free factual sentence
+                # verifies only as one whole cited sentence, word for word; anything else is not certified.
+                ungrounded.append("(not one whole cited sentence, word for word)")
+            continue
+        # Anywhere else a sentence with an operator or a number needs the whole sentence verbatim ("the south unit is
+        # 10 m2" can't take the north unit's figure: final review r2).
+        # A part of a sentence drops what the rest of it says, operator or not ("If the works are approved, the owner
+        # can sell" can't give "The owner can sell"): the whole sentence, word for word (TD-003 structural).
+        if not _whole_sentence(asserted_sentence, cited_sequences):
+            ungrounded += [f"{o} (not a verbatim restatement)" for o in operators]
+    return ungrounded
 
 
 USER_FRAME = "You stated (declared by you, not verified by HABITA): "
@@ -748,6 +1031,10 @@ def statement_problem(
         # though "responsible" is a generic word (FP-3 review).
         return "states a competence relation its authority record doesn't (the authority is not its agent or subject)"
     if has_planning_content(full) and case_restatement(full, cited):
+        names = {w for e in cited if e.source_type == "authority_record" for w in _tokens(e.source_title)}
+        operators = operator_problems(full, cited, names)
+        if operators:  # TD-003: a case restatement that changes a figure or an operator is not a restatement
+            return f"is not grounded in its cited evidence (unsupported words: {', '.join(operators)})"
         return case_fact_problem(full, cited, case_facts)
     return grounding_problem(full, cited, case_facts)
 
