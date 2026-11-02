@@ -553,7 +553,7 @@ _NEGATION_WORDS = re.compile(r"\b(?:no|not|never|none|nor|neither|nobody|nothing
 _RESTRICTIVE_WORDS = re.compile(r"\b(?:only|exclusively|solely|unless|except\w*|apenas|somente|exclusivamente|"
                                 r"salvo|exceto|excepto)\b")
 _NUMBER = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)?")
-_SEQUENCE_TOKEN = re.compile(r"[a-z]+|[-−+±]?\d+(?:[.,]\d+)?|[<>≤≥=≠%]")
+_SEQUENCE_TOKEN = re.compile(r"[a-z]+|(?:[-−+±]\s*)?\d+(?:[.,]\d+)?|[<>≤≥=≠%]")
 #: TD-003 final review (Codex 2026-11-02, P1): words and signs that change what a rule says. A free-text sentence with
 #: any of them (or a number) verifies only as a verbatim restatement of one cited sentence: modality ("can" → "must",
 #: "pode" → "deve"), restriction ("only", "apenas", "exceto"), comparison and limits ("more than", "até", "mínimo"),
@@ -575,6 +575,9 @@ _OPERATOR_WORDS = re.compile(
     r"exceto|excepto|superior\w*|inferior\w*|minim\w*|maxim\w*|excede\w*)\b"
     r"|\b(?:more|less|fewer|greater|smaller|higher|lower|larger)\s+than\b|\bat\s+(?:least|most)\b|\bup\s+to\b"
     r"|\b(?:mais|menos|maior|menor)\s+(?:de|do|da|que)\b|\bno\s+(?:minimo|maximo)\b"
+    r"|\b(?:has|have|had)\s+to\b|\b(?:is|are|was|were)\s+to\b|\bought\b|\b(?:tem|teem|tinha)\s+de\b|\bha\s+que\b"
+    r"|\b(?:precis|necessit|carec|obrigad|requer|exig)\w*"
+    r"|[-−+±]\s*\d"
     r"|\b(?:over|under|above|below|ate|acima\s+de|abaixo\s+de|entre)\s+[-−+±]?\d"
     r"|[<>≤≥=≠%±−]|\d")
 #: An epistemic hedge on the answer ("a division may be possible") is not a permission: its modal is not an operator.
@@ -658,8 +661,11 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
     ungrounded: list[str] = []
     # Numbers are part of the sequence (TD-003 round 4: "1 cannot …, 2 can …" → "2 cannot …, 1 can …").
     # The cited sentences go through the same deferral removal as the statement, so both sides compare alike.
-    cited_sequences = [" " + " ".join(_SEQUENCE_TOKEN.findall(_DEFERRAL.sub(" ", x))) + " "
+    cited_sequences = [" " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(_DEFERRAL.sub(" ", x))) + " "
                        for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))]
+    speaks_of_possible = any(re.search(r"\b(?:possib|possivel|feasib|viab|viavel)", fold(e.excerpt))
+                             for e in cited if not is_user_declared(e))
+    only_locations = bool(cited) and all(e.source_type in _LOCATION_RECORDS for e in cited if not is_user_declared(e))
     for sentence in _sentences(fold(text)):
         plain = _subject_question_removed(sentence, names).strip().rstrip(".!?")
         question = _CHECK_QUESTION.match(plain)
@@ -669,16 +675,18 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
         if subject and not _NEGATION_WORDS.search(subject.group(1)):
             plain = plain[:subject.start(1)] + plain[subject.end(1):]
         asserted_sentence = _DEFERRAL.sub(" ", plain)
-        operators_text = _HEDGE.sub(" possible ", asserted_sentence)
+        # The hedge is not an operator unless the records themselves speak of what is possible (then "must be
+        # possible" → "may be possible" changes the rule: final review r2, Codex P1).
+        operators_text = asserted_sentence if speaks_of_possible else _HEDGE.sub(" possible ", asserted_sentence)
         operators = sorted(set(_NEGATION_WORDS.findall(operators_text))
                            | {o.strip() for o in _OPERATOR_WORDS.findall(operators_text)})
         if not operators:
             continue
-        tokens = _SEQUENCE_TOKEN.findall(asserted_sentence)
-        if all(o.isdigit() for o in operators):
-            # Only numbers (an address, a date, a figure): the span from the first to the last number, with the
-            # words between them, must be verbatim in one cited sentence ("10 euros or 20 dollars" can't become
-            # "10 dollars or 20 euros"); the rest of the sentence is grounded word by word as before.
+        tokens = [re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(asserted_sentence)]
+        if only_locations and all(o.isdigit() for o in operators):
+            # Only numbers, restating HABITA's own location records (an address, a postcode): the span from the
+            # first to the last number must be verbatim in one cited sentence. Anywhere else a number needs the whole
+            # sentence verbatim ("the south unit is 10 m2" can't take the north unit's figure: final review r2).
             numeric = [i for i, tok in enumerate(tokens) if any(ch.isdigit() for ch in tok)]
             tokens = tokens[numeric[0]:numeric[-1] + 1] if numeric else tokens
         sequence = " " + " ".join(tokens) + " "

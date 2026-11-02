@@ -293,3 +293,20 @@ async def test_td003_final_a_verbatim_operator_sentence_still_verifies(text):
     rec = record("E50", "authority_record", text, status="system_record", title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
     assert report.outcome == "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("The owner can transfer ownership.", "The owner has to transfer ownership."),
+    ("The owner can transfer ownership.", "The owner is to transfer ownership."),
+    ("O dono pode transferir a propriedade.", "O dono tem de transferir a propriedade."),
+    ("O dono pode transferir a propriedade.", "O dono precisa de transferir a propriedade."),
+    ("Transfer of ownership must be possible.", "Transfer of ownership may be possible."),
+    ("The fee is 10 euros.", "The fee is - 10 euros."),
+    ("The north unit is 10 m2. The south unit is 20 m2.", "The south unit is 10 m2."),
+])
+async def test_td003_final_r2_obligations_hedges_signs_and_numbers(record_text, text):
+    """TD-003 final review round 2 (Codex 2026-11-02, P1)."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
