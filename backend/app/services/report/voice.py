@@ -24,18 +24,19 @@ ANSWER = {
 
 
 #: Words after which a full stop doesn't end a sentence ("Art. 67.º", "n.º 5", "Sr. Silva").
-_ABBREVIATIONS = {"art", "arts", "n", "nº", "n.º", "sr", "sra", "dr", "dra", "eng", "av", "pç", "etc", "no", "nos", "fig"}
+_ABBREVIATIONS = {"art", "arts", "n", "nº", "n.º", "sr", "sra", "dr", "dra", "eng", "av", "pç", "fig", "e.g", "i.e", "cf",
+                  "al", "dec.-lei", "proc", "pág", "p"}
 
 
 def _sentences(text: str) -> list[str]:
-    """Sentence ends are '.', '!', '?' or ';' followed by a space and a capital (or the end); a full stop after a
-    number ('2.º', '3.5') or an abbreviation is not one (afinamentos: 'INE, 2.º Trimestre' was cut after '2.')."""
+    """A sentence ends at '.', '!', '?' or ';' (with any closing quote) followed by a space or the end, whatever comes
+    next (a capital, a digit, a quote, lowercase); never after an abbreviation ("Art. 67.º", "n.º 5"). A mark with no
+    space after it ("2.º", "3.5") is not an end (afinamentos HR-011; Codex r1: no two sentences in one line)."""
     parts, start = [], 0
-    for m in re.finditer(r"[.!?;]+(?=\s+[\"“(]?[A-ZÁÉÍÓÚÂÊÔÃÕÇÀ0-9]|\s*$)", text):
+    for m in re.finditer(r"[.!?;]+[\"”»')]*(?=\s|$)", text):
         before = text[start:m.start()].split()
-        last = before[-1].lower().rstrip(".") if before else ""
-        if m.group().startswith(".") and (last in _ABBREVIATIONS or (last[-1:].isdigit() and len(m.group()) == 1
-                                                                      and text[m.end():m.end() + 2].strip()[:1].isdigit())):
+        last = before[-1].lower() if before else ""
+        if m.group().startswith(".") and last in _ABBREVIATIONS:
             continue
         parts.append(text[start:m.end()])
         start = m.end()

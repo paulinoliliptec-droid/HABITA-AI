@@ -206,3 +206,15 @@ def test_hr011_ine_periods_in_the_readers_language():
     assert period("Setembro de 2026", "en") == "September 2026"
     assert period("Setembro de 2026", "pt") == "Setembro de 2026"
     assert period("2026", "en") == "2026"
+
+
+def test_codex_r1_no_two_sentences_in_one_line():
+    assert speakable("Price is 5. 2 conditions remain.") == ["Price is 5.", "2 conditions remain."]
+    assert speakable('It is approved. "Not verified." Check.') == ["It is approved.", '"Not verified."', "Check."]
+    assert speakable("Done. then more.") == ["Done.", "then more."]
+    assert speakable("See n.º 5 of the plan. Next.") == ["See n.º 5 of the plan.", "Next."]
+
+
+def test_codex_r1_only_real_quarters_are_rewritten():
+    from app.services.report.afford_lines import period
+    assert period("9.º Trimestre de 2026", "en") == "9.º Trimestre de 2026"

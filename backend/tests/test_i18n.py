@@ -361,3 +361,8 @@ async def test_afinamentos_a_plan_label_in_capitals_is_translated_not_kept_in_en
     # An acronym is still protected: a translation that drops PDM is refused.
     refused = await Translator(ScriptedClient(lambda t: "Veja o plano.")).translate(["See the PDM."], "pt")
     assert refused("See the PDM.") == "See the PDM."
+
+
+async def test_codex_r1_long_acronyms_stay_protected():
+    refused = await Translator(ScriptedClient(lambda t: "Património mundial.")).translate(["A UNESCO site."], "pt")
+    assert refused("A UNESCO site.") == "A UNESCO site."

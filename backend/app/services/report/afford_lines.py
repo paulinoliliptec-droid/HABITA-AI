@@ -33,7 +33,7 @@ def period(text: str | None, lang: str) -> str:
     "Q2 2026"); unknown shapes stay as INE wrote them (afinamentos HR-011)."""
     if not text or lang != "en":
         return text or ""
-    m = re.fullmatch(r"\s*(\d)\.?\s*[ºo]\s*trimestre\s+de\s+(\d{4})\s*", text, re.I)
+    m = re.fullmatch(r"\s*([1-4])\.?\s*[ºo]\s*trimestre\s+de\s+(\d{4})\s*", text, re.I)
     if m:
         return f"Q{m.group(1)} {m.group(2)}"
     m = re.fullmatch(r"\s*([A-Za-zçÇ]+)\s+de\s+(\d{4})\s*", text)

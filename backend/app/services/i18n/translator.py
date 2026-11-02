@@ -62,14 +62,16 @@ _ARTICLE = {"A": "O", "a": "o", "da": "do", "pela": "pelo", "à": "ao"}
 _ADDED = ((re.compile(r"\b(?:patrim[oó]\w+|hist[oó]ric\w+)\b", re.I), re.compile(r"heritage|histor|patrim", re.I)),
           (re.compile(r"\bquartos?\b", re.I), re.compile(r"bedroom", re.I)))
 _STATUS_WORDS = {"VERIFIED", "REJECTED", "PENDING", "CONFIRMATION", "HABITA"}
-#: A word in capitals of six letters or more is a label written on a plan ("KITCHEN", "BEDROOM"), not an acronym
-#: (HABITA's acronyms, PDM, RJUE, RGEU, REN, INE, are shorter). It is lowered before machine translation, so the
-#: service translates it and the acronym check no longer refuses the whole sentence (afinamentos HR-010).
-_LABEL = re.compile(r"\b[A-Z]{6,}\b")
+#: Room labels written in capitals on a plan ("KITCHEN", "LIVING ROOM"): a closed list, lowered before machine
+#: translation so the service translates them and the acronym check no longer refuses the sentence (afinamentos
+#: HR-010). Any other word in capitals (PDM, RJUE, UNESCO, ANACOM) stays protected (Codex r1).
+_LABEL = re.compile(r"\b(?:LIVING ROOM|DINING ROOM|KITCHEN|BEDROOM|BATHROOM|TOILET|LIVING|DINING|STORAGE|STORE ROOM|"
+                    r"GARAGE|BALCONY|TERRACE|HALLWAY|HALL|CORRIDOR|OFFICE|STUDY|LAUNDRY|ENTRANCE|CLOSET|WARDROBE|"
+                    r"PANTRY|BASEMENT|ATTIC|STAIRS|STAIRCASE|ROOM|LOUNGE|SUITE)\b")
 
 
 def _lower_labels(text: str) -> str:
-    return _LABEL.sub(lambda m: m.group().lower() if m.group() not in _STATUS_WORDS else m.group(), text)
+    return _LABEL.sub(lambda m: m.group().lower(), text)
 
 
 def fidelity_problems(source: str, target: str) -> list[str]:
