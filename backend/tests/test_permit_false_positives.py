@@ -506,12 +506,54 @@ CANDIDATE_R1_ATTACKS = [
     ("property_record", "Old North Street 10, Porto.", "North Street 10, Porto."),
     ("property_record", "Old North Street, Porto.", "North Street, Porto."),
     ("property_record", "Old North Street 10, Porto.", "The property is located at North Street 10, Porto."),
+    # Muse candidate review r1 (P0-1, P1-1): the same on location records, and parentheses that restrict.
+    ("property_record", "In the north unit, the owner removed the wall.", "The owner removed the wall."),
+    ("jurisdiction_record", "The north unit was sold by the owner to the tenant.",
+     "The north unit was sold by the tenant to the owner."),
+    ("property_record", "After the inspection, the tenant occupied the shop.", "The tenant occupied the shop."),
+    ("property_record", "Urban land rules for housing.", "Housing land rules for urban."),
+    ("jurisdiction_record", "The lawyer for the tenant signed the deed.", "The tenant signed the deed."),
+    ("authority_record", "Câmara Municipal de Cascais: Licensing of urban operations (only appeals).",
+     "Câmara Municipal de Cascais handles licensing of urban operations."),
+    ("authority_record", "Câmara Municipal de Cascais: Licensing of urban operations (not building permits).",
+     "Licensing of urban operations is handled by Câmara Municipal de Cascais."),
 ]
 
 
 @pytest.mark.parametrize("section", ["conclusion", "claim", "procedure", "risk", "next action"])
 @pytest.mark.parametrize("source_type,record_text,text", CANDIDATE_R1_ATTACKS)
 async def test_td003_candidate_r1_no_false_verified(source_type, record_text, text, section):
+    from tests.test_permit_admissibility import CASE_RECORDS, in_section, record, rendered_verify
+    rec = record("E50", source_type, record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section(section, text, ["E50"]), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", (section, report.issues)
+
+
+#: TD-003 candidate review r1 (Muse 2026-11-02, P0-2/P0-3): a question or reservation carrying a recombined case fact,
+#: a swapped number, a dropped exception, threshold or condition.
+CARRIED_ATTACKS = [
+    ("authority_record", "The owner of the south unit sold the north unit.",
+     "The owner sold the south unit must be confirmed with the Câmara Municipal de Cascais."),
+    ("authority_record", "The owner of the south unit sold the north unit.",
+     "Confirm the owner sold the south unit with the Câmara Municipal de Cascais."),
+    ("authority_record", "The owner of the south unit sold the north unit.", "The owner sold the south unit requires confirmation."),
+    ("authority_record", "The owner of the south unit sold the north unit.", "The owner sold the south unit has not yet been determined."),
+    ("authority_record", "O dono da unidade sul vendeu a unidade norte.", "O dono vendeu a unidade sul deve ser confirmado."),
+    ("authority_record", "The tenant leasing the shop owns the north unit.", "The tenant owns the shop must be confirmed."),
+    ("authority_record", "The north unit is 10 m2. The south unit is 20 m2.",
+     "Confirm whether the south unit is 10 m2 with the Câmara Municipal de Cascais."),
+    ("authority_record", "The north unit is 10 m2. The south unit is 20 m2.",
+     "Whether the south unit is 10 m2 must be confirmed with the Câmara Municipal de Cascais."),
+    ("regulatory_source", "The owner can transfer ownership, except to the tenant.", "Confirm whether the owner can transfer ownership."),
+    ("regulatory_source", "The fee is more than 10 euros and less than 20 euros.", "Confirm whether the fee is less than 10 euros."),
+    ("regulatory_source", "If the works are approved, the owner can sell the shop.", "Confirm whether the owner can sell the shop."),
+]
+
+
+@pytest.mark.parametrize("section", ["conclusion", "claim", "procedure", "risk", "next action"])
+@pytest.mark.parametrize("source_type,record_text,text", CARRIED_ATTACKS)
+async def test_td003_candidate_r1_a_question_or_reservation_carries_no_false_statement(source_type, record_text,
+                                                                                       text, section):
     from tests.test_permit_admissibility import CASE_RECORDS, in_section, record, rendered_verify
     rec = record("E50", source_type, record_text, status="system_record", title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section(section, text, ["E50"]), [*CASE_RECORDS, rec])

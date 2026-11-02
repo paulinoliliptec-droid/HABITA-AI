@@ -546,6 +546,8 @@ _LOCATION_PREDICATES = ("located", "situated", "localizado", "localizada", "situ
 _LOCATION_SUBJECTS = ("property", "building", "parcel", "site", "imovel", "predio", "edificio", "parcela", "parish",
                       "municipality", "district", "country", "freguesia", "concelho", "municipio", "distrito", "pais")
 _LOCATION_RECORDS = ("jurisdiction_record", "property_record")
+#: HABITA's records of facts of this case (as opposed to regulatory or reference texts).
+_CASE_FACT_RECORDS = ("jurisdiction_record", "property_record", "authority_record")
 #: Neutral competence predicates (EN + PT): usable only when restating a cited authority record.
 _COMPETENCE_PREDICATES = ("handled", "handles", "responsible", "competent", "competence", "trata", "tratado",
                           "tratada", "competente", "responsavel")
@@ -780,6 +782,12 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
     speaks_of_possible = any(_NEGATION_WORDS.search(x) or _OPERATOR_WORDS.search(re.sub(r"\d", "", x))
                              for e in cited if not is_user_declared(e) for x in [fold(e.excerpt)])
     only_locations = bool(cited) and all(e.source_type in _LOCATION_RECORDS for e in cited if not is_user_declared(e))
+    free = {_stem(w) for w in _META}
+    if any(e.source_type in _LOCATION_RECORDS for e in cited):  # "The property is located in Cascais, …"
+        free |= {_stem(w) for w in (*_LOCATION_PREDICATES, *_LOCATION_SUBJECTS)}
+    if any(e.source_type == "authority_record" for e in cited):  # "… is handled by the Câmara" (FP-3)
+        free |= {_stem(w) for w in _COMPETENCE_PREDICATES}
+    titles = {_stem(w) for e in cited if not is_user_declared(e) for w in _tokens(e.source_title)}
     for sentence in _sentences(fold(text)):
         plain = _subject_question_removed(sentence, names).strip().rstrip(".!?")
         question = _CHECK_QUESTION.match(plain)
@@ -789,6 +797,34 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
         if subject and not _NEGATION_WORDS.search(subject.group(1)):
             plain = plain[:subject.start(1)] + plain[subject.end(1):]
         asserted_sentence = _DEFERRAL.sub(" ", plain)
+        # TD-003 structural (Muse candidate review r1, P0-2/P0-3): a question or a reservation asserts nothing, but
+        # it shows the statement it carries ("Confirm whether the south unit is 10 m2", "The owner sold the south
+        # unit must be confirmed"). That statement passes the same rule: one whole cited sentence, or nothing factual
+        # (only procedural words, the authority's name). The closed FP-4 status shape is removed before this.
+        reserved = _DEFERRAL.search(plain)
+        embedded = (question.group(1) if question else subject.group(1) if subject
+                    else plain[:reserved.start()] if reserved and plain[:reserved.start()].strip()
+                    else plain[reserved.end():] if reserved else None)  # what is to be confirmed ("Confirm X …")
+        if embedded is not None:
+            carried = {_stem(w) for w in _tokens(embedded) if w not in names} - free - titles
+            # (a) a figure, an operator or a negation in it (a swapped number, a dropped exception or condition), or
+            # (b) any word of a cited CASE FACT (property, authority, jurisdiction record): then it restates a record
+            # and must be that whole sentence. A question about the legal topic itself ("whether the works need a
+            # licence") carries neither and stays admitted.
+            # A number is a fact of the case: always. An operator or negation: when the carried statement is an
+            # excerpt of a cited sentence (all its words in it), i.e. that sentence with its exception or condition
+            # cut off; a question in words of its own ("whether the works NEED prior control") restates no record.
+            words = {_stem(w) for w in _tokens(embedded) if w not in names}
+            excerpt = bool(words) and any(words <= {_stem(w) for w in _tokens(x)} for e in cited
+                                          if not is_user_declared(e) for x in _sentences(fold(e.excerpt), False))
+            figures = bool(_NUMBER.search(embedded) or excerpt and (_NEGATION_WORDS.search(embedded)
+                                                                     or _OPERATOR_WORDS.search(embedded)))
+            case_words = {_stem(w) for e in cited if not is_user_declared(e) and e.source_type in _CASE_FACT_RECORDS
+                          for w in _tokens(e.excerpt)} - free - titles
+            if (figures or carried & case_words) and not _whole_sentence(embedded, cited_sequences):
+                ungrounded.append("(a question or reservation carries a statement that is not one whole cited "
+                                  "sentence)")
+                continue
         # The hedge is not an operator unless the records themselves speak of what is possible (then "must be
         # possible" → "may be possible" changes the rule: final review r2, Codex P1).
         operators_text = asserted_sentence if speaks_of_possible else _HEDGE.sub(" possible ", asserted_sentence)
@@ -825,12 +861,6 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
             # Muse review r2 (P0): the content words must all come from ONE cited sentence, not from anywhere in the
             # records ("The north unit has a balcony. The south unit has a garage." can't give "The north unit has a
             # garage"). Free: the authority's name, the closed connective list, location predicates.
-            free = {_stem(w) for w in _META}
-            if any(e.source_type in _LOCATION_RECORDS for e in cited):  # "The property is located in Cascais, …"
-                free |= {_stem(w) for w in (*_LOCATION_PREDICATES, *_LOCATION_SUBJECTS)}
-            if any(e.source_type == "authority_record" for e in cited):  # "… is handled by the Câmara" (FP-3)
-                free |= {_stem(w) for w in _COMPETENCE_PREDICATES}
-            titles = {_stem(w) for e in cited if not is_user_declared(e) for w in _tokens(e.source_title)}
             needed = content - free - titles
             if needed and not _whole_sentence(asserted_sentence, cited_sequences):
                 # TD-003 structural containment (owner 2026-11-02, Muse r5 P0): which word a phrase attaches to

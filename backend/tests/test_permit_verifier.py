@@ -314,7 +314,7 @@ async def test_evidence_from_an_incompatible_jurisdiction_cannot_satisfy_a_claim
 
 async def test_fully_cited_draft_can_still_be_verified():
     # (HR-003 CX-1: parcel planning prose is HABITA's condition, so these sections avoid it.)
-    d = draft(next_actions=[NextAction(text="Ask the Câmara which documents the application needs.", evidence_ids=["E1"])],
+    d = draft(next_actions=[NextAction(text="Ask the Câmara for the list of documents.", evidence_ids=["E1"])],
               procedure=[ProcedureStep(step="Apply", description="Submit the prior-control application.", evidence_ids=["E1"])],
               risks=[Risk(text="Requirements not confirmed may delay the works.", evidence_ids=["E1"])])
     # Free text must be grounded in what it cites (HR-003 CX-1), so E1 carries realistic wording here.
@@ -335,3 +335,14 @@ async def test_a_model_material_false_label_cannot_exempt_a_claim():
     # Even if a stored claim says material=False, every model-written claim is checked.
     report, _ = await verify(draft(Claim(claim_id="K1", text="Already approved.", material=False, evidence_ids=[])))
     assert report.outcome == "REJECTED" and "unsupported_claim" in codes(report.issues)
+
+
+async def test_td003_structural_a_question_cut_from_its_record_with_an_operator_is_not_certified():
+    """TD-003 structural (2026-11-02), availability cost registered: a question whose words all come from one cited
+    sentence and that keeps an operator is that sentence cut short, which is how an exception or a condition is
+    dropped ("Confirm whether the owner can transfer ownership" from "…, except to the tenant")."""
+    d = draft(next_actions=[NextAction(text="Ask the Câmara which documents the application needs.", evidence_ids=["E1"])])
+    grounded = ev("E1").model_copy(update={"excerpt": "An application for prior control must be submitted to the "
+                                                      "Câmara with the documents it needs."})
+    report, _ = await verify(d, [grounded])
+    assert report.outcome != "VERIFIED"
