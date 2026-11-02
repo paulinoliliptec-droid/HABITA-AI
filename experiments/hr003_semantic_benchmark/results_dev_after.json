@@ -1,26 +1,27 @@
 {
  "summary": {
-  "corpus": "hr003-semantic-dev-v1",
+  "corpus": "hr003-semantic-dev-v1.1",
   "cases": 40,
-  "runs_per_case": "10 free-text (+5 literal-quote when the case has a quote)",
+  "runs_per_case": "up to 10 free-text (+5 literal-quote when the case has a quote)",
   "negatives": 32,
   "false_verified_cases": 0,
   "false_verified_upper95_if_zero": 0.0894,
   "positives": 8,
-  "false_rejected_cases": 7,
-  "coverage_positives_fully_verified": 0.125,
+  "false_rejected_cases": 5,
+  "coverage_positives_fully_verified": 0.375,
   "confusion": {
    "CONTRADICTED->NOT_VERIFIED": 18,
    "INSUFFICIENT_INPUT->NOT_VERIFIED": 8,
-   "SUPPORTED_CONDITIONAL->NOT_VERIFIED": 5,
+   "SUPPORTED_CONDITIONAL->NOT_VERIFIED": 4,
    "SUPPORTED_CONDITIONAL->PARTIAL": 3,
+   "SUPPORTED_CONDITIONAL->VERIFIED": 1,
    "UNTRUSTED_OR_INAPPLICABLE->NOT_VERIFIED": 6
   },
   "per_category": {
    "literal_rule": {
     "n": 2,
     "false_verified": 0,
-    "false_rejected": 2
+    "false_rejected": 1
    },
    "literal_rule_numeric_exception": {
     "n": 1,
@@ -30,7 +31,7 @@
    "authority_competence": {
     "n": 1,
     "false_verified": 0,
-    "false_rejected": 1
+    "false_rejected": 0
    },
    "restriction_literal": {
     "n": 1,
@@ -191,11 +192,11 @@
    "id": "D01",
    "cat": "literal_rule",
    "gold": "SUPPORTED_CONDITIONAL",
-   "predicted": "NOT_VERIFIED",
-   "verified_runs": "0/15",
-   "quote_path_verified": "0/5",
+   "predicted": "PARTIAL",
+   "verified_runs": "5/15",
+   "quote_path_verified": "5/5",
    "false_verified": false,
-   "false_rejected": true,
+   "false_rejected": false,
    "mr_of": null,
    "issue_codes": [
     "unsupported_legal_claim"
@@ -234,16 +235,13 @@
    "id": "D04",
    "cat": "authority_competence",
    "gold": "SUPPORTED_CONDITIONAL",
-   "predicted": "PARTIAL",
-   "verified_runs": "5/10",
+   "predicted": "VERIFIED",
+   "verified_runs": "5/5",
    "quote_path_verified": null,
    "false_verified": false,
-   "false_rejected": true,
+   "false_rejected": false,
    "mr_of": null,
-   "issue_codes": [
-    "unsupported_legal_claim",
-    "unverified_zoning"
-   ]
+   "issue_codes": []
   },
   {
    "id": "D05",

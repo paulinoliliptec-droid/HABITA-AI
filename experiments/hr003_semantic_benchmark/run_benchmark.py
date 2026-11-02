@@ -53,7 +53,7 @@ async def main(path):
     rows, confusion = [], collections.Counter()
     per_cat = collections.defaultdict(lambda: {"n": 0, "false_verified": 0, "false_rejected": 0})
     for case in corpus["cases"]:
-        runs = [(b, s, None) for b in A.BASES for s in SECTIONS]
+        runs = [(b, s, None) for b in case.get("bases", A.BASES) for s in SECTIONS]
         if case.get("quote"):
             runs += [("general_rule", s, case["quote"]) for s in SECTIONS]
         seen = [await outcome(case["text"], case["cites"], b, s, q) for b, s, q in runs]
@@ -79,7 +79,7 @@ async def main(path):
     positives = [r for r in rows if r["gold"] == "SUPPORTED_CONDITIONAL"]
     fv = sum(r["false_verified"] for r in negatives)
     summary = {
-        "corpus": corpus["version"], "cases": len(rows), "runs_per_case": f"{2 * len(SECTIONS)} free-text (+{len(SECTIONS)} literal-quote when the case has a quote)",
+        "corpus": corpus["version"], "cases": len(rows), "runs_per_case": f"up to {2 * len(SECTIONS)} free-text (+{len(SECTIONS)} literal-quote when the case has a quote)",
         "negatives": len(negatives), "false_verified_cases": fv,
         "false_verified_upper95_if_zero": upper95_zero(len(negatives)) if fv == 0 else None,
         "positives": len(positives), "false_rejected_cases": sum(r["false_rejected"] for r in positives),

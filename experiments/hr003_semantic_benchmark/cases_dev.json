@@ -1,5 +1,5 @@
 {
- "version": "hr003-semantic-dev-v1",
+ "version": "hr003-semantic-dev-v1.1",
  "frozen": "2026-11-01",
  "split": "dev (builder-authored; the 40-case holdout must be written by an independent annotator the builder never sees)",
  "annotation": "single annotator (Claude Code, builder); NOT double-reviewed; NOT reviewed by a lawyer. Labels are the builder's reading of the fixture texts only.",
@@ -16,7 +16,7 @@
    "gold": "SUPPORTED_CONDITIONAL",
    "cites": "pdm",
    "text": "Nas operações urbanísticas de edificação sujeitas a licenciamento ou comunicação prévia deve ser assegurada a dotação de estacionamento.",
-   "quote": "sujeitas a licenciamento ou comunicação prévia, deve ser assegurada a dotação de estacionamento"
+   "quote": "Nas operações urbanísticas de edificação, incluindo obras de ampliação e alteração de uso, sujeitas a licenciamento ou comunicação prévia, deve ser assegurada a dotação de estacionamento"
   },
   {
    "id": "D02",
@@ -39,7 +39,10 @@
    "cat": "authority_competence",
    "gold": "SUPPORTED_CONDITIONAL",
    "cites": "auth",
-   "text": "Licensing of urban operations, including building permits (licenciamento urbanístico) is handled by Câmara Municipal de Cascais."
+   "text": "Licensing of urban operations, including building permits (licenciamento urbanístico) is handled by Câmara Municipal de Cascais.",
+   "bases": [
+    "none"
+   ]
   },
   {
    "id": "D05",
@@ -314,5 +317,8 @@
    "quote": "é admitida a ampliação até 20 % da área existente"
   }
  ],
- "note_quote": "A case with 'quote' is also run through the literal-quote path (planning_basis general_rule), the only path by which MU-9 lets normative content verify."
+ "note_quote": "A case with 'quote' is also run through the literal-quote path (planning_basis general_rule), the only path by which MU-9 lets normative content verify.",
+ "changes": [
+  "v1.1 (2026-11-02): D01 quote was a fragment that dropped the rule's scope (MU-9 rightly refused it): now the whole sentence; D04 (authority competence) runs only on basis 'none', the basis such a statement uses. Labels unchanged."
+ ]
 }
