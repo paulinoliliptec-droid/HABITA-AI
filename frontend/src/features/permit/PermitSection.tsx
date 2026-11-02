@@ -217,7 +217,7 @@ export function PermitSection({
           action={onGo && <Button onClick={() => onGo("place")}>{t("See the authority and sources")}</Button>}
         >
           {coverage === "partial"
-            ? t("For this place HABITA names the authority that decides on permits and the official sources to consult, but it has not verified their rules yet, so it does not draft an answer here. The same verifier would apply once those sources are added and checked.")
+            ? t("For this place HABITA names the competent authority, with its role, and the official sources to consult (see Place), but it has not verified their rules yet, so it does not draft an answer here. The same verifier would apply once those sources are added and checked.")
             : t("HABITA's verified permit answers rely on official sources it has checked, and it has none for this place yet.")}
         </Notice>
       ) : !matter || asking ? (
