@@ -197,3 +197,18 @@ def test_hr006_the_aerial_view_is_in_the_location_page_with_its_notice(verified)
 def test_hr006_no_aerial_view_no_figure(verified):
     from app.services.report.premium import render_html
     assert "Seen from the air" not in render_html(verified, None, "classico")
+
+
+def test_hr006_concept_images_beside_their_notice(verified):
+    """HR-006 polish 3: the matter's concept images (notices burned in by HABITA), captioned, after the table."""
+    from datetime import date
+
+    from app.schemas.report import ReportConcept
+    from app.services.report.premium import ConceptFigure, render_html
+    report = verified.model_copy(update={"concepts": [ReportConcept(change_label="Open-plan kitchen", created_on=date(2026, 11, 2))]})
+    html = render_html(report, None, "classico", None, [ConceptFigure(jpeg=_aerial_jpeg(), label="Open-plan kitchen")])
+    section = html[html.index("Before / after concepts"):]
+    assert section.count("data:image/jpeg;base64,") == 1 and "Open-plan kitchen</figcaption>" in section
+    assert "It is not a project, not an authorisation" in html or "not an authorisation" in html
+    # no concepts in the report: no images, whatever is passed
+    assert "class=\"concepts\"" not in render_html(verified, None, "classico", None, [ConceptFigure(_aerial_jpeg(), "x")])

@@ -97,6 +97,8 @@ CSS_BASE = """
   @bottom-right { content: "%PAGE% " counter(page) " %OF% " counter(pages); font-size: 7.5pt; color: #6b6f76; }
   @top-right { content: "HABITA AI"; font-size: 7.5pt; letter-spacing: 2px; color: #6b6f76; } }
 @page cover { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } @top-right { content: none; } }
+.concepts { display: flex; flex-wrap: wrap; gap: 4mm; } .concept { width: 78mm; margin: 0; break-inside: avoid; }
+.concept img { width: 100%; border: .4pt solid #d9d4c9; } .concept figcaption { font-size: 8pt; color: #5f646b; }
 .cover .mark { display: block; width: 16mm; height: 16mm; margin: 0 auto 5mm; }
 .moderno .cover .mark { margin-left: 0; }
 html { -weasy-hyphens: auto; }
@@ -478,12 +480,23 @@ def _profile(report: PermitReport) -> str:
             f'<th>{t("Kind")}</th><th>{t("Origin")}</th></tr></thead><tbody>{rows}</tbody></table></section>')
 
 
-def _concepts(report: PermitReport) -> str:
+@dataclass(frozen=True)
+class ConceptFigure:
+    """A before/after concept image for the PDF (HR-006 polish 3), with HABITA's notices already burned in."""
+    jpeg: bytes
+    label: str
+
+
+def _concepts(report: PermitReport, figures: list[ConceptFigure] = ()) -> str:
     if not report.concepts:
         return ""
     t = translator_for(report.language)
     body = "".join(f"<tr><td>{_e(a)}</td><td>{_e(b)}</td></tr>" for a, b in concept_lines.rows(report))
-    return f'<section><h2>{t(concept_lines.TITLE)}</h2><table><tbody>{body}</tbody></table></section>'
+    images = "".join(
+        f'<figure class="concept"><img src="data:image/jpeg;base64,{base64.b64encode(f.jpeg).decode()}"/>'
+        f"<figcaption>{_e(t(f.label))}</figcaption></figure>" for f in figures)
+    return (f'<section><h2>{t(concept_lines.TITLE)}</h2><table><tbody>{body}</tbody></table>'
+            + (f'<div class="concepts">{images}</div>' if images else "") + "</section>")
 
 
 def _afford(report: PermitReport) -> str:
@@ -617,7 +630,7 @@ def _annex(report: PermitReport) -> str:
 
 
 def render_html(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico",
-                aerial: AerialFigure | None = None) -> str:
+                aerial: AerialFigure | None = None, concepts: list[ConceptFigure] = ()) -> str:
     if style not in STYLES:
         raise ValueError(f"Unknown style {style!r}; expected one of {', '.join(STYLES)}.")
     t = translator_for(report.language)
@@ -625,12 +638,12 @@ def render_html(report: PermitReport, maps: LocationMaps | None = None, style: s
     return (f'<!doctype html><html lang="{report.language}"><head><meta charset="utf-8"><title>{t("HABITA AI report")}</title><meta name="author" content="HABITA AI">'
             f"<style>{FONT_FACES[style]()}\n{css}\n{CSS_STYLE[style]}</style></head><body class='{style}'>"
             f'<div class="disclaimer-running">{"<b>" + t(DEMO) + ".</b> " if report.demo else ""}{_e(report.disclaimer)}</div>'
-            f"{_cover(report)}{_glance(report, style)}{_location(maps, t, aerial)}{_planning(report)}{_profile(report)}{_concepts(report)}{_afford(report)}{_analysis(report)}"
+            f"{_cover(report)}{_glance(report, style)}{_location(maps, t, aerial)}{_planning(report)}{_profile(report)}{_concepts(report, concepts)}{_afford(report)}{_analysis(report)}"
             f"{_sources(report)}{_annex(report)}</body></html>")
 
 
 def render_premium_pdf(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico",
-                       aerial: AerialFigure | None = None) -> bytes:
+                       aerial: AerialFigure | None = None, concepts: list[ConceptFigure] = ()) -> bytes:
     from weasyprint import HTML  # imported lazily: heavy, and only this renderer needs it
 
-    return HTML(string=render_html(report, maps, style, aerial)).write_pdf()
+    return HTML(string=render_html(report, maps, style, aerial, concepts)).write_pdf()
