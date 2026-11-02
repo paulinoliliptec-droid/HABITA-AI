@@ -40,10 +40,18 @@ _ACCESS = re.compile(r"\b(?:entrances?|doors?|exits?|access(?:es)?|hall(?:way)?|
                      r"entradas?|portas?|saidas?|acessos?|escadas?|patio|corredor|hall)\b")
 #: How a unit is entered, not just the word "entrance" (Codex r4: "2 floors 60 m2 entrance").
 _ACCESS_HOW = re.compile(r"\b(?:own|separate|independent|private|shared|common|communal|street|road|public|hall(?:way)?|"
-                         r"stair\w*|courtyard|garden|propri\w*|independente\w*|separad\w*|privad\w*|comu\w*|"
-                         r"partilhad\w*|rua|publica|atrio|escada\w*|patio|quintal|jardim|corredor)\b")
+                         r"stair\w*|propri\w*|independente\w*|separad\w*|privad\w*|comu\w*|"
+                         r"partilhad\w*|rua|publica|atrio|escada\w*|corredor)\b")
 #: Each unit's area: two figures, or one figure applied to each unit ("about 60 m2 each").
 _EACH = re.compile(r"\b(?:each|both|apiece|per unit|per flat|per apartment|cada|ambos|ambas|por fracao|por apartamento)\b")
+
+
+def _access_described(folded: str) -> bool:
+    """An access word with its descriptor in the same phrase (no comma between): "its own street door", "entrada
+    própria", "a shared hall". Codex r5: "private garden, entrance" described no way in."""
+    return any(_ACCESS_HOW.search(folded[max(0, m.start() - 30):m.start()].split(",")[-1].split(";")[-1])
+               or _ACCESS_HOW.search(folded[m.end():m.end() + 30].split(",")[0].split(";")[0])
+               for m in _ACCESS.finditer(folded))
 
 
 def _area_per_unit(folded: str) -> bool:
@@ -111,7 +119,7 @@ def answer_problem(intent: str | None, key: str, answer: str) -> str | None:
                 return NEED_LAYOUT
             missing = [m for m, ok in ((NEED_LAYOUT_FLOORS, _FLOORS.search(folded)),
                                        (NEED_LAYOUT_AREA, _area_per_unit(folded)),
-                                       (NEED_LAYOUT_ACCESS, _ACCESS.search(folded) and _ACCESS_HOW.search(folded)))
+                                       (NEED_LAYOUT_ACCESS, _access_described(folded)))
                        if not ok]
             if len(missing) > 1:
                 return NEED_LAYOUT

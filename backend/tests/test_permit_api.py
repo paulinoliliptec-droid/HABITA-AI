@@ -195,3 +195,12 @@ def test_td061_r4_a_layout_with_an_unknown_or_ambiguous_part_is_refused(client, 
     client.post(f"/api/permit/matters/{mid}/continue")
     res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {"intended_use": answer}})
     assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"
+
+
+def test_td061_r5_an_unrelated_descriptor_does_not_describe_the_entrance(client):
+    """TD-061 review round 5 (Codex 2026-11-02, P1). Fixed after the last round: not re-reviewed."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs",
+                      json={"inputs": {"intended_use": "2 floors, 60 m2 each, private garden, entrance"}})
+    assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"
