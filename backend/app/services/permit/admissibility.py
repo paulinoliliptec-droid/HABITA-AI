@@ -839,7 +839,6 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
                 # verifies only as one whole cited sentence, word for word; anything else is not certified.
                 ungrounded.append("(not one whole cited sentence, word for word)")
             continue
-        tokens = [re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(asserted_sentence)]
         if only_locations and all(o.isdigit() for o in operators):
             # Final review r3: the address itself must be verbatim, not only its numbers ("South Street 10" can't
             # take North Street's number). Only a leading location predicate may differ.
