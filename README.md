@@ -59,8 +59,9 @@ Status words: **Done** = implemented and tested, including on real services wher
 ### HR-001 · Location and jurisdiction discovery — Done
 Address search with Google Places autocomplete, Google geocoding, a jurisdiction chain (country → district →
 municipality → parish) and the competent authority. Portugal is modelled. **New York City, Paris and Singapore have
-partial coverage** (2026-11-02): HABITA names the authority that decides on building permits (NYC Department of
-Buildings, Maire de Paris, URA) and the official sources to consult, each linked or cited; it has not verified their
+partial coverage** (2026-11-02): HABITA names the authority that decides (building permits: NYC Department of
+Buildings, Maire de Paris under the PLU or, in the safeguarded sectors, a PSMV; in Singapore, planning permission from
+the URA, with building plans approved by the BCA) and the official sources to consult, each linked or cited; it has not verified their
 rules, so the workspace says so and does not draft a permit answer there. They show that the same jurisdiction chain,
 source registry and verifier extend to other legal systems; adding verified sources is the next step. Other countries
 get a generic chain without an authority.

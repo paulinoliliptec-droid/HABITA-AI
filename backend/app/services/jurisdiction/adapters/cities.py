@@ -27,6 +27,8 @@ NYC_DOB = SourceRef(title="NYC Department of Buildings", url="https://www.nyc.go
 NYC_CHARTER = SourceRef(title="New York City Charter", reference="Chapter 26, Department of Buildings")
 PARIS_PLU = SourceRef(title="Plan Local d'Urbanisme de Paris (Ville de Paris)",
                       url="https://www.paris.fr/pages/le-plan-local-d-urbanisme-plu-2329")
+PARIS_PSMV = SourceRef(title="Plans de Sauvegarde et de Mise en Valeur (Marais, part of the 7th arrondissement)",
+                       url="https://www.paris.fr/pages/secteurs-sauvegardes-psmv-2351/")
 CODE_URBANISME = SourceRef(title="Code de l'urbanisme", reference="art. L422-1")
 URA_MASTER_PLAN = SourceRef(title="URA Master Plan", url="https://www.ura.gov.sg/land-planning/master-plan/")
 URA_DC = SourceRef(title="URA Development Control Guidelines", url="https://www.ura.gov.sg/guidelines/development-control/")
@@ -92,7 +94,8 @@ class UnitedStatesAdapter(JurisdictionAdapter):
 
 
 class FranceAdapter(JurisdictionAdapter):
-    """Paris only: with a local plan (PLU), the mayor decides on building permits in the commune's name."""
+    """Paris only: with a local plan, the mayor decides on building permits in the commune's name (PLU, or a PSMV in the
+    safeguarded sectors)."""
 
     key = "FR"
     version = 1
@@ -111,8 +114,8 @@ class FranceAdapter(JurisdictionAdapter):
             name="Maire de Paris",
             kind="mayor",
             jurisdiction_id=commune.id,
-            competence="Building permits and prior declarations (permis de construire, déclaration préalable) in the commune, under its local plan (PLU).",
-            sources=(CODE_URBANISME, PARIS_PLU),
+            competence="Building permits and prior declarations (permis de construire, déclaration préalable) in the commune, under the local plan (PLU) or, in the Marais and part of the 7th arrondissement, a safeguarding plan (PSMV).",
+            sources=(CODE_URBANISME, PARIS_PLU, PARIS_PSMV),
         )
         return _partial(location, levels, commune, authority)
 
