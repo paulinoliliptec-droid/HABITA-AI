@@ -55,8 +55,16 @@ are refused. Code: `services/permit/`, `integrations/meta/`.
   cited evidence; trust pins, a single transactional commit with property-identity binding, an independent reviewer
   and a final gate decide the status. **A model cannot mark its own answer verified.** Definitive answers without
   property evidence are never VERIFIED; normative statements must use official wording.
-- **Limitations (honest):** verification is structural and lexical, not semantic entailment, so some correct answers
-  are rejected (fail-closed) and a few structural descriptions stay advisory; zoning has **no validated GIS
+- **TD-003 structural containment (2026-11-02):** a model-written factual sentence is VERIFIED only when it is one
+  whole cited sentence, word for word and with its punctuation, or a canonical sentence HABITA itself derives from a
+  structured record (competence, location). A question or reservation ("Confirm whether …", "… must be confirmed")
+  may carry only a pointer ("this", "the conditions") or one whole cited sentence. This closes the reworded-fact class
+  (for example "The owner sold the south unit." from "The owner of the south unit sold the north unit.", or a dropped
+  condition, time or scope). Accepted by the owner with residual risks after independent Codex and Muse reviews; the
+  open items (records that themselves contain a question, jurisdiction and address from two records, advisory
+  structural explanations) are listed in the risk register and planned for the structured-claims design.
+- **Limitations (honest):** verification is structural and lexical, not semantic entailment, so correct answers that
+  reword a record are rejected (fail-closed) and a few structural descriptions stay advisory; zoning has **no validated GIS
   connector**, so the classification always requires manual confirmation; the real MongoDB replica-set run of the
   identity binding is pending. These are tracked as research and debt items (see Roadmap).
 
@@ -186,7 +194,7 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Address search, geocoding, jurisdiction, authority (HR-001) | Done |
 | Permit matters with Muse Spark, follow-up questions, resume (HR-002) | Done |
 | Official-source registry, snapshots, retrieval (HR-003) | Done for Cascais; other jurisdictions planned |
-| MU-9 verification, TrustPin, reviewer, final gate (HR-003) | Tested offline and on staging; real replica-set binding run pending |
+| MU-9 verification, TrustPin, reviewer, final gate (HR-003) | Tested offline and on staging; TD-003 structural containment accepted with residual risk (2026-11-02); replica-set binding tested on a local MongoDB 8.0 replica set, Atlas run pending |
 | Zoning classification from official GIS | Planned (no validated connector; absence stated) |
 | Map with post-its (HR-004) | Done (MVP); owner browser check pending |
 | PDF report with verification record and provenance (HR-006) | Done; tested on staging |
@@ -250,8 +258,9 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-11-01, aerial view): backend **7032 passed, 14 skipped, 3 expected
-failures** (known limitations kept as strict xfail); frontend **89 passed**, lint, typecheck and build clean. Live tests against
+Last full run (2026-11-02, TD-003 structural containment): backend **7514 passed, 29 skipped, 3 expected
+failures** (known limitations kept as strict xfail), plus 23 replica-set and ingestion concurrency tests against a local
+MongoDB 8.0 replica set; frontend unchanged since its last run (2026-11-01: **89 passed**, lint, typecheck and build clean). Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 
 ## Roadmap and technical debt
