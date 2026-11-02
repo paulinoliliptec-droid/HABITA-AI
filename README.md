@@ -266,9 +266,10 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — backend updated on 2026-11-02 to commit `1d03ab3`
-(revision `00065`, TD-003 structural containment; `00063` is NOT a safe rollback: it brings back the old
-verifier with the known false-VERIFIED paths, so a backend problem is fixed forward), frontend updated on 2026-11-02 to commit
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — backend updated on 2026-11-02 to commit `c4b628e`
+(revision `00067`: TD-003 structural containment and the polished premium PDF; safe rollback revision `00065`, which
+has the same containment; `00063` and older are NOT safe rollbacks: they bring back the old verifier with the known
+false-VERIFIED paths), frontend updated on 2026-11-02 to commit
 `3eb66cd` (revision `00070`: landing page at `/`, live demo with the guided Cascais scenario at `/demo`, workspace
 areas, "Property under analysis" map marker, Layers with the aerial view, notes to graph, the reasoning graph polished
 for phones, laptops and keyboard; rollback revision `00068`), with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
