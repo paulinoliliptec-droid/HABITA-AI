@@ -541,6 +541,9 @@ def rendered_text(basis: str, quote: str | None, cited: list[Evidence], matter: 
 #: Neutral location predicates (EN + PT), a narrow subset of ``_ATTRIBUTION``. Usable in a free-text statement only
 #: when it cites HABITA's own location evidence (jurisdiction or property record), and they ground nothing else.
 _LOCATION_PREDICATES = ("located", "situated", "localizado", "localizada", "situado", "situada")
+#: The subject of a location restatement and the levels of HABITA's jurisdiction record ("in the parish of …").
+_LOCATION_SUBJECTS = ("property", "building", "parcel", "site", "imovel", "predio", "edificio", "parcela", "parish",
+                      "municipality", "district", "country", "freguesia", "concelho", "municipio", "distrito", "pais")
 _LOCATION_RECORDS = ("jurisdiction_record", "property_record")
 #: Neutral competence predicates (EN + PT): usable only when restating a cited authority record.
 _COMPETENCE_PREDICATES = ("handled", "handles", "responsible", "competent", "competence", "trata", "tratado",
@@ -578,6 +581,9 @@ _OPERATOR_WORDS = re.compile(
     r"|\b(?:has|have|had)\s+to\b|\b(?:is|are|was|were)\s+to\b|\bought\b|\b(?:tem|teem|tinha)\s+de\b|\bha\s+que\b"
     r"|\b(?:precis|necessit|carec|obrigad|requer|exig)\w*"
     r"|[-−–—‒‑+±]\s*\d"
+    r"|\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|hundred|thousand|"
+    r"single|double|twice|half|first|second|third|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|"
+    r"doze|vinte|trinta|cem|cento|mil|metade|dobro|primeir\w*|segund\w*|terceir\w*)\b"
     r"|\b(?:could|necess\w*|compulsory|eligib\w*|ineligib\w*|poderia\w*|higher|lower|larger|smaller|greater|"
     r"bigger|maior|maiores|menor|menores)\b"
     r"|\b(?:able|unable|entitled|capable|authori[sz]ed|licensed|empowered|capaz|capazes|habilitad\w*|autorizad\w*|"
@@ -738,6 +744,20 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
                        if content and content <= {_stem(w) for w in _tokens(x)}]
             if holders and all(word_operators(x) for x in holders):
                 ungrounded.append("(drops an operator of its cited sentence)")
+            # Muse review r2 (P0): the content words must all come from ONE cited sentence, not from anywhere in the
+            # records ("The north unit has a balcony. The south unit has a garage." can't give "The north unit has a
+            # garage"). Free: the authority's name, the closed connective list, location predicates.
+            free = {_stem(w) for w in _META}
+            if any(e.source_type in _LOCATION_RECORDS for e in cited):  # "The property is located in Cascais, …"
+                free |= {_stem(w) for w in (*_LOCATION_PREDICATES, *_LOCATION_SUBJECTS)}
+            if any(e.source_type == "authority_record" for e in cited):  # "… is handled by the Câmara" (FP-3)
+                free |= {_stem(w) for w in _COMPETENCE_PREDICATES}
+            titles = {_stem(w) for e in cited if not is_user_declared(e) for w in _tokens(e.source_title)}
+            needed = content - free - titles
+            if needed and not holders and not any(
+                    needed <= {_stem(w) for w in _tokens(x)} for e in cited if not is_user_declared(e)
+                    for x in _sentences(fold(e.excerpt))):
+                ungrounded.append("(combines words from different cited sentences)")
             continue
         tokens = [re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(asserted_sentence)]
         if only_locations and all(o.isdigit() for o in operators):

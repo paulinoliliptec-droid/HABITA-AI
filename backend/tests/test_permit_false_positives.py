@@ -365,3 +365,21 @@ async def test_muse_r1_affix_deletion_dropped_numbers_and_unlisted_modals(record
     rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("The north unit has a balcony. The south unit has a garage.", "The north unit has a garage."),
+    ("The north unit is large. The south unit is small.", "The north unit is small."),
+    ("North Street, Cascais. South Street, Porto.", "North Street, Porto."),
+    ("A unidade norte tem varanda. A unidade sul tem garagem.", "A unidade norte tem garagem."),
+    ("The owner transferred ownership to Ana. The tenant leased the shop.", "The owner leased the shop."),
+    ("The building has two floors. The annex has three floors.", "The building has three floors."),
+    ("O edifício tem dois pisos. O anexo tem três pisos.", "O edifício tem três pisos."),
+    ("The building has two floors.", "The building has floors."),
+])
+async def test_muse_r2_recombination_across_sentences_and_number_words(record_text, text):
+    """Muse Code review of the TD-003 hotfix, round 2 (2026-11-02, P0)."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
