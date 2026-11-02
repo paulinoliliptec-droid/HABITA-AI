@@ -55,30 +55,36 @@ are refused. Code: `services/permit/`, `integrations/meta/`.
   cited evidence; trust pins, a single transactional commit with property-identity binding, an independent reviewer
   and a final gate decide the status. **A model cannot mark its own answer verified.** Definitive answers without
   property evidence are never VERIFIED; normative statements must use official wording.
-- **TD-003 structural containment (2026-11-02):** a model-written factual sentence is VERIFIED only when it is one
-  whole cited sentence, word for word and with its punctuation, or a canonical sentence HABITA itself derives from a
-  structured record (competence, location). A question or reservation ("Confirm whether …", "… must be confirmed")
-  may carry only a pointer ("this", "the conditions") or one whole cited sentence. This closes the reworded-fact class
-  (for example "The owner sold the south unit." from "The owner of the south unit sold the north unit.", or a dropped
-  condition, time or scope): 0 of 14 structural attacks verify in any section (13 of 14 did on the previous version),
-  0 false VERIFIED on the 32 negatives of the dev benchmark. Four rounds of independent review by Codex and Muse; the
-  final round still **failed** on residual items that the previous version also had (a record that itself holds a
-  question, a record title, a jurisdiction level combined with another record's address, advisory structural
-  explanations). **The owner accepted it with these residual risks on 2026-11-02; it is not an independent PASS and
-  HR-003 is not closed.** Cost: correct answers that reword a record, or a clause of it, are now refused.
-- **Work in progress, not merged (branch [`hr003/empirical-verification-20261101`](https://github.com/paulinoliliptec-droid/HABITA-AI/tree/hr003/empirical-verification-20261101)):** the
-  TD-003 review history (Codex rounds, benchmark dev v1.1), a reservation check against its own cited record (patch
-  (j), five Codex rounds, coverage limits registered), typed criteria for the user's structural answers (areas bound to
-  units, ownership kind, work elements; Codex found remaining free-text cases, so typed fields in the interface are
-  proposed), stage-2 protocols (Atlas identity binding, shadow measurement, live gate) and the structured legal claims
-  design ([`docs/research/hr003-structured-claims-architecture.md`](https://github.com/paulinoliliptec-droid/HABITA-AI/blob/hr003/empirical-verification-20261101/docs/research/hr003-structured-claims-architecture.md)):
-  subject, deontic operator, conditions, exceptions, validity, official evidence, parcel identity and trust state,
-  with an NLI model only in shadow. Still to run before closing HR-003: Atlas identity binding, shadow measurement on
-  real answers and the live gate.
-- **Limitations (honest):** verification is structural and lexical, not semantic entailment, so correct answers that
-  reword a record are rejected (fail-closed) and a few structural descriptions stay advisory; zoning has **no validated GIS
-  connector**, so the classification always requires manual confirmation; the real MongoDB replica-set run of the
-  identity binding is pending. These are tracked as research and debt items (see Roadmap).
+**For the hackathon, HABITA has:**
+- **Whole-sentence verification of model text (live since 2026-11-02):** a sentence written by the model is VERIFIED
+  only when it is one whole sentence of its cited record, word for word and with its punctuation, or a sentence HABITA
+  itself builds from a structured record (who is competent, where the property is). A question or a reservation
+  ("Confirm whether …", "… must be confirmed") can carry only "this", "the conditions" or one whole cited sentence.
+  Rewording a record into a false fact no longer passes: "The owner sold the south unit." from "The owner of the
+  south unit sold the north unit.", or a sentence that drops its condition, time or scope.
+- **Measured results:** 0 of 14 structural attacks verify, in any of the five report sections (13 of 14 did before);
+  0 false VERIFIED on the 32 negative cases of the dev benchmark; 7,514 backend tests pass, plus the identity-binding
+  and ingestion tests on a MongoDB 8.0 replica set. Four rounds of independent review by Codex and Muse found and
+  closed the paths listed in the repository's history.
+- **A design for the next step**, on the branch [`hr003/empirical-verification-20261101`](https://github.com/paulinoliliptec-droid/HABITA-AI/tree/hr003/empirical-verification-20261101): structured legal
+  claims ([design](https://github.com/paulinoliliptec-droid/HABITA-AI/blob/hr003/empirical-verification-20261101/docs/research/hr003-structured-claims-architecture.md)) with subject, deontic operator, conditions, exceptions, validity period, official evidence,
+  parcel identity and trust state, built and rendered by HABITA instead of free text; an open NLI model only in
+  shadow, never able to raise a verdict. The same branch holds typed answers to the structural questions (areas bound
+  to units, ownership kind, work elements), a check of reservations against their own record, and the stage-2
+  protocols.
+
+**We still have these limitations, because verification is lexical and not semantic:**
+- **Correct answers can be refused:** a faithful paraphrase, or a single clause of a longer cited sentence, is not
+  certified (fail-closed). This costs availability, never safety.
+- **Some residual cases depend on the records themselves:** a cited record that is itself a question, a record's
+  title, or a jurisdiction level combined with another record's address could still be read as support. HABITA writes
+  or curates these records, so the model alone cannot create them; they are tracked, and the last review round still
+  reported them.
+- **General explanations of a plan's structure** ("the plan classifies land into …") are advisory rather than
+  enforced: enforcing them with today's rules would block every general explanation.
+- **Zoning** has no validated official GIS connector, so the classification always asks for manual confirmation.
+- **Not yet run:** the identity binding on Atlas, a shadow measurement on real answers and the live gate. Until then
+  HR-003 stays in controlled validation; the structured claims above are the planned way out of word-level checks.
 
 ### HR-004 · Map with post-its — Done (MVP); owner browser check pending
 Notes over the Google map, all read from the same report model as the PDF: property with coordinates and precision
@@ -206,7 +212,7 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Address search, geocoding, jurisdiction, authority (HR-001) | Done |
 | Permit matters with Muse Spark, follow-up questions, resume (HR-002) | Done |
 | Official-source registry, snapshots, retrieval (HR-003) | Done for Cascais; other jurisdictions planned |
-| MU-9 verification, TrustPin, reviewer, final gate (HR-003) | Tested offline and on staging; TD-003 structural containment accepted with residual risk (2026-11-02); replica-set binding tested on a local MongoDB 8.0 replica set, Atlas run pending |
+| MU-9 verification, TrustPin, reviewer, final gate (HR-003) | Tested offline and on staging; whole-sentence verification live (2026-11-02), limits listed in HR-003; replica-set binding tested on a local MongoDB 8.0 replica set, Atlas run pending |
 | Zoning classification from official GIS | Planned (no validated connector; absence stated) |
 | Map with post-its (HR-004) | Done (MVP); owner browser check pending |
 | PDF report with verification record and provenance (HR-006) | Done; tested on staging |
@@ -234,7 +240,8 @@ commit `5734adc` (deployed and tested end to end on 2026-10-30).
 **https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — backend updated on 2026-11-02 to commit `1d03ab3`
 (revision `00065`, TD-003 structural containment; `00063` is NOT a safe rollback: it brings back the old
 verifier with the known false-VERIFIED paths, so a backend problem is fixed forward), frontend updated on 2026-11-02 to commit
-`b8e10a6` (revision `00064`, workspace areas and phone report bar; rollback revision `00062`), with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
+`1917af1` (revision `00066`: landing page at `/`, live demo with the guided Cascais scenario at `/demo`, workspace
+areas, "Property under analysis" map marker, graph and profile in HABITA colours; rollback revision `00064`), with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. A frontend rollback to its previous revision
@@ -280,7 +287,7 @@ MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentia
 
 ## Roadmap and technical debt
 - Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002
-  done; HR-003 in progress (TD-003 containment live and accepted with residual risk; Atlas, shadow and live gates not run); HR-004 and HR-006 MVP complete (why, and what would make them full: roadmap "Why HR-004 and HR-006 are MVP complete"); HR-005, HR-007, HR-008 and HR-009 to HR-012 live, acceptance pending;
+  done; HR-003 in controlled validation (whole-sentence verification live; Atlas, shadow and live gates not run); HR-004 and HR-006 MVP complete (why, and what would make them full: roadmap "Why HR-004 and HR-006 are MVP complete"); HR-005, HR-007, HR-008 and HR-009 to HR-012 live, acceptance pending;
   HR-013…HR-015 pending definition.
 - Main open items: redeploy staging with the latest HR-004/HR-006 code (including the real PDF images); set Google
   Cloud API quotas and review the Maps Platform terms for imagery in PDFs; improve answers to procedure questions (repeated zoning conditions, missing RJUE
