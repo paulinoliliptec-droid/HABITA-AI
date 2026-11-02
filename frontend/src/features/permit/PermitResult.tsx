@@ -64,6 +64,12 @@ export function PermitResult({
         <>
           <div className={styles.conclusion}>
             <p className={styles.answer}>{t(ANSWER[draft.conclusion.answer])}</p>
+            {/* UX-REFINE-001 §6 / AC-UX.7: a positive-sounding answer is never read as the Câmara's authorisation. */}
+            {(draft.conclusion.answer === "conditional" || draft.conclusion.answer === "likely_possible") && (
+              <p className={styles.notAuthorisation}>
+                {t("This is not an authorisation from {authority}: only {authority} can decide.", { authority })}
+              </p>
+            )}
             <p className={styles.summary}>
               {shown(draft.conclusion.summary)} <Refs ids={draft.conclusion.evidence_ids} />
             </p>

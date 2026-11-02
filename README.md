@@ -17,7 +17,7 @@ the evidence does not support it.
 ## Architecture
 | Layer | Technology | Role |
 |---|---|---|
-| Web app | Next.js (App Router) + React + TypeScript | address search, property workspace in areas (Question, Photos & plans, Before / after, Costs, Place; one at a time, linkable as `#costs`), map with post-its and report bar, permit questions, PDF download |
+| Web app | Next.js (App Router) + React + TypeScript | landing page for the jury (`/`: how it works, Meta models used, limits, GitHub), live demo with the guided Cascais scenario (`/demo`), property workspace in areas (Question, Photos & plans, Before / after, Costs, Place; one at a time, linkable as `#costs`), map with post-its and report bar, permit questions, PDF download |
 | API | Python FastAPI | property resolution, jurisdiction, official sources, permit workflow, verifier, reports |
 | Database | MongoDB Atlas | properties, permit matters, evidence, verifications, official-source snapshots, file readings, concepts |
 | Files | Google Cloud Storage (private bucket) | the user's photos and plans (kept without location or device data) and the generated concepts |
@@ -263,7 +263,7 @@ Procedure, checks, rollback and costs: [`infrastructure/STAGING.md`](infrastruct
    uvicorn app.main:app --reload --port 8000
    ```
 3. Frontend ([`frontend/README.md`](frontend/README.md)): `cd frontend && npm ci && npm run dev` → http://localhost:3000
-4. Demo path: search "Praça 5 de Outubro, Cascais" → workspace with map and post-its → ask a permitting question in the
+4. Demo path: open `/demo` (or "Launch live demo" on `/`), choose "Praça 5 de Outubro, Cascais" → workspace with map and post-its → ask a permitting question in the
    Question area (opened first) → answer the follow-up questions → download the PDF report; photos and plans,
    before/after and costs each have their own area. See [`docs/demo-runbook.md`](docs/demo-runbook.md).
 

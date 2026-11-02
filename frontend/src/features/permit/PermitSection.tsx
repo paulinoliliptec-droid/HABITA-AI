@@ -226,16 +226,16 @@ export function PermitSection({
           {ready && onGo && (
             <div className={styles.next}>
               <p className={styles.fieldHint}>{t("Next, for this question:")}</p>
-              <div className={styles.suggestions}>
-                <button type="button" className={styles.suggestion} onClick={() => onGo("documents")}>
+              <div className={styles.actions}>
+                <Button variant="secondary" onClick={() => onGo("documents")}>
                   {t("Add photos & plans")}
-                </button>
-                <button type="button" className={styles.suggestion} onClick={() => onGo("concepts")}>
+                </Button>
+                <Button variant="secondary" onClick={() => onGo("concepts")}>
                   {t("See before / after")}
-                </button>
-                <button type="button" className={styles.suggestion} onClick={() => onGo("costs")}>
+                </Button>
+                <Button variant="secondary" onClick={() => onGo("costs")}>
                   {t("Estimate costs")}
-                </button>
+                </Button>
               </div>
             </div>
           )}
