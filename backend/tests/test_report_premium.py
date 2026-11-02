@@ -212,3 +212,23 @@ def test_hr006_concept_images_beside_their_notice(verified):
     assert "It is not a project, not an authorisation" in html or "not an authorisation" in html
     # no concepts in the report: no images, whatever is passed
     assert "class=\"concepts\"" not in render_html(verified, None, "classico", None, [ConceptFigure(_aerial_jpeg(), "x")])
+
+
+def test_hr006_the_fingerprint_follows_the_content_not_the_generation_time(verified):
+    """HR-006 polish 5: same stored results, same fingerprint; any change in content, another one."""
+    from datetime import timedelta
+
+    from app.services.report.premium import report_fingerprint
+    later = verified.model_copy(update={"generated_at": verified.generated_at + timedelta(hours=3)})
+    assert report_fingerprint(later) == report_fingerprint(verified)
+    changed = verified.model_copy(update={"disclaimer": verified.disclaimer + " "})
+    assert report_fingerprint(changed) != report_fingerprint(verified)
+
+
+def test_hr006_the_seal_links_the_public_property_page_never_a_capability(verified):
+    from app.services.report.premium import render_html, report_fingerprint
+    html = render_html(verified, None, "classico", site_url="https://habita.example/")
+    assert html.count(report_fingerprint(verified)) == 2  # on the cover and in the annex
+    assert f"https://habita.example/property/{verified.property.property_id}" in html
+    assert "token" not in html.split("Property in HABITA")[1][:300].lower()
+    assert "Property in HABITA" not in render_html(verified, None, "classico")  # no site configured: no link

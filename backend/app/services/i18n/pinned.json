@@ -530,5 +530,7 @@
   "{n} item(s): {ids}": "{n} item(ns): {ids}",
   "Official texts": "Textos oficiais",
   "Your statements": "As suas declarações",
-  "Other evidence": "Outras evidências"
+  "Other evidence": "Outras evidências",
+  "<b>Integrity.</b> Report fingerprint (sha256 of its stored content, without the generation time): {fp}. Downloading the report again from HABITA gives the same fingerprint while its stored results are unchanged.": "<b>Integridade.</b> Impressão digital do relatório (sha256 do conteúdo guardado, sem a hora de geração): {fp}. Descarregar de novo o relatório do HABITA dá a mesma impressão digital enquanto os resultados guardados não mudarem.",
+  "Property in HABITA: {link}": "Imóvel no HABITA: {link}"
 }

@@ -99,6 +99,7 @@ CSS_BASE = """
 @page cover { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } @top-right { content: none; } }
 .concepts { display: flex; flex-wrap: wrap; gap: 4mm; } .concept { width: 78mm; margin: 0; break-inside: avoid; }
 .concept img { width: 100%; border: .4pt solid #d9d4c9; } .concept figcaption { font-size: 8pt; color: #5f646b; }
+.seal { margin-top: 4mm; } .cover .seal { font-size: 7.6pt; }
 .cover .mark { display: block; width: 16mm; height: 16mm; margin: 0 auto 5mm; }
 .moderno .cover .mark { margin-left: 0; }
 html { -weasy-hyphens: auto; }
@@ -347,7 +348,7 @@ MARK = ('<svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32
         'stroke-width="2.25" stroke-linecap="square" fill="none"/><circle cx="16" cy="23.5" r="1.75" fill="#7fa898"/></svg>')
 
 
-def _cover(report: PermitReport) -> str:
+def _cover(report: PermitReport, site_url: str | None = None) -> str:
     p, pl = report.property, report.planning
     t = translator_for(report.language)
     label, cls, reason = _status(report)
@@ -367,7 +368,7 @@ def _cover(report: PermitReport) -> str:
                                     "Municipal or any other authority; HABITA's statuses, VERIFIED included, are its own "
                                     "checks. Items marked pending must be confirmed with the competent authority before "
                                     "any decision.") + "</div>"
-            f'<div class="foot">{_e(report.disclaimer)}</div></div>')
+            f'{_seal(report, site_url, t)}<div class="foot">{_e(report.disclaimer)}</div></div>')
 
 
 def _translation_box(report: PermitReport) -> str:
@@ -574,6 +575,23 @@ def _analysis(report: PermitReport) -> str:
     return "".join(out) + "</section>"
 
 
+def report_fingerprint(report: PermitReport) -> str:
+    """HR-006 polish 5: the sha256 of the report's stored content (everything but the generation time), so the same
+    stored results in the same language always give the same fingerprint."""
+    content = report.model_dump(mode="json", exclude={"generated_at"})
+    return hashlib.sha256(json.dumps(content, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def _seal(report: PermitReport, site_url: str | None, t) -> str:
+    fp = report_fingerprint(report)
+    link = (f"{site_url.rstrip('/')}/property/{report.property.property_id}" if site_url else None)
+    return ('<p class="small seal">' + t("<b>Integrity.</b> Report fingerprint (sha256 of its stored content, without "
+                                         "the generation time): {fp}. Downloading the report again from HABITA gives "
+                                         "the same fingerprint while its stored results are unchanged.", fp=f"<span class='mono'>{fp}</span>")
+            + (" " + t("Property in HABITA: {link}", link=f"<span class='mono'>{_e(link)}</span>") if link else "")
+            + "</p>")
+
+
 def _pin_fingerprint(pin: dict[str, str]) -> str:
     """A short fingerprint of the trust pin (its sorted pairs), so the summary and the annex can be matched."""
     return hashlib.sha256(json.dumps(sorted(pin.items()), ensure_ascii=False).encode()).hexdigest()[:16]
@@ -612,7 +630,7 @@ def _source_refs(report: PermitReport) -> dict[str, int]:
     return {s.source_id: i for i, s in enumerate((s for s in report.sources if s.url), start=1)}
 
 
-def _annex(report: PermitReport) -> str:
+def _annex(report: PermitReport, site_url: str | None = None) -> str:
     """The audit appendix: every source link (numbered as in the list) and the full trust pin, in small print."""
     t = translator_for(report.language)
     out = []
@@ -624,13 +642,12 @@ def _annex(report: PermitReport) -> str:
     if v and v.trust_pin:
         out.append(f'<h3>{t("Trust pin")} · {_pin_fingerprint(v.trust_pin)}</h3><ul class="annex-pin">'
                    + "".join(f"<li>{_e(k)}: {_e(val)}</li>" for k, val in sorted(v.trust_pin.items())) + "</ul>")
-    if not out:
-        return ""
+    out.append(_seal(report, site_url, t))
     return f'<section><h2>{t("Annex: links and trust pin")}</h2>{"".join(out)}</section>'
 
 
 def render_html(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico",
-                aerial: AerialFigure | None = None, concepts: list[ConceptFigure] = ()) -> str:
+                aerial: AerialFigure | None = None, concepts: list[ConceptFigure] = (), site_url: str | None = None) -> str:
     if style not in STYLES:
         raise ValueError(f"Unknown style {style!r}; expected one of {', '.join(STYLES)}.")
     t = translator_for(report.language)
@@ -638,12 +655,13 @@ def render_html(report: PermitReport, maps: LocationMaps | None = None, style: s
     return (f'<!doctype html><html lang="{report.language}"><head><meta charset="utf-8"><title>{t("HABITA AI report")}</title><meta name="author" content="HABITA AI">'
             f"<style>{FONT_FACES[style]()}\n{css}\n{CSS_STYLE[style]}</style></head><body class='{style}'>"
             f'<div class="disclaimer-running">{"<b>" + t(DEMO) + ".</b> " if report.demo else ""}{_e(report.disclaimer)}</div>'
-            f"{_cover(report)}{_glance(report, style)}{_location(maps, t, aerial)}{_planning(report)}{_profile(report)}{_concepts(report, concepts)}{_afford(report)}{_analysis(report)}"
-            f"{_sources(report)}{_annex(report)}</body></html>")
+            f"{_cover(report, site_url)}{_glance(report, style)}{_location(maps, t, aerial)}{_planning(report)}{_profile(report)}{_concepts(report, concepts)}{_afford(report)}{_analysis(report)}"
+            f"{_sources(report)}{_annex(report, site_url)}</body></html>")
 
 
 def render_premium_pdf(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico",
-                       aerial: AerialFigure | None = None, concepts: list[ConceptFigure] = ()) -> bytes:
+                       aerial: AerialFigure | None = None, concepts: list[ConceptFigure] = (),
+                       site_url: str | None = None) -> bytes:
     from weasyprint import HTML  # imported lazily: heavy, and only this renderer needs it
 
-    return HTML(string=render_html(report, maps, style, aerial, concepts)).write_pdf()
+    return HTML(string=render_html(report, maps, style, aerial, concepts, site_url)).write_pdf()

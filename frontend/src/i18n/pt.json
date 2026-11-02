@@ -707,5 +707,7 @@
   "Version": "Versão",
   "{n} sources pinned · fingerprint {fp} · full list in the annex": "{n} fontes fixadas · impressão digital {fp} · lista completa no anexo",
   "D. Seen from the air (DGT {year} · Meta SAM 3.1)": "D. Vista aérea (DGT {year} · Meta SAM 3.1)",
-  "{n} item(s): {ids}": "{n} item(ns): {ids}"
+  "{n} item(s): {ids}": "{n} item(ns): {ids}",
+  "<b>Integrity.</b> Report fingerprint (sha256 of its stored content, without the generation time): {fp}. Downloading the report again from HABITA gives the same fingerprint while its stored results are unchanged.": "<b>Integridade.</b> Impressão digital do relatório (sha256 do conteúdo guardado, sem a hora de geração): {fp}. Descarregar de novo o relatório do HABITA dá a mesma impressão digital enquanto os resultados guardados não mudarem.",
+  "Property in HABITA: {link}": "Imóvel no HABITA: {link}"
 }

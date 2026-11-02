@@ -107,7 +107,9 @@ async def _pdf(request: Request, report: PermitReport, name: str) -> Response:
         aerial = await _aerial_figure(request, p.property_id)
         concepts = await _concept_figures(request, report)
         try:  # both renderers are CPU-bound: they run off the event loop
-            content = await run_in_threadpool(render_premium_pdf, report, maps, style, aerial, concepts)
+            # The public site, for the property link of the integrity seal (never a matter's capability).
+            site = next((o for o in request.app.state.settings.cors_origins if o.startswith("https://")), None)
+            content = await run_in_threadpool(render_premium_pdf, report, maps, style, aerial, concepts, site)
         except (ImportError, OSError):  # WeasyPrint or pango missing in this image: the legacy PDF is still correct
             log.exception("premium PDF unavailable; serving the legacy PDF")
     if content is None:
