@@ -94,8 +94,11 @@ FONT_FACES = {
 CSS_BASE = """
 @page { size: A4; margin: 22mm 22mm 24mm 22mm;
   @bottom-left { content: element(disclaimer); width: 150mm; vertical-align: top; }
-  @bottom-right { content: "%PAGE% " counter(page) " %OF% " counter(pages); font-size: 7.5pt; color: #6b6f76; } }
-@page cover { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
+  @bottom-right { content: "%PAGE% " counter(page) " %OF% " counter(pages); font-size: 7.5pt; color: #6b6f76; }
+  @top-right { content: "HABITA AI"; font-size: 7.5pt; letter-spacing: 2px; color: #6b6f76; } }
+@page cover { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } @top-right { content: none; } }
+.cover .mark { display: block; width: 16mm; height: 16mm; margin: 0 auto 5mm; }
+.moderno .cover .mark { margin-left: 0; }
 html { -weasy-hyphens: auto; }
 body { margin: 0; color: #1b1b1b; hyphens: auto; }
 .disclaimer-running { position: running(disclaimer); font-size: 6.6pt; line-height: 1.3; color: #6b6f76; text-align: left; }
@@ -322,6 +325,12 @@ def _status(report: PermitReport) -> tuple[str, str, str]:
     return t(label), cls, t(reason)
 
 
+#: HABITA's mark, the same as the web app's icon (HR-006 polish 4: the identity on the cover).
+MARK = ('<svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="HABITA AI">'
+        '<rect width="32" height="32" rx="6" fill="#1b1d1c"/><path d="M10 8.5v15M22 8.5v15M10 16h12" stroke="#f6f5f1" '
+        'stroke-width="2.25" stroke-linecap="square" fill="none"/><circle cx="16" cy="23.5" r="1.75" fill="#7fa898"/></svg>')
+
+
 def _cover(report: PermitReport) -> str:
     p, pl = report.property, report.planning
     t = translator_for(report.language)
@@ -333,7 +342,7 @@ def _cover(report: PermitReport) -> str:
              if pl.verified_zoning else t("Zoning not verified: no classification or boundary is stated")),
             (t("Generated"), f"{report.generated_at:%Y-%m-%d %H:%M} UTC")]
     demo = f'<p><span class="pill warn">{t(DEMO)}</span></p>' if report.demo else ""
-    return (f'<div class="cover"><div class="brand">HABITA AI · {t("Property Intelligence")}</div>'
+    return (f'<div class="cover">{MARK}<div class="brand">HABITA AI · {t("Property Intelligence")}</div>'
             f'<h1>{t("Property & Permit Report").replace("&", "&amp;")}</h1><div class="address">{_e(p.address)}</div>{demo}'
             f'<p><span class="pill {cls}">{label}</span> <span class="small">{_e(reason)}</span></p>'
             f'{_translation_box(report)}'
