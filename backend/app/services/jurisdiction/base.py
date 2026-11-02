@@ -39,7 +39,9 @@ from typing import Literal
 from app.integrations.maps.geocoding import GeocodedLocation
 
 LevelType = Literal["country", "region", "subregion", "municipality", "subdivision", "overlay"]
-Coverage = Literal["modelled", "unmodelled"]
+#: modelled: authority and verified sources (Portugal). partial: the authority and official sources to consult are named,
+#: their rules are not verified (New York City, Paris, Singapore). unmodelled: only Google's hierarchy.
+Coverage = Literal["modelled", "partial", "unmodelled"]
 
 
 @dataclass(frozen=True)

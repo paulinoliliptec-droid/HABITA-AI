@@ -60,7 +60,7 @@ class JurisdictionOut(BaseModel):
     country_code: str
     levels: list[JurisdictionLevelOut]
     local_authority: AuthorityOut | None
-    coverage: Literal["modelled", "unmodelled"]
+    coverage: Literal["modelled", "partial", "unmodelled"]
     source: Literal["google_maps"] = "google_maps"
     # Display summary derived from levels/locality.
     country: str

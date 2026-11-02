@@ -7,14 +7,17 @@ import { msg } from "@/i18n/core";
 import { useI18n } from "@/i18n/useI18n";
 import styles from "./demo.module.css";
 
-// The guided scenario starts with the Cascais address the demo runbook uses; the others show other jurisdictions.
-const EXAMPLES = ["Praça 5 de Outubro, Cascais", "Avenida dos Aliados, Porto", "Largo da Sé, Funchal"] as const;
+// The guided scenario starts with a Cascais address that reaches every feature, the aerial view included (a street
+// number, so Google returns a precise point); Praça 5 de Outubro geocodes as a square's centre.
+const EXAMPLES = ["Rua Frederico Arouca 30, Cascais", "Praça 5 de Outubro, Cascais"] as const;
+// Partial coverage (afinamentos 2026-11-02): authority and official sources named, rules not verified.
+const OTHER_EXAMPLES = ["350 5th Ave, New York", "10 Rue de Rivoli, Paris", "1 Raffles Place, Singapore"] as const;
 
 /** The guided Cascais path (UX-REFINE-001 §4): what to try, in order. Nothing runs until the visitor acts. */
 const GUIDE = [
   {
     title: msg("Open the property"),
-    body: msg("Choose “Praça 5 de Outubro, Cascais” below. HABITA places it, names its municipality and the Câmara competent for permits."),
+    body: msg("Choose “Rua Frederico Arouca 30, Cascais” below. HABITA places it, names its municipality and the Câmara competent for permits, and can show it from the air."),
   },
   {
     title: msg("Ask a question"),
@@ -44,7 +47,12 @@ export default function DemoPage() {
             {t("Enter an address, or start the guided Cascais scenario. No account is needed, and nothing is charged or generated until you ask for it.")}
           </p>
           <div className={styles.search}>
-            <AddressSearch variant="hero" autoFocus examples={EXAMPLES} />
+            <AddressSearch
+              variant="hero"
+              autoFocus
+              examples={EXAMPLES}
+              otherExamples={{ label: t("Other jurisdictions (partial coverage)"), items: OTHER_EXAMPLES }}
+            />
           </div>
         </section>
 

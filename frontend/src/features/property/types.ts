@@ -39,7 +39,7 @@ export interface Jurisdiction {
   levels: JurisdictionLevel[];
   local_authority: Authority | null;
   /** "unmodelled": HABITA has no adapter for this country yet. */
-  coverage: "modelled" | "unmodelled";
+  coverage: "modelled" | "partial" | "unmodelled";
   source: "google_maps";
   country: string;
   region: string | null;

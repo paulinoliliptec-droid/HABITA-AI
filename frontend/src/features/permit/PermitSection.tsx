@@ -35,6 +35,7 @@ const POLL_MS = 1500;
 export function PermitSection({
   propertyId,
   authorityName,
+  coverage = "modelled",
   area = "question",
   onGo,
   onFilesCount,
@@ -42,6 +43,8 @@ export function PermitSection({
 }: {
   propertyId: string;
   authorityName: string | null;
+  /** The jurisdiction's coverage: verified permit answers exist only where it is "modelled" (Portugal). */
+  coverage?: "modelled" | "partial" | "unmodelled";
   /** The workspace area shown; the others stay mounted but hidden, so nothing in progress is lost. */
   area?: AreaId;
   onGo?: (area: AreaId) => void;
@@ -207,6 +210,15 @@ export function PermitSection({
       {available === false ? (
         <Notice title={t("Permit intelligence isn't available yet")}>
           {t("The reasoning model isn't configured on this server. Property and jurisdiction data remain available.")}
+        </Notice>
+      ) : coverage !== "modelled" && !matter ? (
+        <Notice
+          title={t("Permit answers cover Portugal only, for now")}
+          action={onGo && <Button onClick={() => onGo("place")}>{t("See the authority and sources")}</Button>}
+        >
+          {coverage === "partial"
+            ? t("For this place HABITA names the authority that decides on permits and the official sources to consult, but it has not verified their rules yet, so it does not draft an answer here. The same verifier would apply once those sources are added and checked.")
+            : t("HABITA's verified permit answers rely on official sources it has checked, and it has none for this place yet.")}
         </Notice>
       ) : !matter || asking ? (
         <GoalForm onAsk={ask} onCancel={matter ? () => setAsking(false) : undefined} />

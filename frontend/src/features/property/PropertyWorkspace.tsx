@@ -77,6 +77,7 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
               <PermitSection
                 propertyId={property.property_id}
                 authorityName={property.jurisdiction.local_authority?.name ?? null}
+                coverage={property.jurisdiction.coverage}
                 area={area}
                 onGo={go}
                 onFilesCount={setFilesCount}

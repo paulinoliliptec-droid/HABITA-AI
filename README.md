@@ -37,7 +37,7 @@ other places without changing how answers are checked.
 ## Architecture
 | Layer | Technology | Role |
 |---|---|---|
-| Web app | Next.js (App Router) + React + TypeScript | landing page for the jury (`/`: how it works, Meta models used, limits, GitHub), live demo with the guided Cascais scenario (`/demo`), property workspace in areas (Question, Photos & plans, Before / after, Costs, Place; one at a time, linkable as `#costs`), map with post-its and report bar, permit questions, PDF download |
+| Web app | Next.js (App Router) + React + TypeScript | landing page for the jury (`/`: a photo of Cascais, a large "Try the live demo" button with a note for the jury, how it works, Meta models used, limits, GitHub), live demo with the guided Cascais scenario (`/demo`, starting at Rua Frederico Arouca 30, which reaches every feature including the aerial view; New York, Paris and Singapore as partial-coverage examples), property workspace in areas (Question, Photos & plans, Before / after, Costs, Place; one at a time, linkable as `#costs`), map with post-its and report bar, permit questions, PDF download |
 | API | Python FastAPI | property resolution, jurisdiction, official sources, permit workflow, verifier, reports |
 | Database | MongoDB Atlas | properties, permit matters, evidence, verifications, official-source snapshots, file readings, concepts |
 | Files | Google Cloud Storage (private bucket) | the user's photos and plans (kept without location or device data) and the generated concepts |
@@ -58,7 +58,12 @@ Status words: **Done** = implemented and tested, including on real services wher
 
 ### HR-001 · Location and jurisdiction discovery — Done
 Address search with Google Places autocomplete, Google geocoding, a jurisdiction chain (country → district →
-municipality → parish) and the competent authority. Portugal is modelled; other countries get a generic chain.
+municipality → parish) and the competent authority. Portugal is modelled. **New York City, Paris and Singapore have
+partial coverage** (2026-11-02): HABITA names the authority that decides on building permits (NYC Department of
+Buildings, Maire de Paris, URA) and the official sources to consult, each linked or cited; it has not verified their
+rules, so the workspace says so and does not draft a permit answer there. They show that the same jurisdiction chain,
+source registry and verifier extend to other legal systems; adding verified sources is the next step. Other countries
+get a generic chain without an authority.
 Code: `backend/app/services/property_location.py`, `services/jurisdiction/`, `frontend/src/features/property/`.
 
 ### HR-002 · Permit Intelligence — Done
