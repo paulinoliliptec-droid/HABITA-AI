@@ -254,8 +254,9 @@ commit `5734adc` (deployed and tested end to end on 2026-10-30).
 **https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — backend updated on 2026-11-02 to commit `1d03ab3`
 (revision `00065`, TD-003 structural containment; `00063` is NOT a safe rollback: it brings back the old
 verifier with the known false-VERIFIED paths, so a backend problem is fixed forward), frontend updated on 2026-11-02 to commit
-`1917af1` (revision `00066`: landing page at `/`, live demo with the guided Cascais scenario at `/demo`, workspace
-areas, "Property under analysis" map marker, graph and profile in HABITA colours; rollback revision `00064`), with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
+`6d6ed69` (revision `00068`: landing page at `/`, live demo with the guided Cascais scenario at `/demo`, workspace
+areas, "Property under analysis" map marker, Layers with the aerial view, notes to graph, graph and profile in HABITA
+colours; rollback revision `00066`), with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. A frontend rollback to its previous revision
