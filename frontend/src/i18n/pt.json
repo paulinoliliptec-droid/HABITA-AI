@@ -626,5 +626,14 @@
   "{n} sources checked": "{n} fontes verificadas",
   "{n} statement(s)": "{n} afirmação(ões)",
   "{outcome} — recorded for draft revision {revision}; history only, not the current status ({status})": "{outcome} — registado para a revisão {revision} do rascunho; apenas histórico, não é o estado atual ({status})",
-  "{per} per m², {total} in total": "{per} por m², {total} no total"
+  "{per} per m², {total} in total": "{per} por m², {total} no total",
+  "This doesn't answer the question. Please describe it in a few words.": "Isto não responde à pergunta. Descreva-o em poucas palavras, por favor.",
+  "Please answer with a few words, so HABITA records what you declare.": "Responda com algumas palavras, por favor, para que o HABITA registe o que declara.",
+  "Please name the use, for example housing (one dwelling), office, shop or services. If you don't know the licensed use, it is on the licence of use (licença de utilização) or the caderneta predial.": "Indique o uso, por exemplo habitação (uma moradia), escritório, loja ou serviços. Se não souber o uso licenciado, consta da licença de utilização ou da caderneta predial.",
+  "To assess a division HABITA needs the layout: how many floors or units, the approximate area of each in m2, and each unit's entrance (from the street or a shared hall).": "Para avaliar uma divisão, o HABITA precisa da disposição: quantos pisos ou frações, a área aproximada de cada uma em m2 e a entrada de cada fração (pela rua ou por um átrio comum).",
+  "Please add the approximate area of each unit in m2 (for example, about 60 m2 each).": "Acrescente a área aproximada de cada fração em m2, por favor (por exemplo, cerca de 60 m2 cada).",
+  "Please say how the units are arranged by floor (for example, one per floor, on two floors).": "Indique como as frações ficam distribuídas pelos pisos, por favor (por exemplo, uma por piso, em dois pisos).",
+  "Please say how each unit would be entered: its own street door or a shared hall or staircase.": "Indique como se entraria em cada fração, por favor: porta própria para a rua ou átrio ou escada comum.",
+  "Please say whether the property has a single owner, several co-owners, or is already divided into fractions (propriedade horizontal).": "Indique se o imóvel tem um único proprietário, vários comproprietários ou se já está dividido em frações (propriedade horizontal), por favor.",
+  "Please list the works (for example kitchen, bathroom, floors, walls, windows) and say whether they touch load-bearing walls, the facades, the roof or the height.": "Enumere as obras, por favor (por exemplo cozinha, casa de banho, pavimentos, paredes, janelas), e indique se mexem em paredes mestras, fachadas, cobertura ou altura."
 }

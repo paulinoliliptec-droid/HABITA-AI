@@ -55,6 +55,12 @@ class ConflictError(AppError):
     code = "conflict"
 
 
+class InputIncompleteError(ConflictError):
+    """TD-061: an answer lacks what its question needs ("yes" to a layout question). Nothing was recorded."""
+
+    code = "input_incomplete"
+
+
 class TrustChangedError(AppError):
     """Official sources kept changing between the final gate and the VERIFIED commit (HR-003 CX-2)."""
 

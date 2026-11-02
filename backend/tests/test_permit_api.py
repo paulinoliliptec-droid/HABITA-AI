@@ -124,3 +124,60 @@ def test_sources_are_filtered_by_jurisdiction_chain():
     assert registry.covers(["pt", "pt/porto"]) and not registry.covers(["us", "us/california"])
     for hit in registry.search(["pt", "pt/lisboa", "pt/lisboa/cascais"], ["unit_division"]):
         assert hit.source.authoritative and hit.source.retrieval == "curated_reference" and hit.source.reviewed_on
+
+
+# --- TD-061: typed, contextual answers ------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("key,answer", [
+    ("intended_use", "yes"), ("intended_use", "areas"), ("intended_use", "ok"), ("intended_use", "Sim"),
+    ("intended_use", "two flats"),  # no floors, no areas, no entrances
+    ("intended_use", "Two flats, one per floor, each with its own street door."),  # no area
+    ("intended_use", "Two flats of about 60 m2 each, one per floor."),  # no entrance
+    ("current_licensed_use", "yes"), ("current_licensed_use", "não sei"), ("current_licensed_use", "ok"),
+    ("ownership_status", "yes"), ("ownership_status", "?"),
+])
+def test_td061_a_non_answer_to_a_structural_question_is_refused_and_asked_again(client, key, answer):
+    """TD-061: 'yes', 'areas', 'ok' or a layout without floors/areas/entrances does not close the question."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {key: answer}})
+    assert res.status_code == 409, res.text
+    assert res.json()["error"]["code"] == "input_incomplete"
+    assert answer.lower() not in res.json()["error"]["message"].lower() or len(answer) < 3  # never echoes the answer
+    matter = client.get(f"/api/permit/matters/{mid}").json()
+    assert matter["state"] == "NEEDS_INPUT" and key in [m["input_key"] for m in matter["missing_inputs"]]
+    assert key not in matter["inputs"]
+    assert not [e for e in client.get(f"/api/permit/matters/{mid}/evidence").json()
+                if e["source_type"] == "user_statement"]  # nothing recorded
+
+
+def test_td061_one_incomplete_answer_refuses_the_whole_submission(client):
+    """No partial write: a valid answer submitted with an incomplete one is not recorded either."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs",
+                      json={"inputs": {"current_licensed_use": "dwelling", "intended_use": "yes"}})
+    assert res.status_code == 409
+    assert client.get(f"/api/permit/matters/{mid}").json()["inputs"] == {}
+
+
+def test_td061_complete_typed_answers_are_recorded_as_user_declarations(client):
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {
+        "current_licensed_use": "Habitação: uma moradia",
+        "intended_use": "Dois apartamentos, um por piso, cerca de 60 m² cada, cada um com entrada própria da rua.",
+        "ownership_status": "Um único proprietário, sem frações."}})
+    assert res.status_code == 200, res.text
+    declared = [e for e in client.get(f"/api/permit/matters/{mid}/evidence").json()
+                if e["source_type"] == "user_statement"]
+    assert len(declared) == 3 and all(e["verification_status"] == "user_declared" for e in declared)
+
+
+def test_td061_every_clarifying_message_has_a_portuguese_text():
+    import json
+    from pathlib import Path
+
+    from app.services.permit.answers import MESSAGES
+    pt = json.loads((Path(__file__).parents[2] / "frontend" / "src" / "i18n" / "pt.json").read_text(encoding="utf-8"))
+    assert [m for m in MESSAGES if not pt.get(m)] == []

@@ -9,7 +9,9 @@ export type ApiErrorCode =
   | "service_not_configured"
   | "upstream_error"
   | "network_error"
-  | "internal_error";
+  | "internal_error"
+  | "conflict"
+  | "input_incomplete";
 
 export class ApiError extends Error {
   constructor(

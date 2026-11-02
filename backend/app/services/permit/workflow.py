@@ -25,6 +25,7 @@ from pydantic import ValidationError
 from app.core.errors import (
     AppError,
     ConflictError,
+    InputIncompleteError,
     ForbiddenError,
     NotFoundError,
     ServiceNotConfiguredError,
@@ -68,6 +69,7 @@ from app.services.sources.registry import OfficialSourceRegistry, TrustPin
 from app.services.sources.retrieval import RegulatoryRetriever
 from app.services.permit.tools import TOOL_SPECS, PermitTools, compact_evidence
 from app.services.permit.admissibility import render_draft
+from app.services.permit.answers import answer_problem
 from app.services.permit.citations import reconcile_citations
 from app.services.permit.verifier import Verifier
 from app.services.property_location import PropertyLocationService
@@ -219,6 +221,12 @@ class PermitWorkflow:
         unknown = sorted(set(inputs) - expected)
         if unknown:
             raise ConflictError(f"Unexpected information: {', '.join(unknown)}. Expected: {', '.join(sorted(expected))}.")
+        # TD-061: every answer must have the shape its question needs before any is recorded (no partial write).
+        order = [m.input_key for m in matter.missing_inputs]
+        for key in sorted(inputs, key=order.index):
+            problem = answer_problem(matter.intent, key, inputs[key])
+            if problem:
+                raise InputIncompleteError(problem)
         if not await self._repo.acquire(matter_id):
             raise ConflictError("This matter is being processed. Please wait.")
         try:

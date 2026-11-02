@@ -193,7 +193,10 @@ async def test_the_assessment_itself_can_never_rest_on_the_users_answers(section
 
 @pytest.mark.parametrize("claim", [USER_PLANNING_CLAIMS[0], USER_PLANNING_CLAIMS[9], USER_PLANNING_CLAIMS[6]])
 def test_end_to_end_user_planning_claim_with_an_approving_reviewer(claim):
-    answers = {"current_licensed_use": "One single-family dwelling (habitação).", "intended_use": claim,
+    # TD-061: a bare planning claim is now refused as an answer (no layout); the claim rides on a complete layout
+    # answer so the verifier still faces it end to end.
+    layout = " Two flats, one per floor, about 90 m2 each; each floor has its own street door."
+    answers = {"current_licensed_use": "One single-family dwelling (habitação).", "intended_use": claim + layout,
                "ownership_status": "Single owner; not divided into fractions."}
 
     def repeating(payload):

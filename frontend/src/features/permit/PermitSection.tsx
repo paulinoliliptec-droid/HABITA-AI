@@ -152,7 +152,9 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
       setMatter(updated);
       await advance(updated.matter_id, token);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("Something went wrong. Please try again."));
+      // TD-061: a clarifying question about an incomplete answer is a fixed text, shown in the user's language.
+      setError(err instanceof ApiError ? (err.code === "input_incomplete" ? t(err.message) : err.message)
+        : t("Something went wrong. Please try again."));
       setRunning(false);
     }
   }
