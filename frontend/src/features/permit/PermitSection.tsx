@@ -211,7 +211,7 @@ export function PermitSection({
         <Notice title={t("Permit intelligence isn't available yet")}>
           {t("The reasoning model isn't configured on this server. Property and jurisdiction data remain available.")}
         </Notice>
-      ) : coverage !== "modelled" && !matter ? (
+      ) : coverage !== "modelled" ? (
         <Notice
           title={t("Permit answers cover Portugal only, for now")}
           action={onGo && <Button onClick={() => onGo("place")}>{t("See the authority and sources")}</Button>}

@@ -30,7 +30,9 @@ export function JurisdictionSection({ jurisdiction, propertyId }: { jurisdiction
 
       {authority ? (
         <div className={styles.authority}>
-          <p className={styles.authorityLabel}>{t("Competent local authority")}</p>
+          <p className={styles.authorityLabel}>
+            {jurisdiction.coverage === "partial" ? t("Competent authority") : t("Competent local authority")}
+          </p>
           <p className={styles.authorityName}>{authority.name}</p>
           <p className={styles.authorityNote}>{t(authority.competence)}</p>
           {authority.sources.length > 0 && (
