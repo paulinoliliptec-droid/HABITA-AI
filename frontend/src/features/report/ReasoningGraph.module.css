@@ -589,3 +589,94 @@
   stroke: #857e70; /* 3.7:1 on the cream ground (non-text contrast >= 3:1, Muse UX-B r1) */
   stroke-width: 1.25;
 }
+
+/* Phones and tablets (HR-005 polish 1): the same blocks and relations as a list of steps, one column after another;
+   the chosen block opens its detail right under it. */
+.steps {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.stepTitle {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.stepNodes {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stepItem {
+  display: grid;
+  gap: var(--space-2);
+  scroll-margin-top: var(--space-4);
+}
+
+.stepNode {
+  --tone: var(--forest);
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 3rem;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-left: 4px solid var(--tone);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgb(27 29 28 / 0.06);
+  font: inherit;
+  text-align: left;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.stepNode[data-tone="positive"] { --tone: #2e5e4e; }
+.stepNode[data-tone="danger"] { --tone: #a03a2b; }
+.stepNode[data-tone="warning"] { --tone: #85600f; }
+
+.stepNode:hover {
+  border-color: var(--color-border-strong);
+  border-left-color: var(--tone);
+}
+
+.stepNode[aria-expanded="true"] {
+  outline: 2px solid var(--forest);
+  outline-offset: 0;
+}
+
+.stepNode:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.stepText {
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--color-text-secondary);
+}
+
+.stepDetail {
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
