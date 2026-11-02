@@ -377,3 +377,13 @@ async def test_j_r4_a_negation_in_another_clause_does_not_hide_the_established_f
                  status="system_record", title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section_claim("The deed is not verified."), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", report.issues
+
+
+async def test_td003_final_r5_two_addresses_in_one_cited_sentence():
+    """TD-003 final review round 5 (Codex 2026-11-02, P1). Fixed after the last round: not re-reviewed."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "property_record", "North Street 10, Cascais, South Street 20, Porto",
+                 status="system_record", title="HABITA property record")
+    report = await rendered_verify(in_section_claim("North Street 10, Porto."), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+

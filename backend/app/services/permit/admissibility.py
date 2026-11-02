@@ -660,6 +660,20 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
     return None
 
 
+def _address_parts_hold(parts: list[str], segments: list[str]) -> bool:
+    """The address parts appear, in order, in segments of ONE cited sentence, with no other numbered segment between
+    them (final review r5: "North Street 10, Cascais, South Street 20, Porto" can't give "North Street 10, Porto")."""
+    position = -1
+    for i, part in enumerate(parts):
+        found = next((k for k in range(position + 1 if i else 0, len(segments)) if part in segments[k]), None)
+        if found is None:
+            return False
+        if i and any(re.search(r"\d", segments[k]) for k in range(position + 1, found)):
+            return False
+        position = found
+    return True
+
+
 def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list[str]:
     """TD-003: the operators (negation, modality, restriction, comparison, numbers and signs) of each sentence of a
     free-text statement that is not a verbatim restatement of one cited sentence. Empty when every such sentence is."""
@@ -673,6 +687,10 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
     speaks_of_possible = any(_NEGATION_WORDS.search(x) or _OPERATOR_WORDS.search(re.sub(r"\d", "", x))
                              for e in cited if not is_user_declared(e) for x in [fold(e.excerpt)])
     only_locations = bool(cited) and all(e.source_type in _LOCATION_RECORDS for e in cited if not is_user_declared(e))
+    # Each cited sentence as its comma-separated segments, for addresses (final review r5).
+    cited_address_segments = [[" " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(seg)) + " "
+                               for seg in re.split(r"[,;]", x)]
+                              for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))]
     for sentence in _sentences(fold(text)):
         plain = _subject_question_removed(sentence, names).strip().rstrip(".!?")
         question = _CHECK_QUESTION.match(plain)
@@ -717,7 +735,7 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
             parts = [" " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(p)) + " "
                      for p in re.split(r"[,;]", address)]
             parts = [p for p in parts if p.strip()]
-            if not any(all(p in c for p in parts) for c in cited_sequences):
+            if not any(_address_parts_hold(parts, c) for c in cited_address_segments):
                 ungrounded += [f"{o} (not a verbatim restatement)" for o in operators]
             continue
         # Anywhere else a sentence with an operator or a number needs the whole sentence verbatim ("the south unit is
