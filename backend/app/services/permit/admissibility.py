@@ -782,23 +782,34 @@ def reservation_contradiction(text: str, cited: list[Evidence]) -> str | None:
         for x in _sentences(fold(e.excerpt)):
             for m in _ESTABLISHED.finditer(x):
                 # The clause of this predicate only (r4: "the deed is verified, but the plan is not verified").
-                start = max([0] + [k.end() for k in _STRONG_BREAK.finditer(x, 0, m.start())])
-                clause = x[start:m.end()]
-                if not _NEGATION_WORDS.search(clause):
-                    whole = x[start:m.start()]
-                    for subject_text in [whole, *_CONJUNCTION.split(whole)]:
-                        subject = _subject_stems(subject_text)
-                        if subject:
-                            established.append(subject)
+                # The nearest clause ("…not verified and the title is verified" → "the title is verified") must be
+                # negation-free; a conjoined subject ("the deed and title are verified") extends it only while the
+                # extension has no negation either (Codex final r1).
+                near = max([0] + [k.end() for k in _CLAUSE_BREAK.finditer(x, 0, m.start())])
+                if _NEGATION_WORDS.search(x[near:m.end()]):
+                    continue
+                subjects = [x[near:m.start()]]
+                far = max([0] + [k.end() for k in _STRONG_BREAK.finditer(x, 0, m.start())])
+                if not _NEGATION_WORDS.search(x[far:m.end()]):
+                    whole = x[far:m.start()]
+                    subjects += [whole, *_CONJUNCTION.split(whole)]
+                for subject_text in subjects:
+                    subject = _subject_stems(subject_text)
+                    if subject:
+                        established.append(subject)
     if not established:
         return None
     for sentence in _sentences(fold(text)):
         for m in _NEGATIVE_RESERVATION.finditer(sentence):  # every reservation, not only the first (r5)
-            start = max([0] + [k.end() for k in _CLAUSE_BREAK.finditer(sentence, 0, m.start())])
-            subject = _subject_stems(sentence[start:m.start()])
-            if subject and subject in established:
-                return ("says a fact is not established that its own cited record states as established (same "
-                        "subject); a reservation can't contradict its evidence")
+            near = max([0] + [k.end() for k in _CLAUSE_BREAK.finditer(sentence, 0, m.start())])
+            far = max([0] + [k.end() for k in _STRONG_BREAK.finditer(sentence, 0, m.start())])
+            whole = sentence[far:m.start()]
+            # "The deed and title are not verified" reserves the deed and the title (Codex final r1).
+            for subject_text in [sentence[near:m.start()], whole, *_CONJUNCTION.split(whole)]:
+                subject = _subject_stems(subject_text)
+                if subject and subject in established:
+                    return ("says a fact is not established that its own cited record states as established (same "
+                            "subject); a reservation can't contradict its evidence")
     return None
 
 
