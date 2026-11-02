@@ -217,3 +217,15 @@ def test_td061_final_r1_an_answer_that_says_it_does_not_know_is_refused(client, 
     client.post(f"/api/permit/matters/{mid}/continue")
     res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {key: answer}})
     assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"
+
+
+@pytest.mark.parametrize("key,answer", [
+    ("intended_use", "Two floors; 60 m2 total for both flats, 40 m2 garden, each with an own street door"),
+    ("current_licensed_use", "I don't really know if it is housing"),
+])
+def test_td061_final_r2_totals_gardens_and_hedged_unknowns_are_refused(client, key, answer):
+    """TD-061 final review r2 (Codex 2026-11-02, P1)."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {key: answer}})
+    assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"

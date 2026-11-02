@@ -54,14 +54,21 @@ def _access_described(folded: str) -> bool:
                for m in _ACCESS.finditer(folded))
 
 
+_NOT_UNIT_AREA = re.compile(r"\b(?:total|in total|altogether|overall|garden|yard|terrace|patio|plot|land|lot|"
+                            r"jardim|quintal|terraco|logradouro|lote|terreno|no total|ao todo)\b")
+
+
 def _area_per_unit(folded: str) -> bool:
     """Two area figures, or one figure tied to each unit within a few words ("about 60 m2 each", "cada um com 60 m2")."""
-    found = list(_AREA.finditer(folded))
+    # An area that is a total, a garden or the plot is not a unit's area (Codex final r2).
+    found = [m for m in _AREA.finditer(folded)
+             if not _NOT_UNIT_AREA.search(folded[max(0, m.start() - 15):m.end() + 25])]
     if len(found) >= 2:
         return True
     return any(_EACH.search(folded[max(0, m.start() - 30):m.end() + 25]) for m in found)
 #: An answer that says part of it is unknown is not complete (Codex r4: "entrance unknown").
-_UNKNOWN = re.compile(r"\b(?:unknown|unsure|not sure|don\W?t know|do not know|does not know|doesn\W?t know|"
+_UNKNOWN = re.compile(r"\b(?:unknown|unsure|not (?:\w+ )?sure|(?:don|doesn)\W?t (?:\w+ )?know|(?:do|does) not (?:\w+ )?know|"
+                      r"nao (?:\w+ )?sei|nao (?:\w+ )?sabe\w*|"
                       r"no idea|not certain|uncertain|who knows|tbd|tba|to be defined|desconhec\w*|nao sei|"
                       r"nao sabe\w*|nao faco ideia|sei la|a definir|por definir|indefinid\w*|nao tenho certeza)\b|\?")
 _USE = re.compile(r"\b(?:hous\w*|dwelling\w*|residen\w*|home|flats?|apartments?|habita\w*|moradi\w*|vivend\w*|"
