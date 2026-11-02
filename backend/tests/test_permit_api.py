@@ -229,3 +229,15 @@ def test_td061_final_r2_totals_gardens_and_hedged_unknowns_are_refused(client, k
     client.post(f"/api/permit/matters/{mid}/continue")
     res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {key: answer}})
     assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"
+
+
+@pytest.mark.parametrize("key,answer", [
+    ("current_licensed_use", "Não tenho a certeza se é habitação"),
+    ("ownership_status", "Não tenho a certeza se sou o proprietário"),
+])
+def test_td061_final_r3_portuguese_hedges_are_unknowns(client, key, answer):
+    """TD-061 final review r3 (Codex 2026-11-02, P1)."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {key: answer}})
+    assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"

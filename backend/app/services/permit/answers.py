@@ -70,7 +70,8 @@ def _area_per_unit(folded: str) -> bool:
 _UNKNOWN = re.compile(r"\b(?:unknown|unsure|not (?:\w+ )?sure|(?:don|doesn)\W?t (?:\w+ )?know|(?:do|does) not (?:\w+ )?know|"
                       r"nao (?:\w+ )?sei|nao (?:\w+ )?sabe\w*|"
                       r"no idea|not certain|uncertain|who knows|tbd|tba|to be defined|desconhec\w*|nao sei|"
-                      r"nao sabe\w*|nao faco ideia|sei la|a definir|por definir|indefinid\w*|nao tenho certeza)\b|\?")
+                      r"nao sabe\w*|nao faco ideia|sei la|a definir|por definir|indefinid\w*|nao tenho (?:a )?certeza|"
+                      r"sem certeza|talvez|maybe|perhaps|probably|provavelmente|acho que|i think|i guess)\b|\?")
 _USE = re.compile(r"\b(?:hous\w*|dwelling\w*|residen\w*|home|flats?|apartments?|habita\w*|moradi\w*|vivend\w*|"
                   r"apartament\w*|fogos?|office\w*|escritori\w*|commerc\w*|comerci\w*|shops?|retail|lojas?|"
                   r"servic\w*|services?|restaurant\w*|cafe|bar|industr\w*|warehouse|armaz\w*|storage|garage\w*|"
