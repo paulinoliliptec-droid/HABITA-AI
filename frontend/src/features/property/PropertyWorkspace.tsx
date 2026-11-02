@@ -105,6 +105,7 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
               coordinates={property.coordinates}
               zoom={PRECISION[property.precision].zoom}
               label={property.formatted_address}
+              propertyId={property.property_id}
               card={{
                 lines: [placeLine(property.jurisdiction), t(PRECISION[property.precision].label)],
                 onOpen: () => {
