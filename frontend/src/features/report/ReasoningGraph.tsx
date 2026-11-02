@@ -158,6 +158,14 @@ export function ReasoningGraph({
               {notice}
             </p>
           ))}
+          {/* HR-005 polish 5: what the colours and the dashed line mean (always also said in words in each block). */}
+          <ul className={styles.legend} aria-label={t("Legend")}>
+            <li data-tone="positive">{t("Verified")}</li>
+            <li data-tone="warning">{t("To confirm or not verified")}</li>
+            <li data-tone="danger">{t("Rejected")}</li>
+            <li data-tone="neutral">{t("Record")}</li>
+            {!narrow && <li data-partial>{t("Dashed line: only part of the group is cited")}</li>}
+          </ul>
         </div>
         <Button variant="secondary" onClick={onClose} autoFocus>
           {t("Close")}

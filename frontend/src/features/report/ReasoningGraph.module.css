@@ -722,3 +722,41 @@
     overflow: visible;
   }
 }
+
+/* HR-005 polish 5: the legend. A dot per tone, the dashed line as a short dashed stroke. */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.legend li::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: #858984;
+}
+
+.legend li[data-tone="positive"]::before { background: #2e5e4e; }
+.legend li[data-tone="warning"]::before { background: #85600f; }
+.legend li[data-tone="danger"]::before { background: #a03a2b; }
+
+.legend li[data-partial]::before {
+  width: 18px;
+  height: 0;
+  border-radius: 0;
+  background: none;
+  border-top: 2px dashed #857e70;
+}
