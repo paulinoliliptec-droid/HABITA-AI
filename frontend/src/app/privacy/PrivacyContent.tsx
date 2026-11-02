@@ -23,8 +23,8 @@ export function PrivacyContent() {
             </li>
             <li>{t("The map is displayed with the Google Maps JavaScript API.")}</li>
             <li>{t("Your permit questions are sent to Google Cloud Translation to recognise their language. When you read HABITA in Portuguese, answers and reports are also sent there to be translated; they are not stored by HABITA in translated form.")}</li>
-            <li>{t("Your permit questions, the property's data and the evidence HABITA gathers are processed by Meta's Muse Spark. If Meta's service is unavailable, HABITA may send the same request to Muse Spark open, run by Baseten in the United States.")}</li>
-            <li>{t("Photos and plans you add go only to Meta: Muse Spark reads them and, when you ask for a before / after concept or a view from a plan, Muse Image draws it. When you dictate, the recording goes to Meta's Muse Voice Transcribe and is not kept.")}</li>
+            <li>{t("Your permit questions, the property's data and the evidence HABITA gathers are processed by Meta's Muse Spark. If Meta's service is unavailable and HABITA's backup is switched on, the same request goes to Muse Spark open, run by Baseten in the United States.")}</li>
+            <li>{t("Photos and plans you add are kept by HABITA in a private Google Cloud Storage bucket, without location or device data. The only AI models that receive them are Meta's: Muse Spark reads them and, when you ask for a before / after concept or a view from a plan, Muse Image draws it. When you dictate, the recording goes to Meta's Muse Voice Transcribe and is not kept. For the aerial view, an official DGT orthophoto around the address is sent to Meta's SAM 3.1.")}</li>
             <li>{t("When you listen to a report, its text is sent to ElevenLabs to generate the audio.")}</li>
             <li>{t("HABITA has no accounts and does not ask for your name, email or other personal details.")}</li>
           </ul>
