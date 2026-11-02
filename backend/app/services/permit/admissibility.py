@@ -680,9 +680,18 @@ def _sequence(text: str) -> str:
     return " " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(text)) + " "
 
 
+#: Whole-sentence comparison keeps the punctuation that changes meaning ("No, taxes are due." is not "No taxes are
+#: due.": TD-003 candidate review r2, Codex P1): commas, colons, semicolons and parentheses are tokens.
+_SENTENCE_TOKEN = re.compile(r"[a-z]+|(?:[-−–—‒‑+±]\s*)?\d+(?:[.,]\d+)?|[<>≤≥=≠%]|[,;:()]")
+
+
+def _sentence_sequence(text: str) -> str:
+    return " " + " ".join(re.sub(r"\s+", "", t) for t in _SENTENCE_TOKEN.findall(text)) + " "
+
+
 def _whole_sentence(sentence: str, cited_sequences: list[str]) -> bool:
-    """``sentence`` is, token for token, one whole cited sentence (same normalisation as ``cited_sequences``)."""
-    sequence = _sequence(sentence)
+    """``sentence`` is, token for token and punctuation included, one whole cited sentence (as ``cited_sequences``)."""
+    sequence = _sentence_sequence(sentence)
     return sequence.strip() != "" and any(sequence == c for c in cited_sequences)
 
 
@@ -713,7 +722,7 @@ def competence_sentences(cited: list[Evidence]) -> list[str]:
             # The whole activity, parentheses included: "(except alterations)" is not a gloss to drop (TD-003
             # candidate review, Codex P1).
             activity = activity.strip().rstrip(".")
-            out += [_sequence(form.format(a=activity, t=title)) for form in _COMPETENCE_FORMS]
+            out += [_sentence_sequence(form.format(a=activity, t=title)) for form in _COMPETENCE_FORMS]
     return out
 
 
@@ -774,7 +783,7 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
     ungrounded: list[str] = []
     # Numbers are part of the sequence (TD-003 round 4: "1 cannot …, 2 can …" → "2 cannot …, 1 can …").
     # The cited sentences go through the same deferral removal as the statement, so both sides compare alike.
-    cited_sequences = [" " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(_DEFERRAL.sub(" ", x))) + " "
+    cited_sequences = [_sentence_sequence(_DEFERRAL.sub(" ", x))
                        for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt), semicolon=False)]
     cited_sequences += competence_sentences(cited)  # HABITA's canonical competence sentences (FP-3)
     # The hedge is exempt only when the cited records state no modality at all (final review r3: "must be allowed"

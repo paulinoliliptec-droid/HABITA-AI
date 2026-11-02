@@ -517,6 +517,10 @@ CANDIDATE_R1_ATTACKS = [
      "Câmara Municipal de Cascais handles licensing of urban operations."),
     ("authority_record", "Câmara Municipal de Cascais: Licensing of urban operations (not building permits).",
      "Licensing of urban operations is handled by Câmara Municipal de Cascais."),
+    # Codex candidate review r2 (P1): punctuation is part of the sentence.
+    ("authority_record", "No, taxes are due.", "No taxes are due."),
+    ("authority_record", "Não, as taxas são devidas.", "Não as taxas são devidas."),
+    ("authority_record", "The owner, not the tenant, pays the fee.", "The owner not the tenant pays the fee."),
 ]
 
 
