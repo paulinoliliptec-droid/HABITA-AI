@@ -205,3 +205,22 @@ def singapore() -> dict:
             _component("Singapore", "SG", "country", "political"),
         ],
     )
+
+
+def brooklyn() -> dict:
+    """Google's documented shape for a Brooklyn address: the borough as a sublocality, no locality."""
+    return geocode_payload(
+        place_id="ChIJbrooklyn-277-bedford",
+        formatted_address="277 Bedford Ave, Brooklyn, NY 11211, USA",
+        lat=40.7142,
+        lng=-73.9614,
+        components=[
+            _component("277", "277", "street_number"),
+            _component("Bedford Avenue", "Bedford Ave", "route"),
+            _component("Williamsburg", "Williamsburg", "neighborhood", "political"),
+            _component("Brooklyn", "Brooklyn", "political", "sublocality", "sublocality_level_1"),
+            _component("Kings County", "Kings County", "administrative_area_level_2", "political"),
+            _component("New York", "NY", "administrative_area_level_1", "political"),
+            _component("United States", "US", "country", "political"),
+        ],
+    )

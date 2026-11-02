@@ -150,3 +150,11 @@ def test_singapore_is_partial_with_the_ura():
         ("municipality", "sg/singapore", "Singapore", "City-state"),
     ]
     assert j.coverage == "partial" and j.local_authority.name == "Urban Redevelopment Authority (URA)"
+
+
+def test_a_brooklyn_address_without_a_locality_is_still_new_york_city():
+    """Codex landing r2: Google may return a borough only as a sublocality; the county decides."""
+    j = UnitedStatesAdapter().resolve(location(fixtures.brooklyn(), "en"))
+    assert j.coverage == "partial" and j.id == "us/new-york/new-york-city"
+    assert j.level("subdivision").name == "Brooklyn"
+    assert j.local_authority.name == "NYC Department of Buildings"
