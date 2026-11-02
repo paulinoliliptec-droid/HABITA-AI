@@ -18,6 +18,8 @@ import { LocationSection } from "./LocationSection";
 import { PropertyIdentity } from "./PropertyIdentity";
 import { PropertyMap } from "./PropertyMap";
 import { WorkspaceSkeleton } from "./WorkspaceSkeleton";
+import { WorkspaceTabs } from "./WorkspaceTabs";
+import { areaFromHash, DEFAULT_AREA, type AreaId } from "./areas";
 import styles from "./PropertyWorkspace.module.css";
 
 const noProperty = () => undefined;
@@ -31,6 +33,18 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
   const [attempt, setAttempt] = useState(0);
   // Set by the search that opened this workspace; a later reload keeps it via the URL.
   const partialMatch = useSearchParams().get("match") === "partial";
+  // The area shown (UX-REFINE-001): kept in the URL hash, so a link or a reload opens the same area.
+  const [area, setArea] = useState<AreaId>(DEFAULT_AREA);
+  useEffect(() => {
+    const sync = () => setArea(areaFromHash(window.location.hash));
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  const go = (next: AreaId) => {
+    setArea(next);
+    window.history.replaceState(null, "", `#${next}`);
+  };
 
   useEffect(() => {
     if (property) return;
@@ -54,13 +68,20 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
             <>
               <title>{`${splitAddress(property.formatted_address).headline} · HABITA AI`}</title>
               <PropertyIdentity property={property} partialMatch={partialMatch} />
-              <JurisdictionSection jurisdiction={property.jurisdiction} propertyId={property.property_id} />
+              <WorkspaceTabs area={area} onChange={go} />
+              {/* Every area stays mounted (hidden when not shown): switching never loses a question, an upload or
+                  a calculation in progress. */}
               <PermitSection
                 propertyId={property.property_id}
                 authorityName={property.jurisdiction.local_authority?.name ?? null}
+                area={area}
+                onGo={go}
               />
-              <AerialSection propertyId={property.property_id} precision={property.precision} />
-              <LocationSection property={property} />
+              <div role="tabpanel" id="area-place" aria-labelledby="area-tab-place" hidden={area !== "place"}>
+                <JurisdictionSection jurisdiction={property.jurisdiction} propertyId={property.property_id} />
+                <AerialSection propertyId={property.property_id} precision={property.precision} />
+                <LocationSection property={property} />
+              </div>
             </>
           ) : failed ? (
             <LoadError
@@ -79,11 +100,13 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
       <div className={styles.mapArea}>
         {property && <MapPostIts propertyId={property.property_id} />}
         {property ? (
-          <PropertyMap
-            coordinates={property.coordinates}
-            zoom={PRECISION[property.precision].zoom}
-            label={property.formatted_address}
-          />
+          <div className={styles.mapCanvas}>
+            <PropertyMap
+              coordinates={property.coordinates}
+              zoom={PRECISION[property.precision].zoom}
+              label={property.formatted_address}
+            />
+          </div>
         ) : (
           <div className={styles.mapPlaceholder} aria-hidden="true" />
         )}

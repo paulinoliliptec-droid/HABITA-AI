@@ -1,0 +1,56 @@
+/* Area tabs: one row, scrolls sideways when it doesn't fit (phones), never wraps into a second scroll area. */
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-raised);
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: var(--space-4) calc(-1 * var(--space-6)) var(--space-6);
+  padding: var(--space-2) var(--space-6);
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-canvas);
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  flex: none;
+  min-height: 2.5rem;
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-full);
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--color-text);
+  background: var(--color-surface-sunken);
+}
+
+.tab:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--color-text-inverse);
+  background: var(--color-accent);
+}
+
+@media (max-width: 900px) {
+  .tabs {
+    top: var(--topbar-height);
+    margin: var(--space-4) calc(-1 * var(--space-4)) var(--space-6);
+    padding: var(--space-2) var(--space-4);
+  }
+}

@@ -97,9 +97,24 @@
   color: var(--color-warning);
 }
 
+/* Phones: the board sits below the map as a report bar (UX-REFINE-001 §5), so the map stays visible. */
 @media (max-width: 900px) {
   .board {
-    width: calc(100% - 2 * var(--space-4) - 8rem);
+    position: static;
+    order: 1;
+    width: auto;
+    max-height: none;
+    padding: var(--space-3) var(--space-4) 0;
+  }
+
+  .header {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .header > * {
+    flex: none;
   }
 }
 
