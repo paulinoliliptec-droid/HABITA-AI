@@ -177,6 +177,11 @@ export function ReasoningGraph({
         // The focused flow link disappears with the old detail: focus moves to the chosen block (Codex HR-005 r1).
         item?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
       });
+    } else {
+      // Desktop too: the focused flow link is replaced, so focus moves to the chosen block (Codex HR-005 r2, P2).
+      requestAnimationFrame(() =>
+        canvasRef.current?.querySelector<HTMLButtonElement>(`[data-node="${id}"]`)?.focus({ preventScroll: false }),
+      );
     }
   };
 
