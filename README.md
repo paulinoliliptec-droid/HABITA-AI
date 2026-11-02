@@ -251,6 +251,7 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Permit matters with Muse Spark, follow-up questions, resume (HR-002) | Done |
 | Official-source registry, snapshots, retrieval (HR-003) | Done for Cascais; other jurisdictions planned |
 | MU-9 verification, TrustPin, reviewer, final gate (HR-003) | Tested offline and on staging; whole-sentence verification live (2026-11-02), limits listed in HR-003; replica-set binding tested on a local MongoDB 8.0 replica set, Atlas run pending |
+| Open-weight fallback for the reasoning model (Modal, then Baseten) when Muse Spark is unavailable; same MU-9 verifier | Code and tests ready, off by default; not deployed (needs accounts, keys and cost approval) — `infrastructure/open-models/` |
 | Zoning classification from official GIS | Planned (no validated connector; absence stated) |
 | Map with post-its (HR-004) | Done (MVP); owner browser check pending |
 | PDF report with verification record and provenance (HR-006) | Done; tested on staging |

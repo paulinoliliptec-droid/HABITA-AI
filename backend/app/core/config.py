@@ -79,6 +79,17 @@ class Settings(BaseSettings):
     # Meta Model API (HR-002 Permit Intelligence). Standard-mode models only: the
     # "-contributor" variants let Meta train on content and are refused.
     meta_api_key: SecretStr | None = None
+    # Open-weight fallbacks for the reasoning model (afinamentos): OpenAI-compatible endpoints, tried in this order
+    # only when Muse Spark is unavailable. Each provider is off unless its three settings are set.
+    modal_model_base_url: str | None = None  # the vLLM app's URL ending in /v1
+    modal_model_api_key: SecretStr | None = None
+    modal_model_id: str | None = None
+    baseten_model_base_url: str | None = None  # e.g. https://model-<id>.api.baseten.co/environments/production/sync/v1
+    baseten_model_api_key: SecretStr | None = None
+    baseten_model_id: str | None = None
+    # One attempt each, with this timeout: Muse Spark (2 x META_TIMEOUT_SECONDS) + Modal + Baseten stays under Cloud
+    # Run's 300 s request timeout, and a cold Modal passes on to Baseten instead of holding the request.
+    fallback_timeout_seconds: float = 45.0
     meta_api_base_url: str = "https://api.meta.ai/v1"
     meta_text_model: str = "muse-spark-1.3"
     # HR-012: before/after concepts (image edit endpoint).
