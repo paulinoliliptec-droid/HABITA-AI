@@ -514,5 +514,11 @@
   "Municipal plan (PDM) maps": "Plantas do plano municipal (PDM)",
   "No official map service publishes these plans yet: open the official PDF plans listed in the notes.": "Nenhum serviço de mapa oficial publica ainda estas plantas: abra as plantas oficiais em PDF indicadas nas notas.",
   "Photos & plans: {n}": "Fotos e plantas: {n}",
-  "Before / after: {n}": "Antes / depois: {n}"
+  "Before / after: {n}": "Antes / depois: {n}",
+  "Legend": "Legenda",
+  "To confirm or not verified": "Por confirmar ou não verificado",
+  "Record": "Registo",
+  "Dashed line: only part of the group is cited": "Linha tracejada: só parte do grupo é citada",
+  "Linked to: {blocks}": "Ligado a: {blocks}",
+  "In the selected flow": "No fluxo selecionado"
 }

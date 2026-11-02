@@ -132,6 +132,13 @@ Code: `backend/app/services/report/`, `backend/app/integrations/maps/static_maps
 A clickable graph from the property through rules, evidence and conditions to the conclusion, documents and next steps,
 built only from relations stored in the report. Selecting a block lights its flow. It never invents causality or
 authorisation.
+**Polished for the hackathon (2026-11-02):** HABITA's paper and forest-green colours instead of the deep blue; on phones
+and tablets the same blocks and relations as a list of steps, each block opening its detail under it; all six columns
+visible on laptop and desktop screens (the detail goes under the graph when both don't fit); blocks tall enough for
+their text, with the full text on hover; calm motion (text fades in, only the selected flow pulses, nothing with
+reduced motion); a legend for the colours and the dashed line; arrow keys move between blocks; each map note opens
+its own block. Report texts arrive in the reader's language (the backend translates them); the user's own question
+stays as written.
 Code: `frontend/src/features/report/reasoningGraph.ts`.
 
 ### HR-007 · Voice Explanation — Live; owner's listening test pending

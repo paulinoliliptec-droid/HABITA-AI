@@ -1,12 +1,23 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import { useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { useI18n } from "@/i18n/useI18n";
-import { buildGraph, COLUMNS, nodeIcon, edgeKey, flowOf, layout, NODE_HEIGHT, NODE_WIDTH, revealDelays } from "./reasoningGraph";
+import {
+  buildGraph,
+  COLUMNS,
+  nodeIcon,
+  edgeKey,
+  flowOf,
+  layout,
+  NODE_HEIGHT,
+  NODE_WIDTH,
+  revealDelays,
+  type GraphNode,
+} from "./reasoningGraph";
 import type { PermitReport } from "./types";
 import { useModal } from "./useModal";
 import styles from "./ReasoningGraph.module.css";
@@ -21,6 +32,75 @@ function Reveal({ text, delays }: { text: string; delays: number[] }) {
         </span>
       ))}
     </span>
+  );
+}
+
+/** Phones and tablets get the graph as a list of steps (HR-005 polish 1): the 2D canvas showed only two columns. */
+const NARROW = "(max-width: 900px)";
+function subscribeNarrow(onChange: () => void) {
+  const media = window.matchMedia(NARROW);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+function useNarrow(): boolean {
+  return useSyncExternalStore(subscribeNarrow, () => window.matchMedia(NARROW).matches, () => false);
+}
+
+/** The selected block's detail: the same in the side panel (desktop) and under the block (list of steps). */
+function Detail({
+  node,
+  flowNodes,
+  onSelect,
+}: {
+  node: GraphNode;
+  flowNodes: GraphNode[];
+  onSelect: (id: string) => void;
+}) {
+  const { t } = useI18n();
+  const delays = revealDelays(node.lines);
+  return (
+    <div key={node.id} className={styles.detailContent}>
+      <Icon name={nodeIcon(node.id)} size={28} className={styles.detailIcon} />
+      <h3 className={styles.detailTitle} aria-label={node.title}>
+        {[...node.title].map((letter, i) => (
+          <span key={i} aria-hidden="true" className={styles.letter} style={{ animationDelay: `${i * 35}ms` }}>
+            {letter}
+          </span>
+        ))}
+      </h3>
+      <ul className={styles.lines}>
+        {node.lines.map((line, i) => (
+          <li key={i}>
+            <Reveal text={line} delays={delays[i]} />
+          </li>
+        ))}
+      </ul>
+      {node.links.length > 0 && (
+        <ul className={styles.links}>
+          {node.links.map((l) => (
+            <li key={l.url}>
+              <a href={l.url} target="_blank" rel="noopener noreferrer">
+                {l.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {flowNodes.length > 0 && (
+        <nav className={styles.flow} aria-label={t("Blocks in this flow")}>
+          <h4 className={styles.flowTitle}>{t("Blocks in this flow")}</h4>
+          <ul className={styles.flowList}>
+            {flowNodes.map((n) => (
+              <li key={n.id}>
+                <button type="button" className={styles.flowItem} data-tone={n.tone} onClick={() => onSelect(n.id)}>
+                  {n.title}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+    </div>
   );
 }
 
@@ -47,7 +127,63 @@ export function ReasoningGraph({
   const node = graph.nodes.find((n) => n.id === selected) ?? graph.nodes[0];
   const flow = useMemo(() => flowOf(graph, node.id), [graph, node.id]);
   const flowNodes = graph.nodes.filter((n) => flow.nodes.has(n.id) && n.id !== node.id);
-  const delays = revealDelays(node.lines);
+  const narrow = useNarrow();
+  // The list shows each block's stored relations in words: the lines of the canvas (Codex HR-005 r1, P1).
+  const linkedTo = useMemo(() => {
+    const titles = new Map(graph.nodes.map((n) => [n.id, n.title]));
+    const out = new Map<string, string[]>();
+    for (const e of graph.edges) {
+      out.set(e.from, [...(out.get(e.from) ?? []), titles.get(e.to) ?? e.to]);
+      out.set(e.to, [...(out.get(e.to) ?? []), titles.get(e.from) ?? e.from]);
+    }
+    return out;
+  }, [graph]);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  // HR-005 polish 6: arrow keys move between blocks (left/right: columns, up/down: within a column).
+  const onNodeKey = (event: KeyboardEvent, id: string) => {
+    const from = positions.get(id);
+    if (!from) return;
+    const keys: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    const move = keys[event.key];
+    if (!move) return;
+    event.preventDefault();
+    const [dx, dy] = move;
+    let best: { id: string; score: number } | null = null;
+    for (const n of graph.nodes) {
+      const p = positions.get(n.id);
+      if (!p || n.id === id) continue;
+      const ddx = p.x - from.x;
+      const ddy = p.y - from.y;
+      const ahead = dx ? Math.sign(ddx) === dx && ddx !== 0 : ddx === 0 && Math.sign(ddy) === dy && ddy !== 0;
+      if (!ahead) continue;
+      const score = dx ? Math.abs(ddx) * 10 + Math.abs(ddy) : Math.abs(ddy);
+      if (!best || score < best.score) best = { id: n.id, score };
+    }
+    if (!best) return;
+    setSelected(best.id);
+    canvasRef.current?.querySelector<HTMLButtonElement>(`[data-node="${best.id}"]`)?.focus();
+  };
+  const listId = useId().replaceAll(":", "");
+  // In the list, choosing a block from "Blocks in this flow" brings that block into view.
+  const select = (id: string) => {
+    setSelected(id);
+    if (narrow) {
+      requestAnimationFrame(() => {
+        const item = document.getElementById(`${listId}-${id}`);
+        item?.scrollIntoView({
+          block: "start",
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        });
+        // The focused flow link disappears with the old detail: focus moves to the chosen block (Codex HR-005 r1).
+        item?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+      });
+    } else {
+      // Desktop too: the focused flow link is replaced, so focus moves to the chosen block (Codex HR-005 r2, P2).
+      requestAnimationFrame(() =>
+        canvasRef.current?.querySelector<HTMLButtonElement>(`[data-node="${id}"]`)?.focus({ preventScroll: false }),
+      );
+    }
+  };
 
   useModal(dialog, onClose);
 
@@ -65,15 +201,72 @@ export function ReasoningGraph({
               {notice}
             </p>
           ))}
+          {/* HR-005 polish 5: what the colours and the dashed line mean (always also said in words in each block). */}
+          <ul className={styles.legend} aria-label={t("Legend")}>
+            <li data-tone="positive">{t("Verified")}</li>
+            <li data-tone="warning">{t("To confirm or not verified")}</li>
+            <li data-tone="danger">{t("Rejected")}</li>
+            <li data-tone="neutral">{t("Record")}</li>
+            {!narrow && <li data-partial>{t("Dashed line: only part of the group is cited")}</li>}
+          </ul>
         </div>
         <Button variant="secondary" onClick={onClose} autoFocus>
           {t("Close")}
         </Button>
       </header>
 
+      {narrow ? (
+        <ol className={styles.steps}>
+          {COLUMNS.map((name, column) => {
+            const nodes = graph.nodes.filter((n) => n.column === column);
+            if (!nodes.length) return null;
+            return (
+              <li key={name} className={styles.step}>
+                <h3 className={styles.stepTitle}>{t(name)}</h3>
+                <ul className={styles.stepNodes}>
+                  {nodes.map((n) => {
+                    const open = n.id === node.id;
+                    return (
+                      <li key={n.id} id={`${listId}-${n.id}`} className={styles.stepItem}>
+                        <button
+                          type="button"
+                          className={styles.stepNode}
+                          data-tone={n.tone}
+                          data-flow={flow.nodes.has(n.id) || undefined}
+                          aria-expanded={open}
+                          onClick={() => select(n.id)}
+                        >
+                          <span className={styles.nodeTitle}>
+                            <Icon name={nodeIcon(n.id)} size={16} className={styles.nodeIcon} />
+                            {n.title}
+                          </span>
+                          <span className={styles.stepText}>{n.text}</span>
+                          {(linkedTo.get(n.id)?.length ?? 0) > 0 && (
+                            <span className={styles.stepLinks}>
+                              {t("Linked to: {blocks}", { blocks: [...new Set(linkedTo.get(n.id))].join(", ") })}
+                            </span>
+                          )}
+                          {n.id !== node.id && flow.nodes.has(n.id) && (
+                            <span className={styles.stepInFlow}>{t("In the selected flow")}</span>
+                          )}
+                        </button>
+                        {open && (
+                          <div className={styles.stepDetail} aria-live="polite">
+                            <Detail node={node} flowNodes={flowNodes} onSelect={select} />
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
       <div className={styles.body}>
         <div className={styles.scroller}>
-          <div className={styles.canvas} style={{ width, height }}>
+          <div ref={canvasRef} className={styles.canvas} style={{ width, height }}>
             {COLUMNS.map((name, column) => (
               <p key={name} className={styles.column} style={{ left: columnX(column), width: NODE_WIDTH }}>
                 {t(name)}
@@ -82,10 +275,9 @@ export function ReasoningGraph({
             <svg className={styles.edges} width={width} height={height} aria-hidden="true">
               <defs>
                 {/* Bends the selected node's lines like an arc; a change of shape, slow, never a flash. */}
+                {/* Static noise (HR-005 polish 4): the old animated seed ran even with reduced motion (Muse UX-B). */}
                 <filter id={sparkId} x="-10%" y="-40%" width="120%" height="180%">
-                  <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3" result="noise">
-                    <animate attributeName="seed" values="3;9;17;26;3" dur="2.4s" calcMode="discrete" repeatCount="indefinite" />
-                  </feTurbulence>
+                  <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3" result="noise" />
                   <feDisplacementMap in="SourceGraphic" in2="noise" scale="7" />
                 </filter>
               </defs>
@@ -136,6 +328,9 @@ export function ReasoningGraph({
                   data-flow={flow.nodes.has(n.id) || undefined}
                   data-out={flow.nodes.has(n.id) ? undefined : true}
                   aria-pressed={n.id === node.id}
+                  title={n.text ? `${n.title}: ${n.text}` : n.title}
+                  data-node={n.id}
+                  onKeyDown={(e) => onNodeKey(e, n.id)}
                   style={{ left: x, top: y, width: NODE_WIDTH, height: NODE_HEIGHT, "--column": n.column } as CSSProperties}
                   onClick={() => setSelected(n.id)}
                 >
@@ -153,50 +348,10 @@ export function ReasoningGraph({
 
         {/* The live region stays; only its content changes, so screen readers announce each selection. */}
         <aside className={styles.detail} aria-live="polite">
-          <div key={node.id} className={styles.detailContent}>
-            <Icon name={nodeIcon(node.id)} size={28} className={styles.detailIcon} />
-            <h3 className={styles.detailTitle} aria-label={node.title}>
-              {[...node.title].map((letter, i) => (
-                <span key={i} aria-hidden="true" className={styles.letter} style={{ animationDelay: `${i * 35}ms` }}>
-                  {letter}
-                </span>
-              ))}
-            </h3>
-            <ul className={styles.lines}>
-              {node.lines.map((line, i) => (
-                <li key={i}>
-                  <Reveal text={line} delays={delays[i]} />
-                </li>
-              ))}
-            </ul>
-            {node.links.length > 0 && (
-              <ul className={styles.links}>
-                {node.links.map((l) => (
-                  <li key={l.url}>
-                    <a href={l.url} target="_blank" rel="noopener noreferrer">
-                      {l.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {flowNodes.length > 0 && (
-              <nav className={styles.flow} aria-label={t("Blocks in this flow")}>
-                <h4 className={styles.flowTitle}>{t("Blocks in this flow")}</h4>
-                <ul className={styles.flowList}>
-                  {flowNodes.map((n) => (
-                    <li key={n.id}>
-                      <button type="button" className={styles.flowItem} data-tone={n.tone} onClick={() => setSelected(n.id)}>
-                        {n.title}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            )}
-          </div>
+          <Detail node={node} flowNodes={flowNodes} onSelect={select} />
         </aside>
       </div>
+      )}
       <p className={styles.disclaimer}>{report.disclaimer}</p>
     </div>,
     document.body,
