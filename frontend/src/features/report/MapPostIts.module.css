@@ -129,3 +129,28 @@
   text-align: left;
   cursor: pointer;
 }
+
+/* "See in the graph": the standard secondary button, small enough for a note. */
+.toGraph {
+  margin-top: var(--space-2);
+  height: 1.875rem;
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.toGraph:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-canvas);
+}
+
+.toGraph:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}

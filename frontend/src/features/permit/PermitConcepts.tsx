@@ -29,7 +29,18 @@ const PLAN_NOTICE = "A view from a plan may not match your plan exactly.";
 const NEEDS_ROOM = "plan_3d_bedroom";
 
 /** HR-012: before/after concepts from the user's own photos. Illustrations only; they change nothing in the assessment. */
-export function PermitConcepts({ matterId, token, filesVersion }: { matterId: string; token: string; filesVersion: number }) {
+export function PermitConcepts({
+  matterId,
+  token,
+  filesVersion,
+  onCount,
+}: {
+  matterId: string;
+  token: string;
+  filesVersion: number;
+  /** How many concepts this matter holds (HR-004: shown on the map marker's card). */
+  onCount?: (n: number) => void;
+}) {
   const { t } = useI18n();
   const id = useId();
   const [photos, setPhotos] = useState<MatterFile[]>([]);
@@ -38,6 +49,9 @@ export function PermitConcepts({ matterId, token, filesVersion }: { matterId: st
   const [options, setOptions] = useState<{ key: string; label: string; source: "photo" | "plan" }[]>([]);
   const [byId, setById] = useState<Record<string, MatterFile>>({});
   const [concepts, setConcepts] = useState<Concept[]>([]);
+  useEffect(() => {
+    onCount?.(concepts.length);
+  }, [concepts, onCount]);
   const [fileId, setFileId] = useState("");
   const [change, setChange] = useState("");
   const [images, setImages] = useState<Record<string, string>>({});

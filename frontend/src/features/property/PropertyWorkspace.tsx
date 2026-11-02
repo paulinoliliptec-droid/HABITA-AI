@@ -41,6 +41,9 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
   }, []);
+  // HR-004 point 3: what this browser's matter holds, shown on the map marker's card.
+  const [filesCount, setFilesCount] = useState(0);
+  const [conceptsCount, setConceptsCount] = useState(0);
   const go = (next: AreaId) => {
     setArea(next);
     window.history.replaceState(null, "", `#${next}`);
@@ -76,6 +79,8 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
                 authorityName={property.jurisdiction.local_authority?.name ?? null}
                 area={area}
                 onGo={go}
+                onFilesCount={setFilesCount}
+                onConceptsCount={setConceptsCount}
               />
               <div role="tabpanel" id="area-place" aria-labelledby="area-tab-place" hidden={area !== "place"}>
                 <JurisdictionSection jurisdiction={property.jurisdiction} propertyId={property.property_id} />
@@ -108,6 +113,14 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
               propertyId={property.property_id}
               card={{
                 lines: [placeLine(property.jurisdiction), t(PRECISION[property.precision].label)],
+                links: [
+                  ...(filesCount > 0
+                    ? [{ label: t("Photos & plans: {n}", { n: filesCount }), onClick: () => go("documents") }]
+                    : []),
+                  ...(conceptsCount > 0
+                    ? [{ label: t("Before / after: {n}", { n: conceptsCount }), onClick: () => go("concepts") }]
+                    : []),
+                ],
                 onOpen: () => {
                   go("question");
                   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

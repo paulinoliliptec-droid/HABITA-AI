@@ -19,10 +19,24 @@ const READ_NOTE = {
 } as const;
 
 /** HR-010: photos and plans for this matter. What HABITA reads in them is never verified and never changes the assessment. */
-export function PermitFiles({ matterId, token, onChange }: { matterId: string; token: string; onChange?: () => void }) {
+export function PermitFiles({
+  matterId,
+  token,
+  onChange,
+  onCount,
+}: {
+  matterId: string;
+  token: string;
+  onChange?: () => void;
+  /** How many files this matter holds (HR-004: shown on the map marker's card). */
+  onCount?: (n: number) => void;
+}) {
   const { t } = useI18n();
   const id = useId();
   const [files, setFiles] = useState<MatterFile[] | null>(null);
+  useEffect(() => {
+    if (files) onCount?.(files.length);
+  }, [files, onCount]);
   const [agreed, setAgreed] = useState(false);
   const [kind, setKind] = useState<MatterFile["kind"]>("photo");
   const [busy, setBusy] = useState(false);

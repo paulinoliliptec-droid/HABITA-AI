@@ -29,6 +29,8 @@ const UNAVAILABLE_COPY: Record<MapsUnavailableError["reason"], { title: string; 
 export interface MarkerCard {
   lines: string[];
   onOpen?: () => void;
+  /** What this property holds in other areas (HR-004 point 3), each opening its area. */
+  links?: { label: string; onClick: () => void }[];
 }
 
 export function PropertyMap({
@@ -177,6 +179,16 @@ export function PropertyMap({
                 : undefined,
               onToggle: setAerialOn,
             },
+            {
+              // HR-004 point 1: no documented official map service publishes Cascais's PDM plans (SNIG catalogue,
+              // DGT, GeoCascais checked 2026-11-02); HABITA never probes undocumented endpoints, so it says so.
+              id: "pdm",
+              label: t("Municipal plan (PDM) maps"),
+              on: false,
+              available: false,
+              hint: t("No official map service publishes these plans yet: open the official PDF plans listed in the notes."),
+              onToggle: () => {},
+            },
           ]}
         />
       )}
@@ -225,6 +237,24 @@ function MarkerLabel({ label, card }: { label: string; card: MarkerCard }) {
             </p>
           ))}
           <p className={styles.markerCardNote}>{t("Approximate location: a point, not a parcel boundary.")}</p>
+          {card.links && card.links.length > 0 && (
+            <div className={styles.markerCardLinks}>
+              {card.links.map((l) => (
+                <button
+                  key={l.label}
+                  type="button"
+                  className={styles.markerCardLink}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(false);
+                    l.onClick();
+                  }}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          )}
           {card.onOpen && (
             <button
               type="button"

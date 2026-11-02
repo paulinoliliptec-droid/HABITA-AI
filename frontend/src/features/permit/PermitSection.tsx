@@ -37,12 +37,17 @@ export function PermitSection({
   authorityName,
   area = "question",
   onGo,
+  onFilesCount,
+  onConceptsCount,
 }: {
   propertyId: string;
   authorityName: string | null;
   /** The workspace area shown; the others stay mounted but hidden, so nothing in progress is lost. */
   area?: AreaId;
   onGo?: (area: AreaId) => void;
+  /** This browser's matter: how many files and concepts it holds (HR-004 marker card). */
+  onFilesCount?: (n: number) => void;
+  onConceptsCount?: (n: number) => void;
 }) {
   const { lang, t } = useI18n();
   const [available, setAvailable] = useState<boolean | null>(null);
@@ -170,6 +175,13 @@ export function PermitSection({
   }
 
   const ready = Boolean(matter && token && !running);
+  // While no matter is ready (asking, running, another question), the map card shows no stale counts.
+  useEffect(() => {
+    if (!ready) {
+      onFilesCount?.(0);
+      onConceptsCount?.(0);
+    }
+  }, [ready, onFilesCount, onConceptsCount]);
   // Photos, concepts and costs belong to a question: until there is one, their area says how to start.
   const needQuestion = available === false ? (
     <Notice title={t("Permit intelligence isn't available yet")}>
@@ -284,14 +296,24 @@ export function PermitSection({
     </div>
     <div role="tabpanel" id="area-documents" aria-labelledby="area-tab-documents" hidden={area !== "documents"}>
       {ready && matter && token ? (
-        <PermitFiles matterId={matter.matter_id} token={token} onChange={() => setFilesVersion((n) => n + 1)} />
+        <PermitFiles
+          matterId={matter.matter_id}
+          token={token}
+          onChange={() => setFilesVersion((n) => n + 1)}
+          onCount={onFilesCount}
+        />
       ) : (
         needQuestion
       )}
     </div>
     <div role="tabpanel" id="area-concepts" aria-labelledby="area-tab-concepts" hidden={area !== "concepts"}>
       {ready && matter && token ? (
-        <PermitConcepts matterId={matter.matter_id} token={token} filesVersion={filesVersion} />
+        <PermitConcepts
+          matterId={matter.matter_id}
+          token={token}
+          filesVersion={filesVersion}
+          onCount={onConceptsCount}
+        />
       ) : (
         needQuestion
       )}

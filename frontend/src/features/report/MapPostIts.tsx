@@ -15,6 +15,16 @@ import { VoiceExplanation } from "./VoiceExplanation";
 import type { PermitReport } from "./types";
 import styles from "./MapPostIts.module.css";
 
+/** Which reasoning-graph block each map note opens (HR-004 point 5). */
+const GRAPH_BLOCK: Record<string, string> = {
+  property: "property",
+  planning: "planning",
+  assessment: "conclusion",
+  risks: "risks",
+  evidence: "evidence",
+  sources: "sources",
+};
+
 /** HR-004 post-its over the map and the HR-006 PDF download, both from the same report. */
 export function MapPostIts({ propertyId }: { propertyId: string }) {
   const { lang, t } = useI18n();
@@ -26,6 +36,8 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
   const [open, setOpen] = useState(() => typeof window === "undefined" || !window.matchMedia("(max-width: 900px)").matches);
   const [downloading, setDownloading] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
+  // HR-004 point 5: a note opens the graph on its own block.
+  const [graphStart, setGraphStart] = useState<string | undefined>(undefined);
   const [profileOpen, setProfileOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,14 +85,20 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
         <Button onClick={download} disabled={downloading}>
           {downloading ? t("Preparing…") : t("PDF report")}
         </Button>
-        <Button variant="secondary" onClick={() => setGraphOpen(true)}>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setGraphStart(undefined);
+            setGraphOpen(true);
+          }}
+        >
           {t("Reasoning graph")}
         </Button>
         <Button variant="secondary" onClick={() => setProfileOpen(true)}>
           {t("Property profile")}
         </Button>
       </div>
-      {graphOpen && <ReasoningGraph report={report} onClose={() => setGraphOpen(false)} />}
+      {graphOpen && <ReasoningGraph report={report} initial={graphStart} onClose={() => setGraphOpen(false)} />}
       {profileOpen && <ProfilePanel report={report} onClose={() => setProfileOpen(false)} />}
       {report.profile.length ? (
         <button type="button" className={styles.summary} onClick={() => setProfileOpen(true)}>
@@ -108,6 +126,16 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
                   {line}
                 </p>
               ))}
+              <button
+                type="button"
+                className={styles.toGraph}
+                onClick={() => {
+                  setGraphStart(GRAPH_BLOCK[n.id]);
+                  setGraphOpen(true);
+                }}
+              >
+                {t("See in the graph")}
+              </button>
               {n.links.length > 0 && (
                 <p className={styles.links}>
                   {n.links.map((l) => (
