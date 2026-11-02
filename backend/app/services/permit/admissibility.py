@@ -553,7 +553,7 @@ _NEGATION_WORDS = re.compile(r"\b(?:no|not|never|none|nor|neither|nobody|nothing
 _RESTRICTIVE_WORDS = re.compile(r"\b(?:only|exclusively|solely|unless|except\w*|apenas|somente|exclusivamente|"
                                 r"salvo|exceto|excepto)\b")
 _NUMBER = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)?")
-_SEQUENCE_TOKEN = re.compile(r"[a-z]+|(?:[-−+±]\s*)?\d+(?:[.,]\d+)?|[<>≤≥=≠%]")
+_SEQUENCE_TOKEN = re.compile(r"[a-z]+|(?:[-−–—‒‑+±]\s*)?\d+(?:[.,]\d+)?|[<>≤≥=≠%]")
 #: TD-003 final review (Codex 2026-11-02, P1): words and signs that change what a rule says. A free-text sentence with
 #: any of them (or a number) verifies only as a verbatim restatement of one cited sentence: modality ("can" → "must",
 #: "pode" → "deve"), restriction ("only", "apenas", "exceto"), comparison and limits ("more than", "até", "mínimo"),
@@ -577,9 +577,14 @@ _OPERATOR_WORDS = re.compile(
     r"|\b(?:mais|menos|maior|menor)\s+(?:de|do|da|que)\b|\bno\s+(?:minimo|maximo)\b"
     r"|\b(?:has|have|had)\s+to\b|\b(?:is|are|was|were)\s+to\b|\bought\b|\b(?:tem|teem|tinha)\s+de\b|\bha\s+que\b"
     r"|\b(?:precis|necessit|carec|obrigad|requer|exig)\w*"
-    r"|[-−+±]\s*\d"
+    r"|[-−–—‒‑+±]\s*\d"
+    r"|\b(?:able|unable|entitled|capable|authori[sz]ed|licensed|empowered|capaz|capazes|habilitad\w*|autorizad\w*|"
+    r"licenciad\w*|consegu\w*|impossib\w*|impossivel|infeasib\w*|inviavel)\b"
     r"|\b(?:over|under|above|below|ate|acima\s+de|abaixo\s+de|entre)\s+[-−+±]?\d"
-    r"|[<>≤≥=≠%±−]|\d")
+    r"|[<>≤≥=≠%±−–—]|\d")
+_LOCATED_AT = re.compile(r"^(?:the\s+)?(?:property|building|house|flat|site|imovel|predio|edificio|casa|moradia|"
+                         r"apartamento|o\s+imovel|o\s+predio)?\s*(?:is\s+|fica\s+|esta\s+|situa\s+se\s+|e\s+)?"
+                         r"(?:located\s+|situated\s+|localizad[oa]\s+|situad[oa]\s+)?(?:at|in|on|em|na|no|nas|nos)\s+")
 #: An epistemic hedge on the answer ("a division may be possible") is not a permission: its modal is not an operator.
 _HEDGE = re.compile(r"\b(?:may|might|could|can)\s+(?:still\s+)?(?:be|become)\s+(?:possible|feasible|viable)\b"
                     r"|\b(?:pode|podera)\s+(?:ainda\s+)?ser\s+(?:possivel|viavel)\b")
@@ -663,8 +668,10 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
     # The cited sentences go through the same deferral removal as the statement, so both sides compare alike.
     cited_sequences = [" " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(_DEFERRAL.sub(" ", x))) + " "
                        for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))]
-    speaks_of_possible = any(re.search(r"\b(?:possib|possivel|feasib|viab|viavel)", fold(e.excerpt))
-                             for e in cited if not is_user_declared(e))
+    # The hedge is exempt only when the cited records state no modality at all (final review r3: "must be allowed"
+    # → "may be possible" is refused).
+    speaks_of_possible = any(_NEGATION_WORDS.search(x) or _OPERATOR_WORDS.search(re.sub(r"\d", "", x))
+                             for e in cited if not is_user_declared(e) for x in [fold(e.excerpt)])
     only_locations = bool(cited) and all(e.source_type in _LOCATION_RECORDS for e in cited if not is_user_declared(e))
     for sentence in _sentences(fold(text)):
         plain = _subject_question_removed(sentence, names).strip().rstrip(".!?")
@@ -684,11 +691,19 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
             continue
         tokens = [re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(asserted_sentence)]
         if only_locations and all(o.isdigit() for o in operators):
-            # Only numbers, restating HABITA's own location records (an address, a postcode): the span from the
-            # first to the last number must be verbatim in one cited sentence. Anywhere else a number needs the whole
-            # sentence verbatim ("the south unit is 10 m2" can't take the north unit's figure: final review r2).
-            numeric = [i for i, tok in enumerate(tokens) if any(ch.isdigit() for ch in tok)]
-            tokens = tokens[numeric[0]:numeric[-1] + 1] if numeric else tokens
+            # Final review r3: the address itself must be verbatim, not only its numbers ("South Street 10" can't
+            # take North Street's number). Only a leading location predicate may differ.
+            located = _LOCATED_AT.match(" ".join(tokens))
+            rest = (" ".join(tokens)[located.end():] if located else " ".join(tokens)).split()
+            # From the start of the address to its last number ("Praça 5 de Outubro, Cascais" keeps verifying; a
+            # trailing locality is grounded word by word as before).
+            numeric = [i for i, tok in enumerate(rest) if any(ch.isdigit() for ch in tok)]
+            rest = rest[:numeric[-1] + 1] if numeric else rest
+            if not any(" " + " ".join(rest) + " " in c for c in cited_sequences):
+                ungrounded += [f"{o} (not a verbatim restatement)" for o in operators]
+            continue
+        # Anywhere else a sentence with an operator or a number needs the whole sentence verbatim ("the south unit is
+        # 10 m2" can't take the north unit's figure: final review r2).
         sequence = " " + " ".join(tokens) + " "
         if not any(sequence in c for c in cited_sequences):
             ungrounded += [f"{o} (not a verbatim restatement)" for o in operators]

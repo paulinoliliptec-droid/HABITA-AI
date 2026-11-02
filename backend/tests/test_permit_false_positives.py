@@ -310,3 +310,18 @@ async def test_td003_final_r2_obligations_hedges_signs_and_numbers(record_text, 
     rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("source_type,record_text,text", [
+    ("property_record", "North Street 10. South Street 20.", "South Street 10."),
+    ("authority_record", "The transfer must be allowed.", "The transfer may be possible."),
+    ("authority_record", "The owner must transfer ownership. The owner is able to sell it.",
+     "The owner is able to transfer ownership."),
+    ("authority_record", "The fee is 10 euros.", "The fee is – 10 euros."),
+])
+async def test_td003_final_r3_addresses_hedges_ability_and_dashes(source_type, record_text, text):
+    """TD-003 final review round 3 (Codex 2026-11-02, P1)."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", source_type, record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
