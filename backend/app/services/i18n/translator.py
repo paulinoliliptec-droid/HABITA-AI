@@ -62,6 +62,14 @@ _ARTICLE = {"A": "O", "a": "o", "da": "do", "pela": "pelo", "à": "ao"}
 _ADDED = ((re.compile(r"\b(?:patrim[oó]\w+|hist[oó]ric\w+)\b", re.I), re.compile(r"heritage|histor|patrim", re.I)),
           (re.compile(r"\bquartos?\b", re.I), re.compile(r"bedroom", re.I)))
 _STATUS_WORDS = {"VERIFIED", "REJECTED", "PENDING", "CONFIRMATION", "HABITA"}
+#: A word in capitals of six letters or more is a label written on a plan ("KITCHEN", "BEDROOM"), not an acronym
+#: (HABITA's acronyms, PDM, RJUE, RGEU, REN, INE, are shorter). It is lowered before machine translation, so the
+#: service translates it and the acronym check no longer refuses the whole sentence (afinamentos HR-010).
+_LABEL = re.compile(r"\b[A-Z]{6,}\b")
+
+
+def _lower_labels(text: str) -> str:
+    return _LABEL.sub(lambda m: m.group().lower() if m.group() not in _STATUS_WORDS else m.group(), text)
 
 
 def fidelity_problems(source: str, target: str) -> list[str]:
@@ -189,14 +197,14 @@ class Translator:
         kept, available = 0, True
         if missing:
             try:
-                translated = await self._client.translate([_encode(t) for t in missing], TARGET[lang])
+                translated = await self._client.translate([_encode(_lower_labels(t)) for t in missing], TARGET[lang])
             except TranslationUnavailable:
                 translated, available = [], False
                 out |= {t: t for t in missing}
                 kept = len(missing)
             for source, raw in zip(missing, translated, strict=False):
                 text = _decode(raw)
-                if fidelity_problems(source, text):
+                if fidelity_problems(_lower_labels(source), text):
                     out[source], kept = source, kept + 1
                     continue
                 out[source] = text
