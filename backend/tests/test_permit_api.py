@@ -204,3 +204,16 @@ def test_td061_r5_an_unrelated_descriptor_does_not_describe_the_entrance(client)
     res = client.post(f"/api/permit/matters/{mid}/inputs",
                       json={"inputs": {"intended_use": "2 floors, 60 m2 each, private garden, entrance"}})
     assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"
+
+
+@pytest.mark.parametrize("key,answer", [
+    ("current_licensed_use", "I don't know if it is housing"),
+    ("ownership_status", "I don't know who the owner is"),
+    ("ownership_status", "Não sei quem é o proprietário"),
+])
+def test_td061_final_r1_an_answer_that_says_it_does_not_know_is_refused(client, key, answer):
+    """TD-061 final review r1 (Codex 2026-11-02, P1)."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {key: answer}})
+    assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"

@@ -61,8 +61,9 @@ def _area_per_unit(folded: str) -> bool:
         return True
     return any(_EACH.search(folded[max(0, m.start() - 30):m.end() + 25]) for m in found)
 #: An answer that says part of it is unknown is not complete (Codex r4: "entrance unknown").
-_UNKNOWN = re.compile(r"\b(?:unknown|unsure|not sure|don t know|dont know|no idea|tbd|tba|to be defined|desconhec\w*|"
-                      r"nao sei|sei la|a definir|por definir|indefinid\w*)\b|\?")
+_UNKNOWN = re.compile(r"\b(?:unknown|unsure|not sure|don\W?t know|do not know|does not know|doesn\W?t know|"
+                      r"no idea|not certain|uncertain|who knows|tbd|tba|to be defined|desconhec\w*|nao sei|"
+                      r"nao sabe\w*|nao faco ideia|sei la|a definir|por definir|indefinid\w*|nao tenho certeza)\b|\?")
 _USE = re.compile(r"\b(?:hous\w*|dwelling\w*|residen\w*|home|flats?|apartments?|habita\w*|moradi\w*|vivend\w*|"
                   r"apartament\w*|fogos?|office\w*|escritori\w*|commerc\w*|comerci\w*|shops?|retail|lojas?|"
                   r"servic\w*|services?|restaurant\w*|cafe|bar|industr\w*|warehouse|armaz\w*|storage|garage\w*|"
@@ -111,6 +112,9 @@ def answer_problem(intent: str | None, key: str, answer: str) -> str | None:
         return {"current_licensed_use": NEED_USE, "ownership_status": NEED_OWNERSHIP, "works_description": NEED_WORKS,
                 "intended_use": NEED_LAYOUT if intent == "unit_conversion" else NEED_USE}.get(key, NOT_AN_ANSWER)
     words = _WORD.findall(folded)
+    if _UNKNOWN.search(folded):  # "I don't know if it is housing" answers nothing (Codex final r1)
+        return {"current_licensed_use": NEED_USE, "ownership_status": NEED_OWNERSHIP, "works_description": NEED_WORKS,
+                "intended_use": NEED_LAYOUT if intent == "unit_conversion" else NEED_USE}.get(key, NOT_AN_ANSWER)
     if key == "current_licensed_use":
         return None if _USE.search(folded) and not _UNKNOWN.search(folded) else NEED_USE
     if key == "intended_use":
