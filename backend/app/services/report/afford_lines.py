@@ -1,5 +1,7 @@
 """HR-011 in words: the same rows for the PDFs and the same sentences for the voice, so all three say one thing."""
 
+import re
+
 from app.schemas.afford import AffordReport, Figure
 from app.services.i18n.translator import msg, translator_for
 
@@ -21,13 +23,32 @@ def _amount(f: Figure, t) -> str:
     return t("{per} per m², {total} in total", per=per, total=total)
 
 
+_MONTHS = {"janeiro": "January", "fevereiro": "February", "março": "March", "marco": "March", "abril": "April",
+           "maio": "May", "junho": "June", "julho": "July", "agosto": "August", "setembro": "September",
+           "outubro": "October", "novembro": "November", "dezembro": "December"}
+
+
+def period(text: str | None, lang: str) -> str:
+    """An INE period in the reader's language ("Setembro de 2026" -> "September 2026", "2.º Trimestre de 2026" ->
+    "Q2 2026"); unknown shapes stay as INE wrote them (afinamentos HR-011)."""
+    if not text or lang != "en":
+        return text or ""
+    m = re.fullmatch(r"\s*(\d)\.?\s*[ºo]\s*trimestre\s+de\s+(\d{4})\s*", text, re.I)
+    if m:
+        return f"Q{m.group(1)} {m.group(2)}"
+    m = re.fullmatch(r"\s*([A-Za-zçÇ]+)\s+de\s+(\d{4})\s*", text)
+    if m and m.group(1).lower() in _MONTHS:
+        return f"{_MONTHS[m.group(1).lower()]} {m.group(2)}"
+    return text
+
+
 def rows(a: AffordReport, lang: str) -> list[tuple[str, str]]:
     """(label, text) rows, in the report's language; every text but the amounts is pinned."""
     t = translator_for(lang)
     out: list[tuple[str, str]] = []
     for f in [*a.costs, *a.valuation]:
         out.append((f.label, f"{_amount(f, t)} · {f.source}" + (f" · {f.author}" if f.author else "")
-                    + (f" · {f.as_of}" if f.as_of else "")))
+                    + (f" · {period(f.as_of, lang)}" if f.as_of else "")))
     for s in a.scenarios:
         text = euros(s.cost)
         if s.monthly_payment is not None:

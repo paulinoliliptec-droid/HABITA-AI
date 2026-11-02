@@ -23,13 +23,36 @@ ANSWER = {
 }
 
 
+#: Words after which a full stop doesn't end a sentence ("Art. 67.º", "n.º 5", "Sr. Silva").
+_ABBREVIATIONS = {"art", "arts", "n", "nº", "n.º", "sr", "sra", "dr", "dra", "eng", "av", "pç", "etc", "no", "nos", "fig"}
+
+
+def _sentences(text: str) -> list[str]:
+    """Sentence ends are '.', '!', '?' or ';' followed by a space and a capital (or the end); a full stop after a
+    number ('2.º', '3.5') or an abbreviation is not one (afinamentos: 'INE, 2.º Trimestre' was cut after '2.')."""
+    parts, start = [], 0
+    for m in re.finditer(r"[.!?;]+(?=\s+[\"“(]?[A-ZÁÉÍÓÚÂÊÔÃÕÇÀ0-9]|\s*$)", text):
+        before = text[start:m.start()].split()
+        last = before[-1].lower().rstrip(".") if before else ""
+        if m.group().startswith(".") and (last in _ABBREVIATIONS or (last[-1:].isdigit() and len(m.group()) == 1
+                                                                      and text[m.end():m.end() + 2].strip()[:1].isdigit())):
+            continue
+        parts.append(text[start:m.end()])
+        start = m.end()
+    if text[start:].strip():
+        parts.append(text[start:])
+    return parts
+
+
 def speakable(text: str) -> list[str]:
     """Spoken text: no evidence references, and one sentence at a time."""
     clean = re.sub(r"\s+", " ", re.sub(r"\s*\[[EK]\d+(?:,\s*[EK]\d+)*\]", "", text)).strip()
+    # A doubled end ("visible..", "quartos?.") is said once; an ellipsis stays (afinamentos HR-010, dictation).
+    clean = re.sub(r"([?!])\.+", r"\1", re.sub(r"(?<!\.)\.\.(?!\.)", ".", clean))
     if not clean:
         return []
     out: list[str] = []
-    for sentence in re.findall(r"[^.!?;]+[.!?;]*\s*", clean) or [clean]:
+    for sentence in _sentences(clean) or [clean]:
         rest = sentence.strip()
         while len(rest) > MAX_CHARS:
             cut = rest.rfind(" ", 0, MAX_CHARS + 1)
