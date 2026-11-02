@@ -369,3 +369,11 @@ async def test_td003_final_r4_dropped_operators_and_mixed_addresses(source_type,
     report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", report.issues
 
+
+async def test_j_r4_a_negation_in_another_clause_does_not_hide_the_established_fact():
+    """Patch (j) review (Codex 2026-11-02, P1)."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", "The deed is verified, but the plan is not verified.",
+                 status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim("The deed is not verified."), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
