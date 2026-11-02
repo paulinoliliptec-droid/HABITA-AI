@@ -6488,8 +6488,8 @@
     "claim_type": "competence (T-REC)",
     "modality": "general/deferral"
    },
-   "expected": "VERIFIED",
-   "rationale": "Record wording of E3.",
+   "expected": "REJECTED",
+   "rationale": "Record wording of E3 without its parenthesis. TD-003 structural containment (owner decision 2026-11-02, Codex candidate review r1): the canonical competence sentence keeps the whole activity, parentheses included, since a parenthesis can hold an exception. Was expected VERIFIED until then.",
    "harness": "verifier",
    "final_gate": false,
    "fixed_in_phase": null,

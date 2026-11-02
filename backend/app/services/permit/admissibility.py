@@ -310,10 +310,11 @@ def asserted(sentence: str) -> str:
 _ABBREVIATIONS = {"art", "arts", "n", "no", "al", "cf", "eg", "ie", "etc", "p", "pp", "dr", "sr", "min", "max"}
 
 
-def _sentences(text: str) -> list[str]:
-    """Split on . ! ? ; — but not after an abbreviation or a number ("Art. 67.º")."""
+def _sentences(text: str, semicolon: bool = True) -> list[str]:
+    """Split on . ! ? ; — but not after an abbreviation or a number ("Art. 67.º"). ``semicolon=False`` keeps a
+    semicolon inside its sentence (a cited sentence's "; except …" belongs to it: TD-003 candidate review, Codex P1)."""
     out, start = [], 0
-    for m in re.finditer(r"[.!?;]+(?=\s|$)", text):
+    for m in re.finditer(r"[.!?;]+(?=\s|$)" if semicolon else r"[.!?]+(?=\s|$)", text):
         before = _WORD.findall(text[start:m.start()])
         if m.group().startswith(".") and before and (before[-1] in _ABBREVIATIONS or text[m.start() - 1].isdigit()):
             continue
@@ -673,46 +674,6 @@ _STREET = re.compile(r"\b(?:street|st|road|rd|avenue|av|ave|square|lane|way|rua|
                      r"alameda|calcada|beco|rotunda|azinhaga|caminho)\b")
 
 
-def _address_parts_hold(parts: list[str], segments: list[str]) -> bool:
-    """The address parts appear, in order, in segments of ONE cited sentence, with no other numbered segment between
-    them (final review r5: "North Street 10, Cascais, South Street 20, Porto" can't give "North Street 10, Porto")."""
-    position = -1
-    for i, part in enumerate(parts):
-        found = next((k for k in range(position + 1 if i else 0, len(segments)) if part in segments[k]), None)
-        if found is None:
-            return False
-        if i and any(re.search(r"\d", segments[k]) or _STREET.search(segments[k]) for k in range(position + 1, found)):
-            return False
-        position = found
-    return True
-
-
-_CLAUSE_SPLIT = re.compile(r"[,;:()]|\b(?:and|but|while|whereas|or|plus|with|including|together|as well as|who|whom|"
-                           r"whose|which|that|where|mas|e|ou|enquanto|porem|com|incluindo|bem como|que|quem|cujo|"
-                           r"cuja|cujos|cujas|onde)\b")
-
-
-def _clause_bound(statement: str, cited_sentence: str, free: set[str], names: set[str], ordered: bool = True) -> bool:
-    """Every clause of ``statement`` takes its content words from one clause of ``cited_sentence``, in order and
-    without skipping a clause (Muse review r3, P0: "The north unit has a balcony and the south unit has a garage"
-    can't give "The north unit has a garage"; "Licensing of urban operations, including building permits …" still
-    restates its record clause by clause)."""
-    def clause_stems(text: str) -> list[set[str]]:
-        return [{_stem(w) for w in _tokens(c) if w not in names} - free for c in _CLAUSE_SPLIT.split(text)]
-    wanted = [c for c in clause_stems(statement) if c]
-    have = clause_stems(cited_sentence)
-    if not wanted:
-        return True
-    if not ordered:  # HABITA's own location records: a hierarchy restated in any order, each clause from one clause
-        return all(any(c <= h for h in have) for c in wanted)
-    # positions[k] = cited clauses where statement clause k can come from, given clause k-1's position.
-    reachable = {i for i, c in enumerate(have) if wanted[0] <= c}
-    for clause in wanted[1:]:
-        reachable = {j for i in reachable for j in (i, i + 1, i + 2) if j < len(have) and clause <= have[j]
-                     and all(not have[k] for k in range(i + 1, j))}  # only empty clauses may be skipped
-    return bool(reachable)
-
-
 def _sequence(text: str) -> str:
     return " " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(text)) + " "
 
@@ -743,15 +704,66 @@ def competence_sentences(cited: list[Evidence]) -> list[str]:
         if e.source_type != "authority_record" or is_user_declared(e):
             continue
         title = fold(e.source_title).strip()
-        for x in _sentences(fold(e.excerpt)):
+        for x in _sentences(fold(e.excerpt), semicolon=False):
             head, sep, activity = x.partition(":")
             if not sep or _sequence(head) != _sequence(title):
                 continue
+            # The whole activity, parentheses included: "(except alterations)" is not a gloss to drop (TD-003
+            # candidate review, Codex P1).
             activity = activity.strip().rstrip(".")
-            # The record's trailing gloss in parentheses ("(licenciamento urbanístico)") may be left out, nothing else.
-            for a in {activity, re.sub(r"\s*\([^()]*\)$", "", activity)}:
-                out += [_sequence(form.format(a=a, t=title)) for form in _COMPETENCE_FORMS]
+            out += [_sequence(form.format(a=activity, t=title)) for form in _COMPETENCE_FORMS]
     return out
+
+
+_LEVEL_PREFIX = re.compile(r"^(?:(?:in|at|on|em|na|no|nas|nos)\s+)?(?:(?:the|a|o)\s+)?(?:(?:parish|municipality|district|"
+                           r"country|freguesia|concelho|municipio|distrito|pais)\s+(?:of|de|do|da)\s+)?")
+_POSTCODE = re.compile(r"^ \d{4} -\d{3} ")
+
+
+def _location_values(cited: list[Evidence]) -> tuple[set[str], list[list[str]]]:
+    """HABITA's own location records as whole values: the jurisdiction levels ("Country: Portugal → … → Parish: …"),
+    and each address as its ordered comma-separated segments (a segment may drop its leading postcode)."""
+    levels: set[str] = set()
+    addresses: list[list[str]] = []
+    for e in cited:
+        if is_user_declared(e) or e.source_type not in _LOCATION_RECORDS:
+            continue
+        text = re.sub(r"\s*\([^()]*precision\)\s*\.?\s*$", "", fold(e.excerpt)).strip().rstrip(".")
+        if e.source_type == "jurisdiction_record":
+            levels |= {_sequence(v.split(":", 1)[-1]) for v in text.split("→")}
+        else:
+            for x in _sentences(text, semicolon=False):
+                addresses.append([_sequence(seg) for seg in x.rstrip(".").split(",")])
+    return levels, addresses
+
+
+def _location_statement(sentence: str, cited: list[Evidence]) -> bool:
+    """TD-003 structural (candidate review, Codex P0/P1): a statement resting only on HABITA's location records is
+    the canonical "<the property> <is located> in <part>, <part> …", and every part is a WHOLE value of the record: a
+    jurisdiction level, or address segments in their order (no other numbered or street segment between them).
+    "The owner sold the south unit" or "North Street 10" from "Old North Street 10" is none of them."""
+    levels, addresses = _location_values(cited)
+    located = _LOCATED_AT.match(sentence.strip())
+    rest = sentence.strip()[located.end():] if located else sentence.strip()
+    parts = [_sequence(_LEVEL_PREFIX.sub("", p.strip())) for p in re.split(r"[,;]", rest.rstrip(".!?"))]
+    parts = [p for p in parts if p.strip()]
+    if not parts:
+        return False
+    street = [p for p in parts if p not in levels]
+    if not street:
+        return True
+    for segments in addresses:
+        options = [{seg, _POSTCODE.sub(" ", seg)} for seg in segments]
+        position = -1
+        for part in street:
+            found = next((k for k in range(position + 1, len(options)) if part in options[k]), None)
+            if found is None or (position >= 0 and any(re.search(r"\d", segments[k]) or _STREET.search(segments[k])
+                                                       for k in range(position + 1, found))):
+                break
+            position = found
+        else:
+            return True
+    return False
 
 
 def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list[str]:
@@ -761,18 +773,13 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
     # Numbers are part of the sequence (TD-003 round 4: "1 cannot …, 2 can …" → "2 cannot …, 1 can …").
     # The cited sentences go through the same deferral removal as the statement, so both sides compare alike.
     cited_sequences = [" " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(_DEFERRAL.sub(" ", x))) + " "
-                       for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))]
+                       for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt), semicolon=False)]
     cited_sequences += competence_sentences(cited)  # HABITA's canonical competence sentences (FP-3)
     # The hedge is exempt only when the cited records state no modality at all (final review r3: "must be allowed"
     # → "may be possible" is refused).
     speaks_of_possible = any(_NEGATION_WORDS.search(x) or _OPERATOR_WORDS.search(re.sub(r"\d", "", x))
                              for e in cited if not is_user_declared(e) for x in [fold(e.excerpt)])
     only_locations = bool(cited) and all(e.source_type in _LOCATION_RECORDS for e in cited if not is_user_declared(e))
-    only_properties = bool(cited) and all(e.source_type == "property_record" for e in cited if not is_user_declared(e))
-    # Each cited sentence as its comma-separated segments, for addresses (final review r5).
-    cited_address_segments = [[" " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(seg)) + " "
-                               for seg in re.split(r"[,;]", x)]
-                              for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))]
     for sentence in _sentences(fold(text)):
         plain = _subject_question_removed(sentence, names).strip().rstrip(".!?")
         question = _CHECK_QUESTION.match(plain)
@@ -787,15 +794,14 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
         operators_text = asserted_sentence if speaks_of_possible else _HEDGE.sub(" possible ", asserted_sentence)
         operators = sorted(set(_NEGATION_WORDS.findall(operators_text))
                            | {o.strip() for o in _OPERATOR_WORDS.findall(operators_text)})
-        if not operators and only_properties and "," in asserted_sentence:
-            # Muse review r4 (P0): a numberless address is checked part by part too ("North Street, Porto" can't
-            # take its city from "North Street, Cascais, South Street, Porto").
-            located = _LOCATED_AT.match(asserted_sentence.strip())
-            address = asserted_sentence.strip()[located.end():] if located else asserted_sentence
-            parts = [" " + " ".join(_SEQUENCE_TOKEN.findall(p)) + " " for p in re.split(r"[,;]", address)]
-            parts = [p for p in parts if p.strip()]
-            if not any(_address_parts_hold(parts, c) for c in cited_address_segments):
-                ungrounded.append("(an address part from another address)")
+        if only_locations and (operators or asserted_sentence.split() == plain.split()) and not (question or subject):
+            # HABITA's own location records only: the canonical location sentence, part by part (TD-003 structural).
+            if _location_statement(asserted_sentence, cited) or _whole_sentence(asserted_sentence, cited_sequences):
+                continue
+            needed_here = {_stem(w) for w in _tokens(asserted_sentence) if w not in names} - {
+                _stem(w) for w in (*_META, *_LOCATION_PREDICATES, *_LOCATION_SUBJECTS)}
+            if operators or needed_here:
+                ungrounded.append("(not HABITA's location record restated part by part)")
             continue
         if not operators:
             # Final review r4 (Codex P1): an operator-free sentence can't drop the negation or operator of the
@@ -826,32 +832,12 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
                 free |= {_stem(w) for w in _COMPETENCE_PREDICATES}
             titles = {_stem(w) for e in cited if not is_user_declared(e) for w in _tokens(e.source_title)}
             needed = content - free - titles
-            if needed and only_locations:
-                # HABITA's own location records (structured jurisdiction levels and addresses): a hierarchy restated
-                # in any order, each clause from one clause.
-                if not any(_clause_bound(asserted_sentence, x, free | titles, names, ordered=False)
-                           for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))):
-                    ungrounded.append("(combines words from different cited sentences or clauses)")
-            elif needed and not _whole_sentence(asserted_sentence, cited_sequences):
+            if needed and not _whole_sentence(asserted_sentence, cited_sequences):
                 # TD-003 structural containment (owner 2026-11-02, Muse r5 P0): which word a phrase attaches to
                 # ("the owner OF THE SOUTH UNIT sold …", "the tenant LEASING the shop …"), a condition, a time or a
                 # scope ("If …, ", "Before …, ", "In …, ") can't be read by word lists. A free factual sentence
                 # verifies only as one whole cited sentence, word for word; anything else is not certified.
                 ungrounded.append("(not one whole cited sentence, word for word)")
-            continue
-        if only_locations and all(o.isdigit() for o in operators):
-            # Final review r3: the address itself must be verbatim, not only its numbers ("South Street 10" can't
-            # take North Street's number). Only a leading location predicate may differ.
-            # Every comma-separated part of the address must be verbatim in the SAME cited sentence (final review
-            # r4: "North Street 10, Porto" can't take South Street's city); parts may be omitted ("Praça 5 de
-            # Outubro, Cascais" restates "Praça 5 de Outubro, Centro Historico, 2750-427 Cascais, Portugal").
-            located = _LOCATED_AT.match(asserted_sentence.strip())
-            address = asserted_sentence.strip()[located.end():] if located else asserted_sentence
-            parts = [" " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(p)) + " "
-                     for p in re.split(r"[,;]", address)]
-            parts = [p for p in parts if p.strip()]
-            if not any(_address_parts_hold(parts, c) for c in cited_address_segments):
-                ungrounded += [f"{o} (not a verbatim restatement)" for o in operators]
             continue
         # Anywhere else a sentence with an operator or a number needs the whole sentence verbatim ("the south unit is
         # 10 m2" can't take the north unit's figure: final review r2).

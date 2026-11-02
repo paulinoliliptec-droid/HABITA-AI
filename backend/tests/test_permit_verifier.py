@@ -319,7 +319,7 @@ async def test_fully_cited_draft_can_still_be_verified():
               risks=[Risk(text="Requirements not confirmed may delay the works.", evidence_ids=["E1"])])
     # Free text must be grounded in what it cites (HR-003 CX-1), so E1 carries realistic wording here.
     grounded = ev("E1").model_copy(update={"excerpt": "An application for prior control must be submitted to the "
-                                                      "Câmara with the documents it needs; requirements not confirmed "
+                                                      "Câmara with the documents it needs. Requirements not confirmed "
                                                       "may delay the works."})
     report, _ = await verify(d, [grounded])
     assert report.outcome == "VERIFIED" and report.checks["claims_supported"]

@@ -90,8 +90,13 @@ async def test_only_the_records_orientation_and_a_subject_question_are_admitted(
 
 
 async def test_the_competence_record_restated_with_the_authority_as_subject_verifies():
-    text = "Câmara Municipal de Cascais is responsible for licensing of urban operations, including building permits."
+    # TD-003 structural (2026-11-02): the canonical competence sentence keeps the whole activity, parentheses
+    # included; without them it is refused (availability cost, registered).
+    text = ("Câmara Municipal de Cascais is responsible for licensing of urban operations, including building permits "
+            "(licenciamento urbanístico).")
     assert await outcomes(text, bases=("none",)) == {"VERIFIED"}
+    shorter = "Câmara Municipal de Cascais is responsible for licensing of urban operations, including building permits."
+    assert "VERIFIED" not in await outcomes(shorter, bases=("none",))
 
 
 async def test_a_reversed_inclusion_is_not_the_records_competence():
@@ -481,3 +486,33 @@ async def test_td003_structural_whole_and_canonical_sentences_still_verify(text)
                  title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
     assert report.outcome == "VERIFIED", report.issues
+
+
+#: TD-003 candidate review r1 (Codex 2026-11-02): location records, parentheses, semicolons and address prefixes.
+CANDIDATE_R1_ATTACKS = [
+    ("property_record", "The owner of the south unit sold the north unit.", "The owner sold the south unit."),
+    ("jurisdiction_record", "The owner of the south unit sold the north unit.", "The owner sold the south unit."),
+    ("property_record", "The tenant leasing the shop owns the north unit.", "The tenant owns the shop."),
+    ("jurisdiction_record", "The tenant leasing the shop owns the north unit.", "The tenant owns the shop."),
+    ("property_record", "O inquilino da loja possui a unidade norte.", "O inquilino possui a loja."),
+    ("authority_record", "Câmara Municipal de Cascais: licensing of urban operations (except alterations).",
+     "Licensing of urban operations is handled by Câmara Municipal de Cascais."),
+    ("authority_record", "Câmara Municipal de Cascais: licensing of urban operations (only after approval).",
+     "Licensing of urban operations is handled by Câmara Municipal de Cascais."),
+    ("regulatory_source", "The owner can sell; except to the tenant.", "The owner can sell."),
+    ("authority_record", "The owner can sell; only after approval.", "The owner can sell."),
+    ("authority_record", "The owner can sell; if the tenant agrees.", "The owner can sell."),
+    ("authority_record", "The owner can sell; in the north district.", "The owner can sell."),
+    ("property_record", "Old North Street 10, Porto.", "North Street 10, Porto."),
+    ("property_record", "Old North Street, Porto.", "North Street, Porto."),
+    ("property_record", "Old North Street 10, Porto.", "The property is located at North Street 10, Porto."),
+]
+
+
+@pytest.mark.parametrize("section", ["conclusion", "claim", "procedure", "risk", "next action"])
+@pytest.mark.parametrize("source_type,record_text,text", CANDIDATE_R1_ATTACKS)
+async def test_td003_candidate_r1_no_false_verified(source_type, record_text, text, section):
+    from tests.test_permit_admissibility import CASE_RECORDS, in_section, record, rendered_verify
+    rec = record("E50", source_type, record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section(section, text, ["E50"]), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", (section, report.issues)
