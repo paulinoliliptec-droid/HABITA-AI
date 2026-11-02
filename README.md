@@ -62,7 +62,10 @@ are refused. Code: `services/permit/`, `integrations/meta/`.
 - **Empirical stage (branch `hr003/empirical-verification-20261101`, not yet merged):** independent review found false
   VERIFIED paths in negation grounding (a restriction or another sentence granting a negation); a negated sentence now
   verifies only as a verbatim restatement of one cited sentence. Adversarial C2 suite on a local replica set (14/14),
-  a frozen semantic benchmark protocol with a 40-case dev set (`docs/research/`, `experiments/`).
+  a frozen semantic benchmark protocol with a 40-case dev set (`docs/research/`, `experiments/`). Stage 2: any
+  sentence with a negation, modal, restriction, comparison, number or sign verifies only as a verbatim restatement;
+  typed answers to structural questions (TD-061); a reservation contradicting its own record is refused. Independent
+  review has not yet passed (see `docs/research/hr003-stage2-protocols.md`).
 
 ### HR-004 · Map with post-its — Done (MVP); owner browser check pending
 Notes over the Google map, all read from the same report model as the PDF: property with coordinates and precision
