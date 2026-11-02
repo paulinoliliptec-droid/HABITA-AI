@@ -93,6 +93,20 @@ assessment exists); zoning — a classification only from a verified layer, othe
 official plans to consult; risks and conditions; evidence and official sources with links. Tested with headless
 Chromium on the private staging. Code: `frontend/src/features/report/`.
 
+**Added for the hackathon (2026-11-02):** a "Property under analysis" label on the marker, whose card gives the
+address, municipality and precision ("a point, not a parcel boundary"), links to this browser's photos, plans and
+concepts, and "Open the analysis"; one **Layers** button with the base map (map, satellite) and the overlays; the
+**aerial view** as a map layer (the DGT orthophoto with HABITA's Meta SAM 3.1 outlines, placed at its own extent,
+always with its source, year and "approximate, not a survey or a parcel boundary"); and "See in the graph" on every
+note, which opens the reasoning graph on that note's block.
+
+**Still limited, and why:** the municipal plan (PDM) maps are listed in Layers but unavailable, because no documented
+official map service publishes Cascais's PDM plans (SNIG catalogue, DGT and the municipal GeoCascais checked on
+2026-11-02) and HABITA does not probe undocumented endpoints; the official PDF plans stay linked in the notes. No
+parcel outline is drawn: Cascais has only the old rustic geometric cadastre, the urban properties of the demo are not
+covered, and an invented outline would mislead. Photos carry no location by design (removed on upload), so they are
+not pinned on the map.
+
 ### HR-006 · PDF report — Done; real Google images validated on the private staging
 A server-generated PDF from the same model: cover (status, municipality, authority, zoning state, and a permanent
 warning that there is **no municipal confirmation**), property identification, a location page, planning context,

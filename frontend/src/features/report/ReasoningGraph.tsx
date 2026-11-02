@@ -25,11 +25,23 @@ function Reveal({ text, delays }: { text: string; delays: number[] }) {
 }
 
 /** HR-005: how the result was reached, from the same report as the post-its and the PDF. */
-export function ReasoningGraph({ report, onClose }: { report: PermitReport; onClose: () => void }) {
+export function ReasoningGraph({
+  report,
+  onClose,
+  initial,
+}: {
+  report: PermitReport;
+  onClose: () => void;
+  /** The block to open on (HR-004: a map note opens its own block); "evidence" means the first evidence group. */
+  initial?: string;
+}) {
   const { t } = useI18n();
   const graph = useMemo(() => buildGraph(report, t), [report, t]);
   const { positions, width, height, columnX } = useMemo(() => layout(graph), [graph]);
-  const [selected, setSelected] = useState("conclusion");
+  const [selected, setSelected] = useState(() => {
+    const wanted = initial === "evidence" ? graph.nodes.find((n) => n.id.startsWith("ev:"))?.id : initial;
+    return wanted && graph.nodes.some((n) => n.id === wanted) ? wanted : "conclusion";
+  });
   const dialog = useRef<HTMLDivElement>(null);
   const sparkId = useId().replaceAll(":", "");
   const node = graph.nodes.find((n) => n.id === selected) ?? graph.nodes[0];

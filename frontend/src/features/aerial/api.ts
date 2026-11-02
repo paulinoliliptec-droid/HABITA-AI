@@ -14,7 +14,18 @@ export interface AerialReport {
   aerial_id: string;
   property_id: string;
   created_at: string;
-  source: { provider: "DGT"; layer: string; year: number; metres_per_pixel: number; retrieved_at: string };
+  /** bbox: EPSG:3857 metres (minx, miny, maxx, maxy) of the orthophoto, used to place it on the map (HR-004). */
+  source: {
+    provider: "DGT";
+    layer: string;
+    year: number;
+    metres_per_pixel: number;
+    retrieved_at: string;
+    bbox?: [number, number, number, number];
+    /** Pixel size of the orthophoto itself (the served image adds an attribution band below it). */
+    width?: number;
+    height?: number;
+  };
   model_id: string;
   radius_m: number;
   objects: AerialObject[];

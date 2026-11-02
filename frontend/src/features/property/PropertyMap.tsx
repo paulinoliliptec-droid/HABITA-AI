@@ -6,12 +6,15 @@ import { msg } from "@/i18n/core";
 import { useI18n } from "@/i18n/useI18n";
 import { HABITA_MAP_STYLE } from "@/lib/google-maps/mapStyle";
 import { importMapsLibrary, MapsUnavailableError, onMapsAuthFailure } from "@/lib/google-maps/loader";
+import { getAerial, aerialImageUrl, type AerialReport } from "@/features/aerial/api";
+import { onReportChanged } from "@/features/report/api";
 import { formatCoordinate } from "./format";
+import { imageBounds } from "./mapLayers";
+import { MapLayersPanel, type MapMode } from "./MapLayersPanel";
 import type { Coordinates } from "./types";
 import styles from "./PropertyMap.module.css";
 
 type MapState = { status: "loading" | "ready" } | { status: "unavailable"; reason: MapsUnavailableError["reason"] };
-type MapMode = "roadmap" | "hybrid";
 
 const UNAVAILABLE_COPY: Record<MapsUnavailableError["reason"], { title: string; devHint?: string }> = {
   not_configured: { title: msg("Map not configured"), devHint: "Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in frontend/.env.local." },
@@ -26,6 +29,8 @@ const UNAVAILABLE_COPY: Record<MapsUnavailableError["reason"], { title: string; 
 export interface MarkerCard {
   lines: string[];
   onOpen?: () => void;
+  /** What this property holds in other areas (HR-004 point 3), each opening its area. */
+  links?: { label: string; onClick: () => void }[];
 }
 
 export function PropertyMap({
@@ -33,11 +38,14 @@ export function PropertyMap({
   zoom,
   label,
   card,
+  propertyId,
 }: {
   coordinates: Coordinates;
   zoom: number;
   label: string;
   card?: MarkerCard;
+  /** When given, the map offers this property's layers (the aerial view). */
+  propertyId?: string;
 }) {
   const { t } = useI18n();
   // The marker's DOM node: its label and card are rendered into it by React (a portal), so they translate and
@@ -47,6 +55,23 @@ export function PropertyMap({
   const mapRef = useRef<google.maps.Map | null>(null);
   const [state, setState] = useState<MapState>({ status: "loading" });
   const [mode, setMode] = useState<MapMode>("roadmap");
+  // HR-004 layers: the aerial view (DGT orthophoto with HABITA's SAM outlines) placed at its own bbox.
+  const [aerial, setAerial] = useState<AerialReport | null>(null);
+  const [aerialOn, setAerialOn] = useState(false);
+  const [reportVersion, setReportVersion] = useState(0);
+  useEffect(() => onReportChanged(() => setReportVersion((v) => v + 1)), []);
+  useEffect(() => {
+    if (!propertyId) return;
+    const controller = new AbortController();
+    getAerial(propertyId, controller.signal)
+      .then((report) => {
+        if (!controller.signal.aborted) setAerial(report);
+      })
+      .catch(() => {
+        // The layer stays unavailable; the map itself never fails because of it.
+      });
+    return () => controller.abort();
+  }, [propertyId, reportVersion]);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +126,32 @@ export function PropertyMap({
     mapRef.current?.setMapTypeId(mode);
   }, [mode]);
 
+  const aerialBbox = aerial?.source.bbox;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || state.status !== "ready" || !aerialOn || !aerial || !aerialBbox) return;
+    // The served image is the photo plus an attribution band below it: measure it, then hang the band below the
+    // photo's own extent so outlines sit where SAM found them (Codex HR-004 r1, P1).
+    let overlay: google.maps.GroundOverlay | null = null;
+    let cancelled = false;
+    const url = aerialImageUrl(aerial);
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled) return;
+      const photoHeight = aerial.source.height ?? img.naturalWidth; // the orthophoto is square
+      overlay = new google.maps.GroundOverlay(url, imageBounds(aerialBbox, photoHeight, img.naturalHeight), {
+        clickable: false,
+        opacity: 0.92,
+      });
+      overlay.setMap(map);
+    };
+    img.src = url;
+    return () => {
+      cancelled = true;
+      overlay?.setMap(null);
+    };
+  }, [aerialOn, aerial, aerialBbox, state.status]);
+
   if (state.status === "unavailable") {
     const copy = UNAVAILABLE_COPY[state.reason];
     return (
@@ -122,20 +173,38 @@ export function PropertyMap({
     <div className={styles.frame} data-status={state.status}>
       <div ref={containerRef} className={styles.map} role="region" aria-label={t("Map of {label}", { label })} />
       {state.status === "ready" && (
-        <div className={styles.modes} role="radiogroup" aria-label={t("Map view")}>
-          {(["roadmap", "hybrid"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="radio"
-              aria-checked={mode === m}
-              className={styles.mode}
-              onClick={() => setMode(m)}
-            >
-              {m === "roadmap" ? t("Map") : t("Satellite")}
-            </button>
-          ))}
-        </div>
+        <MapLayersPanel
+          mode={mode}
+          onMode={setMode}
+          overlays={[
+            {
+              id: "aerial",
+              label: aerial
+                ? t("Aerial view (DGT {year} · SAM 3.1)", { year: aerial.source.year })
+                : t("Aerial view (DGT · SAM 3.1)"),
+              on: aerialOn && Boolean(aerial?.source.bbox),
+              available: Boolean(aerial?.source.bbox),
+              hint: t("Run the aerial analysis in the Place area first."),
+              note: aerial
+                ? t("Aerial view: DGT orthophoto of {year}, outlines by Meta SAM 3.1. Approximate observations, not a survey or a parcel boundary, and no proof of a licence. Informação geográfica cedida pela DGT (CC BY 4.0).", { year: aerial.source.year })
+                : undefined,
+              shortNote: aerial
+                ? t("DGT {year} · SAM 3.1: approximate, not a parcel boundary. © DGT (CC BY 4.0)", { year: aerial.source.year })
+                : undefined,
+              onToggle: setAerialOn,
+            },
+            {
+              // HR-004 point 1: no documented official map service publishes Cascais's PDM plans (SNIG catalogue,
+              // DGT, GeoCascais checked 2026-11-02); HABITA never probes undocumented endpoints, so it says so.
+              id: "pdm",
+              label: t("Municipal plan (PDM) maps"),
+              on: false,
+              available: false,
+              hint: t("No official map service publishes these plans yet: open the official PDF plans listed in the notes."),
+              onToggle: () => {},
+            },
+          ]}
+        />
       )}
       {markerEl && card && createPortal(<MarkerLabel label={label} card={card} />, markerEl)}
     </div>
@@ -182,6 +251,24 @@ function MarkerLabel({ label, card }: { label: string; card: MarkerCard }) {
             </p>
           ))}
           <p className={styles.markerCardNote}>{t("Approximate location: a point, not a parcel boundary.")}</p>
+          {card.links && card.links.length > 0 && (
+            <div className={styles.markerCardLinks}>
+              {card.links.map((l) => (
+                <button
+                  key={l.label}
+                  type="button"
+                  className={styles.markerCardLink}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(false);
+                    l.onClick();
+                  }}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          )}
           {card.onOpen && (
             <button
               type="button"

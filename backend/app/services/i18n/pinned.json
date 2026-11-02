@@ -501,5 +501,18 @@
   "Property under analysis": "Imóvel em análise",
   "Approximate location: a point, not a parcel boundary.": "Localização aproximada: um ponto, não um limite de terreno.",
   "Open the analysis": "Abrir a análise",
-  "This is not an authorisation from {authority}: only {authority} can decide.": "Isto não é uma autorização de {authority}: só {authority} pode decidir."
+  "This is not an authorisation from {authority}: only {authority} can decide.": "Isto não é uma autorização de {authority}: só {authority} pode decidir.",
+  "Layers": "Camadas",
+  "Base map": "Mapa de base",
+  "On the map": "No mapa",
+  "Aerial view (DGT {year} · SAM 3.1)": "Vista aérea (DGT {year} · SAM 3.1)",
+  "Aerial view (DGT · SAM 3.1)": "Vista aérea (DGT · SAM 3.1)",
+  "Run the aerial analysis in the Place area first.": "Faça primeiro a análise aérea na área Local.",
+  "Aerial view: DGT orthophoto of {year}, outlines by Meta SAM 3.1. Approximate observations, not a survey or a parcel boundary, and no proof of a licence. Informação geográfica cedida pela DGT (CC BY 4.0).": "Vista aérea: ortofotomapa DGT de {year}, contornos do Meta SAM 3.1. Observações aproximadas, não são um levantamento nem um limite de terreno, e não provam nenhuma licença. Informação geográfica cedida pela DGT (CC BY 4.0).",
+  "DGT {year} · SAM 3.1: approximate, not a parcel boundary. © DGT (CC BY 4.0)": "DGT {year} · SAM 3.1: aproximado, não é um limite de terreno. © DGT (CC BY 4.0)",
+  "See in the graph": "Ver no grafo",
+  "Municipal plan (PDM) maps": "Plantas do plano municipal (PDM)",
+  "No official map service publishes these plans yet: open the official PDF plans listed in the notes.": "Nenhum serviço de mapa oficial publica ainda estas plantas: abra as plantas oficiais em PDF indicadas nas notas.",
+  "Photos & plans: {n}": "Fotos e plantas: {n}",
+  "Before / after: {n}": "Antes / depois: {n}"
 }
