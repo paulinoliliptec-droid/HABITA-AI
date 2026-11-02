@@ -55,14 +55,26 @@ def _access_described(folded: str) -> bool:
 
 
 _NOT_UNIT_AREA = re.compile(r"\b(?:total|in total|altogether|overall|garden|yard|terrace|patio|plot|land|lot|"
-                            r"jardim|quintal|terraco|logradouro|lote|terreno|no total|ao todo)\b")
+                            r"jardim|quintal|terraco|logradouro|lote|terreno|no total|ao todo|"
+                            # A room is not a unit (Codex final r3: "a 20 m2 kitchen and a 30 m2 living room").
+                            r"kitchen|living|lounge|bedroom|bathroom|room|rooms|balcon\w*|attic|basement|cellar|"
+                            r"storage|garage|cozinha|sala|salas|quarto|quartos|casa de banho|wc|suite|divisa\w*|"
+                            r"varanda|sotao|cave|arrecadacao|garagem)\b")
+#: The figure's own phrase ends at punctuation or a joiner, so a garden's word does not reach the unit areas beside it.
+_PHRASE_BREAK = re.compile(r"[,;:.!]|\b(?:and|e|with|com|plus|mais)\b")
+
+
+def _figure_phrase(folded: str, m: re.Match) -> str:
+    before = _PHRASE_BREAK.split(folded[max(0, m.start() - 40):m.start()])[-1]
+    after = _PHRASE_BREAK.split(folded[m.end():m.end() + 40])[0]
+    return f"{before} {after}"
 
 
 def _area_per_unit(folded: str) -> bool:
     """Two area figures, or one figure tied to each unit within a few words ("about 60 m2 each", "cada um com 60 m2")."""
-    # An area that is a total, a garden or the plot is not a unit's area (Codex final r2).
-    found = [m for m in _AREA.finditer(folded)
-             if not _NOT_UNIT_AREA.search(folded[max(0, m.start() - 15):m.end() + 25])]
+    # An area that is a total, a garden, the plot or a room is not a unit's area (Codex final r2, r3). Only the
+    # figure's own phrase decides (Codex final r3 P2: "second unit 80 m2, and a 40 m2 garden").
+    found = [m for m in _AREA.finditer(folded) if not _NOT_UNIT_AREA.search(_figure_phrase(folded, m))]
     if len(found) >= 2:
         return True
     return any(_EACH.search(folded[max(0, m.start() - 30):m.end() + 25]) for m in found)

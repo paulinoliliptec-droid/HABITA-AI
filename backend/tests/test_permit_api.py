@@ -241,3 +241,27 @@ def test_td061_final_r3_portuguese_hedges_are_unknowns(client, key, answer):
     client.post(f"/api/permit/matters/{mid}/continue")
     res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {key: answer}})
     assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"
+
+
+@pytest.mark.parametrize("answer", [
+    "Two floors. Unit A has a 20 m2 kitchen and a 30 m2 living room. Each unit has its own street door",
+    "Dois pisos. A fração A tem uma cozinha de 20 m2 e uma sala de 30 m2. Cada uma com entrada própria da rua",
+])
+def test_td061_final_r3_room_areas_are_not_unit_areas(client, answer):
+    """TD-061 final review r3 (Codex 2026-11-02, P1): two room areas give no unit's area."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {"intended_use": answer}})
+    assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"
+
+
+@pytest.mark.parametrize("answer", [
+    "Two floors: first unit 60 m2, second unit 80 m2, and a 40 m2 garden. Each has its own street door",
+    "Dois pisos: primeira fração 60 m2, segunda fração 80 m2 e um jardim de 40 m2. Cada uma com entrada própria",
+])
+def test_td061_final_r3_a_garden_does_not_hide_the_unit_areas_beside_it(client, answer):
+    """TD-061 final review r3 (Codex 2026-11-02, P2): the exclusion belongs to the garden's own figure only."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {"intended_use": answer}})
+    assert res.status_code == 200, res.text
