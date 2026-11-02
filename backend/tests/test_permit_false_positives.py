@@ -616,3 +616,56 @@ async def test_td003_candidate_r2_a_question_in_its_own_words_is_an_availability
         in_section_claim("Confirm with the Câmara whether the works need a licence or prior communication."),
         [*CASE_RECORDS, rjue("E50")])
     assert report.outcome != "VERIFIED"
+
+
+#: TD-003 candidate review r3 (Codex, Muse 2026-11-02): (source type, record, statement).
+R3_ATTACKS = [
+    ("regulatory_source", "The owner sold the south unit?", "The owner sold the south unit."),
+    ("authority_record", "O dono vendeu a unidade sul?", "O dono vendeu a unidade sul."),
+    ("regulatory_source", "The owner sold the north unit remains unknown.", "The owner sold the north unit."),
+    ("authority_record", "The owner sold the north unit is still unknown.", "The owner sold the north unit."),
+    ("regulatory_source", "The municipality is not the authority.", "Check the municipality is the authority."),
+    ("regulatory_source", "The owner sold the shop.", "Confirm whether the owner sold the shop to the authority."),
+    ("regulatory_source", "The tenant bought the shop.", "Confirm whether the tenant bought the shop from the authority."),
+    ("regulatory_source", "The shop was sold.", "Confirm whether the shop was sold by the authority."),
+    ("authority_record", "O dono vendeu a loja.", "Confirme se o dono vendeu a loja pela autoridade."),
+    ("regulatory_source", "The applicant cannot submit the request.", "Confirm whether the applicant can submit the request."),
+    ("regulatory_source", "O pedido não pode ser apresentado.", "Confirme se o pedido pode ser apresentado."),
+    ("regulatory_source", "The application and the appeal were submitted.", "Confirm whether only the application was submitted."),
+    ("regulatory_source", "No prior control is required.", "Confirm whether prior control is required."),
+    ("regulatory_source", "Submission is impossible.", "Whether submission is possible must be confirmed."),
+]
+
+
+@pytest.mark.parametrize("section", ["conclusion", "claim", "procedure", "risk", "next action"])
+@pytest.mark.parametrize("source_type,record_text,text", R3_ATTACKS)
+async def test_td003_candidate_r3_no_false_verified(source_type, record_text, text, section):
+    from tests.test_permit_admissibility import CASE_RECORDS, in_section, rendered_verify
+    rec = admissible("E50", source_type, record_text)
+    report = await rendered_verify(in_section(section, text, ["E50"]), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", (section, report.issues)
+
+
+async def test_td003_candidate_r3_location_levels_come_from_one_record():
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    a = record("E50", "jurisdiction_record", "Country: Portugal → District: Lisboa → Municipality: Cascais",
+               status="system_record", title="HABITA jurisdiction resolution")
+    b = record("E51", "jurisdiction_record", "Country: Portugal → District: Porto → Municipality: Matosinhos",
+               status="system_record", title="HABITA jurisdiction resolution")
+    from tests.test_permit_admissibility import in_section
+    report = await rendered_verify(in_section("claim", "The property is located in Porto, Cascais.", ["E50", "E51"]),
+                                   [*CASE_RECORDS, a, b])
+    assert report.outcome != "VERIFIED", report.issues
+    one = await rendered_verify(in_section("claim", "The property is located in Cascais, Lisboa.", ["E50"]),
+                                [*CASE_RECORDS, a, b])
+    assert one.outcome == "VERIFIED", one.issues
+
+
+async def test_td003_candidate_r3_a_competence_with_a_figure_is_not_restated():
+    """Codex r2/r3 P2: no new VERIFIED path compared with the hotfix."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", "Câmara Municipal de Cascais: Licensing of 3 urban operations.",
+                 status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim("Câmara Municipal de Cascais handles licensing of 3 urban operations."),
+                                   [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED"

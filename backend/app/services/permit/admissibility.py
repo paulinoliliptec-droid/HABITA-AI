@@ -683,10 +683,20 @@ def _sequence(text: str) -> str:
 _SENTENCE_TOKEN = re.compile(r"[a-z]+|(?:[-−–—‒‑+±]\s*)?\d+(?:[.,]\d+)?|[<>≤≥=≠%]|[,;:()]")
 
 
-#: The addressee of a check (a public body), which a question names but does not assert: a closed grammar.
-_ADDRESSEE = re.compile(r"\b(?:(?:with|to|from|by|at|com|junto\s+d[aeo]s?|pela|pelo|na|no|a)\s+)?(?:the\s+|a\s+|o\s+)?"
-                        r"(?:camara|municipality|municipal\s+council|council|municipio|autoridade|authority|"
-                        r"competent\s+authority|autoridade\s+competente)(?:\s+municipal)?(?:\s+de\s+[a-z]+)?\b")
+#: The addressee of a check at the end of what is carried ("this with the Câmara"): "with"/"com"/"junto de" a
+#: municipality only. "to/from/by the authority" is a participant, not an addressee (Codex/Muse candidate review r3).
+_ADDRESSEE = re.compile(r"\s*,?\s*\b(?:with|from|to|by|com|junto\s+d[aeo]s?|pela|pelo|na|no)\s+(?:the\s+|a\s+|o\s+)?"
+                        r"(?:camara|municipality|municipal\s+council|council|municipio)(?:\s+municipal)?"
+                        r"(?:\s+de\s+[a-z]+)*\s*$")
+#: What a question or reservation may carry without restating a record: a pronoun pointing at what was said before
+#: ("This must be confirmed with the Câmara"). A closed set: anything else is held to the whole-sentence rule
+#: (Muse candidate review r3, P0 (b): procedural words carried modality flips).
+_ANAPHORS = {"this", "that", "it", "these", "those", "them", "isto", "isso", "aquilo", "tal", "este", "esta", "estes",
+             "estas", "esse", "essa", "esses", "essas",
+             # HABITA's own listed conditions ("Confirm the conditions with the Câmara"), with their articles
+             "conditions", "condicoes", "requirements", "requisitos", "confirmation", "confirmacao", "verification",
+             "verificacao", "the", "of", "o", "a", "os", "as", "de", "da",
+             "do", "das", "dos"}
 
 
 def _sentence_sequence(text: str) -> str:
@@ -726,6 +736,8 @@ def competence_sentences(cited: list[Evidence]) -> list[str]:
             # The whole activity, parentheses included: "(except alterations)" is not a gloss to drop (TD-003
             # candidate review, Codex P1).
             activity = activity.strip().rstrip(".")
+            if re.search(r"\d", activity):
+                continue  # a figure is never restated by a canonical form (Codex r2/r3 P2: no new VERIFIED path)
             out += [_sentence_sequence(form.format(a=activity, t=title)) for form in _COMPETENCE_FORMS]
     return out
 
@@ -735,17 +747,17 @@ _LEVEL_PREFIX = re.compile(r"^(?:(?:in|at|on|em|na|no|nas|nos)\s+)?(?:(?:the|a|o
 _POSTCODE = re.compile(r"^ \d{4} -\d{3} ")
 
 
-def _location_values(cited: list[Evidence]) -> tuple[set[str], list[list[str]]]:
+def _location_values(cited: list[Evidence]) -> tuple[list[set[str]], list[list[str]]]:
     """HABITA's own location records as whole values: the jurisdiction levels ("Country: Portugal → … → Parish: …"),
     and each address as its ordered comma-separated segments (a segment may drop its leading postcode)."""
-    levels: set[str] = set()
+    levels: list[set[str]] = []  # one set per jurisdiction record: levels never mix records (Codex r3)
     addresses: list[list[str]] = []
     for e in cited:
         if is_user_declared(e) or e.source_type not in _LOCATION_RECORDS:
             continue
         text = re.sub(r"\s*\([^()]*precision\)\s*\.?\s*$", "", fold(e.excerpt)).strip().rstrip(".")
         if e.source_type == "jurisdiction_record":
-            levels |= {_sequence(v.split(":", 1)[-1]) for v in text.split("→")}
+            levels.append({_sequence(v.split(":", 1)[-1]) for v in text.split("→")})
         else:
             for x in _sentences(text, semicolon=False):
                 addresses.append([_sequence(seg) for seg in x.rstrip(".").split(",")])
@@ -764,9 +776,18 @@ def _location_statement(sentence: str, cited: list[Evidence]) -> bool:
     parts = [p for p in parts if p.strip()]
     if not parts:
         return False
-    street = [p for p in parts if p not in levels]
-    if not street:
-        return True
+    level_sets = levels or [set()]
+    for one in level_sets:
+        street = [p for p in parts if p not in one]
+        if not street:
+            return True
+        if _address_holds(street, addresses):
+            return True
+    return False
+
+
+def _address_holds(street: list[str], addresses: list[list[str]]) -> bool:
+    """The parts, in order, as whole segments of ONE address (a segment may drop its postcode)."""
     for segments in addresses:
         options = [{seg, _POSTCODE.sub(" ", seg)} for seg in segments]
         position = -1
@@ -787,8 +808,10 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
     ungrounded: list[str] = []
     # Numbers are part of the sequence (TD-003 round 4: "1 cannot …, 2 can …" → "2 cannot …, 1 can …").
     # The cited sentences go through the same deferral removal as the statement, so both sides compare alike.
-    cited_sequences = [_sentence_sequence(_DEFERRAL.sub(" ", x))
-                       for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt), semicolon=False)]
+    # The cited sentence as written: its own reservation is part of it ("… remains unknown" establishes nothing), and a
+    # cited question establishes nothing (Codex candidate review r3, P0/P1).
+    cited_sequences = [_sentence_sequence(x) for e in cited if not is_user_declared(e)
+                       for x in _sentences(fold(e.excerpt), semicolon=False) if not x.rstrip().endswith("?")]
     cited_sequences += competence_sentences(cited)  # HABITA's canonical competence sentences (FP-3)
     # The hedge is exempt only when the cited records state no modality at all (final review r3: "must be allowed"
     # → "may be possible" is refused).
@@ -819,13 +842,12 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
                     else plain[:reserved.start()] if reserved and plain[:reserved.start()].strip()
                     else plain[reserved.end():] if reserved else None)  # what is to be confirmed ("Confirm X …")
         if embedded is not None:
-            embedded = _ADDRESSEE.sub(" ", embedded)  # "with the Câmara": who confirms, not what is carried
-            carried = {_stem(w) for w in _tokens(embedded) if w not in names} - free - titles
-            # Any factual content at all (Muse candidate review r2, P0: a narrower gate on case-fact words, figures
-            # and excerpts was bypassed through regulatory records): a question about the legal topic in the model's
-            # own words is not certified either; "This must be confirmed with the Câmara" and HABITA's rendered
-            # condition stay available.
-            if (carried or _NUMBER.search(embedded)) and not _whole_sentence(embedded, cited_sequences):
+            # Only a pronoun (with its addressee), or one whole cited sentence as written (Muse candidate review r2,
+            # r3: case-fact words, figures, excerpts, procedural words and participants all carried false content).
+            # Safe to drop the addressee here: what remains must be a pointer only, so no fact can hide in it.
+            pointer = [w for w in re.findall(r"\w+", _ADDRESSEE.sub("", embedded.strip().rstrip(".!?")))
+                       if w not in names]
+            if not (set(pointer) <= _ANAPHORS) and not _whole_sentence(embedded, cited_sequences):
                 ungrounded.append("(a question or reservation carries a statement that is not one whole cited "
                                   "sentence)")
                 continue

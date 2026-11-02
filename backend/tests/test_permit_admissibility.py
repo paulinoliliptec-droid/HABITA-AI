@@ -280,10 +280,10 @@ async def test_the_reviewer_flag_is_enforced_by_code():
     ("Only autonomous units can be the object of horizontal property: units that are independent, distinct and "
      "isolated from each other, with their own exit to a common part of the building or to the public way.", ["E7"]),
     ("You state each floor has its own street door.", ["E8"]),
-    ("Confirm the conditions with the Câmara Municipal de Cascais before you apply.", ["E9"]),
+    ("Confirm the conditions with the Câmara Municipal de Cascais.", ["E9"]),
     # TD-003 structural (2026-11-02): a question carries only a whole cited sentence or nothing factual; "whether the
     # works need a licence …" in the model's words is an availability cost (see the false-positive suite).
-    ("Confirm this with the Câmara before you apply.", ["E1"]),
+    ("Confirm this with the Câmara.", ["E1"]),
 ])
 @pytest.mark.parametrize("section", SECTIONS)
 async def test_grounded_non_planning_statements_verify(text, cites, section):
