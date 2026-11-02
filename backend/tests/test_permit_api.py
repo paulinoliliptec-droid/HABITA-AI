@@ -265,3 +265,42 @@ def test_td061_final_r3_a_garden_does_not_hide_the_unit_areas_beside_it(client, 
     client.post(f"/api/permit/matters/{mid}/continue")
     res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {"intended_use": answer}})
     assert res.status_code == 200, res.text
+
+
+@pytest.mark.parametrize("key,answer", [
+    ("current_licensed_use", "I do not actually really know if it is housing"),
+    ("current_licensed_use", "I cannot tell whether the licensed use is housing"),
+    ("ownership_status", "I cannot tell whether there is a single owner"),
+    ("ownership_status", "Não consigo dizer se há um único proprietário"),
+])
+def test_td061_final_r4_a_negated_knowing_verb_is_an_unknown(client, key, answer):
+    """TD-061 final review r4 (Codex 2026-11-02, P1): a negation before know/tell/say/sure, a few words apart."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {key: answer}})
+    assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"
+
+
+@pytest.mark.parametrize("answer", [
+    "Two floors. Unit A has a 20 m2 office and a 30 m2 hallway. Each unit has its own street door",
+    "Two floors. Unit A has a 20 m2 studio area and a 30 m2 workshop. Each unit has its own street door",
+])
+def test_td061_final_r4_only_a_unit_phrase_gives_a_unit_area(client, answer):
+    """TD-061 final review r4 (Codex 2026-11-02, P1): an allow-list of unit phrases, not a list of non-units."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {"intended_use": answer}})
+    assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"
+
+
+@pytest.mark.parametrize("answer", [
+    "Dois T2 de 75 m2 cada, um por piso, cada um com entrada própria da rua",
+    "Ground floor 70 m2, first floor 65 m2, separate street entrances",
+    "Fração A: 60 m2; fração B: 80 m2; dois pisos, entradas independentes pela rua",
+])
+def test_td061_final_r4_unit_phrases_still_give_unit_areas(client, answer):
+    """The allow-list keeps ordinary unit phrases (typologies, floors, unit letters) accepted."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {"intended_use": answer}})
+    assert res.status_code == 200, res.text

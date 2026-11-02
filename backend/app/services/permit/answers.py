@@ -54,12 +54,22 @@ def _access_described(folded: str) -> bool:
                for m in _ACCESS.finditer(folded))
 
 
-_NOT_UNIT_AREA = re.compile(r"\b(?:total|in total|altogether|overall|garden|yard|terrace|patio|plot|land|lot|"
-                            r"jardim|quintal|terraco|logradouro|lote|terreno|no total|ao todo|"
-                            # A room is not a unit (Codex final r3: "a 20 m2 kitchen and a 30 m2 living room").
-                            r"kitchen|living|lounge|bedroom|bathroom|room|rooms|balcon\w*|attic|basement|cellar|"
-                            r"storage|garage|cozinha|sala|salas|quarto|quartos|casa de banho|wc|suite|divisa\w*|"
-                            r"varanda|sotao|cave|arrecadacao|garagem)\b")
+#: The words a unit's own area phrase may hold ("first unit 60 m2", "cerca de 60 m2 cada", "Unit A, 60 m2"). Any other
+#: word (total, garden, kitchen, office, hallway, workshop…) means the figure is not shown to be a unit's area: an
+#: allow-list, not a list of non-units, so an unlisted room asks for the area (Codex final r4).
+_UNIT_PHRASE_WORD = re.compile(
+    r"(?:\d+\w*|[a-z]|t\d|units?|flats?|apartments?|apartamentos?|dwellings?|homes?|fracao|fracoes|fogos?|habitacao|"
+    r"moradias?|floors?|storeys?|stor(?:y|ies)|levels?|pisos?|andar(?:es)?|ground|upper|lower|top|first|second|third|"
+    r"1st|2nd|3rd|primeir[oa]s?|segund[oa]s?|terceir[oa]s?|res|chao|each|both|apiece|per|cada|ambos|ambas|"
+    r"a|an|the|of|on|in|at|about|around|roughly|approx\w*|circa|some|cerca|aproximadamente|uns|umas|"
+    r"o|os|as|um|uma|one|two|dois|duas|de|do|da|dos|das|no|na|por|em|has|have|is|are|will|be|tem|terao|tera|"
+    r"fica|ficam|sera|serao|it|its|cada|um)")
+
+
+def _unit_phrase(phrase: str) -> bool:
+    return all(_UNIT_PHRASE_WORD.fullmatch(w) for w in re.findall(r"\w+", phrase))
+
+
 #: The figure's own phrase ends at punctuation or a joiner, so a garden's word does not reach the unit areas beside it.
 _PHRASE_BREAK = re.compile(r"[,;:.!]|\b(?:and|e|with|com|plus|mais)\b")
 
@@ -72,9 +82,9 @@ def _figure_phrase(folded: str, m: re.Match) -> str:
 
 def _area_per_unit(folded: str) -> bool:
     """Two area figures, or one figure tied to each unit within a few words ("about 60 m2 each", "cada um com 60 m2")."""
-    # An area that is a total, a garden, the plot or a room is not a unit's area (Codex final r2, r3). Only the
-    # figure's own phrase decides (Codex final r3 P2: "second unit 80 m2, and a 40 m2 garden").
-    found = [m for m in _AREA.finditer(folded) if not _NOT_UNIT_AREA.search(_figure_phrase(folded, m))]
+    # A total, a garden, the plot or a room is not a unit's area (Codex final r2-r4): only a figure whose own phrase
+    # is a unit phrase counts (Codex final r3 P2: "second unit 80 m2, and a 40 m2 garden").
+    found = [m for m in _AREA.finditer(folded) if _unit_phrase(_figure_phrase(folded, m))]
     if len(found) >= 2:
         return True
     return any(_EACH.search(folded[max(0, m.start() - 30):m.end() + 25]) for m in found)
@@ -83,7 +93,11 @@ _UNKNOWN = re.compile(r"\b(?:unknown|unsure|not (?:\w+ )?sure|(?:don|doesn)\W?t 
                       r"nao (?:\w+ )?sei|nao (?:\w+ )?sabe\w*|"
                       r"no idea|not certain|uncertain|who knows|tbd|tba|to be defined|desconhec\w*|nao sei|"
                       r"nao sabe\w*|nao faco ideia|sei la|a definir|por definir|indefinid\w*|nao tenho (?:a )?certeza|"
-                      r"sem certeza|talvez|maybe|perhaps|probably|provavelmente|acho que|i think|i guess)\b|\?")
+                      r"sem certeza|talvez|maybe|perhaps|probably|provavelmente|acho que|i think|i guess|"
+                      # A negation up to three words before a knowing verb ("I do not actually really know", "I cannot
+                      # tell whether", "não consigo dizer"; Codex final r4); no punctuation in between.
+                      r"(?:not|never|cannot|can\W?t|\w+n\W?t|nao)(?:\s+\w+){0,3}?\s+"
+                      r"(?:know|tell|say|sure|certain|confirm|sei|sabe\w*|saber|dizer|certeza|confirmar))\b|\?")
 _USE = re.compile(r"\b(?:hous\w*|dwelling\w*|residen\w*|home|flats?|apartments?|habita\w*|moradi\w*|vivend\w*|"
                   r"apartament\w*|fogos?|office\w*|escritori\w*|commerc\w*|comerci\w*|shops?|retail|lojas?|"
                   r"servic\w*|services?|restaurant\w*|cafe|bar|industr\w*|warehouse|armaz\w*|storage|garage\w*|"
