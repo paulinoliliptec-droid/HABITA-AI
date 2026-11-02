@@ -171,3 +171,94 @@ async def test_contracted_and_fused_negations_are_grounded_too(text):
 def in_section_claim(text):
     from tests.test_permit_admissibility import in_section
     return in_section("claim", text, ["E50"])
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("Only Câmara Municipal de Cascais can handle applications.",
+     "Câmara Municipal de Cascais cannot handle applications."),
+    ("Only Câmara Municipal de Cascais can handle applications.",
+     "Câmara Municipal de Cascais can’t handle applications."),
+    ("Not only Câmara Municipal de Cascais can handle applications.",
+     "Câmara Municipal de Cascais can't handle applications."),
+    ("Apenas a Câmara Municipal de Cascais pode tratar pedidos.",
+     "A Câmara Municipal de Cascais não pode tratar pedidos."),
+    ("Câmara Municipal de Cascais handles applications, except appeals.",
+     "Câmara Municipal de Cascais never handles applications."),
+])
+async def test_td003_a_restriction_never_grounds_the_opposite_negation(record_text, text):
+    """TD-003 (Codex 2026-11-01, P1): a restrictive word in the cited record granted *any* negation in the statement,
+    so 'Only X can V' verified 'X cannot V'. A negation must now be the record's own."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("Câmara Municipal de Cascais cannot handle appeals. Câmara Municipal de Cascais can handle applications.",
+     "Câmara Municipal de Cascais cannot handle applications."),
+    ("A Câmara Municipal de Cascais não trata recursos. A Câmara Municipal de Cascais trata pedidos.",
+     "A Câmara Municipal de Cascais não trata pedidos."),
+    ("Câmara Municipal de Cascais handles applications and documents.",
+     "Câmara Municipal de Cascais handles applications without documents."),
+    ("Câmara Municipal de Cascais transfers ownership. Câmara Municipal de Cascais cannot inspect deeds.",
+     "Câmara Municipal de Cascais cannot transfer ownership."),
+    ("A Câmara Municipal de Cascais trata pedidos e documentos.",
+     "A Câmara Municipal de Cascais trata pedidos sem documentos."),
+])
+async def test_td003_r2_a_negation_is_grounded_only_by_the_sentence_that_states_it(record_text, text):
+    """TD-003 round 2 (Codex 2026-11-01, P1): a negation in an unrelated sentence of the record, or an unlisted
+    negation ('without', 'sem'), verified the opposite claim."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+async def test_td003_r2_the_records_own_negated_sentence_still_verifies():
+    """Control: a negation restated from the very sentence that states it keeps verifying."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", "Câmara Municipal de Cascais cannot handle appeals.",
+                 status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim("Câmara Municipal de Cascais cannot handle appeals."),
+                                   [*CASE_RECORDS, rec])
+    assert report.outcome == "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,title,text", [
+    ("Câmara Municipal de Cascais cannot transfer ownership, but can inspect deeds.", "Câmara Municipal de Cascais",
+     "Câmara Municipal de Cascais can transfer ownership, but cannot inspect deeds."),
+    ("Câmara Municipal de Cascais cannot transfer ownership. Câmara Municipal de Cascais can inspect deeds.",
+     "Câmara Municipal de Cascais inspect deeds", "Câmara Municipal de Cascais cannot inspect deeds."),
+    ("A Câmara Municipal de Cascais não transfere a propriedade, mas inspeciona escrituras.",
+     "Câmara Municipal de Cascais", "A Câmara Municipal de Cascais transfere a propriedade, mas não inspeciona escrituras."),
+])
+async def test_td003_r3_a_negation_cannot_move_between_clauses_or_borrow_title_words(record_text, title, text):
+    """TD-003 round 3 (Codex 2026-11-01, P1/P2): a negated sentence verifies only as a verbatim restatement."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title=title)
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+async def test_td003_r4_numbers_are_part_of_a_negated_sentence():
+    """TD-003 round 4 (Codex 2026-11-01, P1): swapping the numbers of a negated sentence reversed the prohibition."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", "Application 1 cannot be processed, but application 2 can be processed.",
+                 status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(
+        in_section_claim("Application 2 cannot be processed, but application 1 can be processed."), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("The application fee is not < 10 euros.", "The application fee is not > 10 euros."),
+    ("The application fee is not ≤ 10 euros.", "The application fee is not ≥ 10 euros."),
+])
+async def test_td003_r5_comparison_signs_are_part_of_a_negated_sentence(record_text, text):
+    """TD-003 round 5 (Codex 2026-11-02, P1): '<' and '>' were dropped from the sequence. Fixed after the last
+    review round: not re-reviewed by Codex."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues

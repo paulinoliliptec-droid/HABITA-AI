@@ -1,0 +1,11 @@
+{
+ "general_explanations_runs": {
+  "REJECTED|no_shadow": 80,
+  "REJECTED|with_shadow_rejected": 280,
+  "VERIFIED|no_shadow": 40
+ },
+ "runs": 17978,
+ "shadow_atoms_by_expected_outcome_verdict": {},
+ "shadow_atoms_by_kind_verdict_reason": [],
+ "shadow_rejected_inside_verified_examples": []
+}

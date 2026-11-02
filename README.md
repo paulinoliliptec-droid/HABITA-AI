@@ -59,6 +59,10 @@ are refused. Code: `services/permit/`, `integrations/meta/`.
   are rejected (fail-closed) and a few structural descriptions stay advisory; zoning has **no validated GIS
   connector**, so the classification always requires manual confirmation; the real MongoDB replica-set run of the
   identity binding is pending. These are tracked as research and debt items (see Roadmap).
+- **Empirical stage (branch `hr003/empirical-verification-20261101`, not yet merged):** independent review found false
+  VERIFIED paths in negation grounding (a restriction or another sentence granting a negation); a negated sentence now
+  verifies only as a verbatim restatement of one cited sentence. Adversarial C2 suite on a local replica set (14/14),
+  a frozen semantic benchmark protocol with a 40-case dev set (`docs/research/`, `experiments/`).
 
 ### HR-004 · Map with post-its — Done (MVP); owner browser check pending
 Notes over the Google map, all read from the same report model as the PDF: property with coordinates and precision

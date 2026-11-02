@@ -11,11 +11,12 @@ Seeding sets reviewed metadata but never overwrites ``status``, ``status_history
 """
 
 import asyncio
+import secrets
 from datetime import date, datetime
 from typing import Any
 
 from pymongo import ASCENDING, AsyncMongoClient
-from pymongo.errors import DuplicateKeyError, PyMongoError
+from pymongo.errors import BulkWriteError, DuplicateKeyError, PyMongoError
 
 from app.core.errors import StorageUnavailableError
 from app.schemas.sources import OfficialSource, RegulatoryChunk, SourceSnapshot, StatusChange
@@ -187,29 +188,56 @@ class MongoSourceRepository:
         Chunks first: a snapshot document only exists once its passages are stored. If another worker published the
         same content first (duplicate key), or the chunk write fails part-way, this snapshot's chunks are removed so
         none is left orphaned, and the winner is returned (HR-003 CX-4)."""
+        chunks_written = False
+        # TD-003 round 3 (Codex 2026-11-01, P1): every cleanup deletes only the chunks THIS call wrote (its writer
+        # token), never another call's chunks under the same snapshot ID, whatever the interleaving.
+        mine = {"snapshot_id": snapshot.snapshot_id, "writer": secrets.token_hex(8)}
         try:
             if chunks:
-                await self._chunks.insert_many(
-                    [{"_id": c.chunk_id, "seq": n, **to_bson(c.model_dump(mode="python"))}
-                     for n, c in enumerate(chunks)])
+                try:
+                    await self._chunks.insert_many(
+                        [{"_id": c.chunk_id, "seq": n, "writer": mine["writer"],
+                          **to_bson(c.model_dump(mode="python"))} for n, c in enumerate(chunks)])
+                except BulkWriteError as exc:
+                    # A real MongoDB reports an ordered insert_many duplicate as BulkWriteError, not
+                    # DuplicateKeyError (TD-003 round 2, Codex 2026-11-01, P1): treat it as the duplicate it is.
+                    if any(e.get("code") == 11000 for e in exc.details.get("writeErrors", [])):
+                        raise DuplicateKeyError("E11000 duplicate chunk") from None
+                    raise
+            chunks_written = True
             await self._snapshots.insert_one(
                 {"_id": snapshot.snapshot_id, **to_bson(snapshot.model_dump(mode="python"))})
             return snapshot
         except DuplicateKeyError:
-            winner = await self.find_snapshot(snapshot.source_id, snapshot.sha256)
-            if winner is not None and winner.snapshot_id == snapshot.snapshot_id:
-                return winner  # this very snapshot, already published (a retry): its chunks are in use
-            await self._call(self._chunks.delete_many({"snapshot_id": snapshot.snapshot_id}))
-            if winner is None:
+            # TD-003 (Codex 2026-11-01): only delete chunks known to be this call's orphans.
+            by_id = await self.get_snapshot(snapshot.snapshot_id)
+            if by_id is not None:
+                if by_id.source_id == snapshot.source_id and by_id.sha256 == snapshot.sha256:
+                    return by_id  # this very snapshot, already published (a retry): its chunks are in use
+                # The ID is taken by other content: its chunks are the stored snapshot's, never touched.
                 raise StorageUnavailableError(_UNAVAILABLE) from None
+            if not chunks_written:
+                # The duplicate is a chunk of this snapshot ID written by an overlapping call that has not published
+                # its snapshot yet: those chunks are in use, not orphans. Nothing is deleted; the caller retries
+                # (ingestion builds a new snapshot ID). If that call never publishes, its chunks stay unreferenced
+                # (retrieval reads only a published snapshot's chunks).
+                raise StorageUnavailableError(_UNAVAILABLE) from None
+            winner = await self.find_snapshot(snapshot.source_id, snapshot.sha256)
+            if winner is None:
+                raise StorageUnavailableError(_UNAVAILABLE) from None  # unknown duplicate: keep everything
+            # The same content was published first under another ID: this call's chunks are orphans.
+            await self._call(self._chunks.delete_many(mine))
             return winner
         except PyMongoError:
             # The snapshot insert may have been applied with its acknowledgement lost: its chunks are then in use.
             # Remove them only once the snapshot is known to be absent; if that can't be known, keep them.
             try:
-                if await self._snapshots.find_one({"_id": snapshot.snapshot_id}) is not None:
-                    return snapshot
-                await self._chunks.delete_many({"snapshot_id": snapshot.snapshot_id})
+                stored = await self._snapshots.find_one({"_id": snapshot.snapshot_id})
+                if stored is not None:
+                    if stored.get("source_id") == snapshot.source_id and stored.get("sha256") == snapshot.sha256:
+                        return SourceSnapshot.model_validate(stored)  # what is stored, never the incoming object
+                    raise StorageUnavailableError(_UNAVAILABLE)  # ID taken by other content: touch nothing
+                await self._chunks.delete_many(mine)
             except PyMongoError:
                 pass
             raise StorageUnavailableError(_UNAVAILABLE) from None

@@ -1,0 +1,782 @@
+{
+ "summary": {
+  "corpus": "hr003-semantic-dev-v1",
+  "cases": 40,
+  "runs_per_case": "10 free-text (+5 literal-quote when the case has a quote)",
+  "negatives": 32,
+  "false_verified_cases": 1,
+  "false_verified_upper95_if_zero": null,
+  "positives": 8,
+  "false_rejected_cases": 7,
+  "coverage_positives_fully_verified": 0.125,
+  "confusion": {
+   "CONTRADICTED->NOT_VERIFIED": 17,
+   "CONTRADICTED->PARTIAL": 1,
+   "INSUFFICIENT_INPUT->NOT_VERIFIED": 8,
+   "SUPPORTED_CONDITIONAL->NOT_VERIFIED": 4,
+   "SUPPORTED_CONDITIONAL->PARTIAL": 4,
+   "UNTRUSTED_OR_INAPPLICABLE->NOT_VERIFIED": 6
+  },
+  "per_category": {
+   "literal_rule": {
+    "n": 2,
+    "false_verified": 0,
+    "false_rejected": 2
+   },
+   "literal_rule_numeric_exception": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "authority_competence": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 1
+   },
+   "restriction_literal": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 1
+   },
+   "negation_flip": {
+    "n": 3,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "number_changed": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "exception_reversed": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "exception_omitted": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "threshold_changed": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "exemption_claim": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "restriction_to_negation": {
+    "n": 1,
+    "false_verified": 1,
+    "false_rejected": 0
+   },
+   "deontic_permission_to_obligation": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "deontic_obligation_to_permission": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "user_fact_contradicted": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "parcel_fact_no_evidence": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "applicability_without_parcel_facts": {
+    "n": 3,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "user_declared_gap": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "procedure_without_operation_facts": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "licence_confusion": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "classification_to_permission": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "other_municipality_source": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "untrusted_source": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "wrong_authority": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "wrong_municipality_instrument": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "scope_overreach": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "user_declared_as_official": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "critical_licence_confirmed": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "critical_exemption": {
+    "n": 2,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "condition_omitted": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "translation_pt_en": {
+    "n": 2,
+    "false_verified": 0,
+    "false_rejected": 2
+   },
+   "restriction_complement_inference": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 1
+   },
+   "citation_true_proposition_wrong": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   },
+   "same_word_other_subject": {
+    "n": 1,
+    "false_verified": 0,
+    "false_rejected": 0
+   }
+  },
+  "metamorphic_pairs_direction_ok": 11,
+  "annotation": "single annotator (Claude Code, builder); NOT double-reviewed; NOT reviewed by a lawyer. Labels are the builder's reading of the fixture texts only."
+ },
+ "rows": [
+  {
+   "id": "D01",
+   "cat": "literal_rule",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/15",
+   "quote_path_verified": "0/5",
+   "false_verified": false,
+   "false_rejected": true,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D02",
+   "cat": "literal_rule_numeric_exception",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "predicted": "PARTIAL",
+   "verified_runs": "5/15",
+   "quote_path_verified": "5/5",
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D03",
+   "cat": "literal_rule",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/15",
+   "quote_path_verified": "0/5",
+   "false_verified": false,
+   "false_rejected": true,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D04",
+   "cat": "authority_competence",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "predicted": "PARTIAL",
+   "verified_runs": "5/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": true,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D05",
+   "cat": "restriction_literal",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "predicted": "PARTIAL",
+   "verified_runs": "5/15",
+   "quote_path_verified": "0/5",
+   "false_verified": false,
+   "false_rejected": true,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D06",
+   "cat": "negation_flip",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": "D01",
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D07",
+   "cat": "number_changed",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/15",
+   "quote_path_verified": "0/5",
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": "D02",
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D08",
+   "cat": "exception_reversed",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": "D02",
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D09",
+   "cat": "exception_omitted",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/15",
+   "quote_path_verified": "0/5",
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": "D02",
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D10",
+   "cat": "threshold_changed",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": "D02",
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D11",
+   "cat": "exemption_claim",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": "D03",
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D12",
+   "cat": "negation_flip",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": "D03",
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D13",
+   "cat": "negation_flip",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": "D04",
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D14",
+   "cat": "restriction_to_negation",
+   "gold": "CONTRADICTED",
+   "predicted": "PARTIAL",
+   "verified_runs": "5/10",
+   "quote_path_verified": null,
+   "false_verified": true,
+   "false_rejected": false,
+   "mr_of": "D05",
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D15",
+   "cat": "deontic_permission_to_obligation",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": "D02",
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D16",
+   "cat": "deontic_obligation_to_permission",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": "D01",
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D17",
+   "cat": "user_fact_contradicted",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D18",
+   "cat": "parcel_fact_no_evidence",
+   "gold": "INSUFFICIENT_INPUT",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_claim",
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D19",
+   "cat": "applicability_without_parcel_facts",
+   "gold": "INSUFFICIENT_INPUT",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D20",
+   "cat": "applicability_without_parcel_facts",
+   "gold": "INSUFFICIENT_INPUT",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D21",
+   "cat": "user_declared_gap",
+   "gold": "INSUFFICIENT_INPUT",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D22",
+   "cat": "applicability_without_parcel_facts",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D23",
+   "cat": "procedure_without_operation_facts",
+   "gold": "INSUFFICIENT_INPUT",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D24",
+   "cat": "licence_confusion",
+   "gold": "INSUFFICIENT_INPUT",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D25",
+   "cat": "classification_to_permission",
+   "gold": "INSUFFICIENT_INPUT",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D26",
+   "cat": "other_municipality_source",
+   "gold": "UNTRUSTED_OR_INAPPLICABLE",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "untrusted_source",
+    "wrong_jurisdiction"
+   ]
+  },
+  {
+   "id": "D27",
+   "cat": "untrusted_source",
+   "gold": "UNTRUSTED_OR_INAPPLICABLE",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "untrusted_source",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D28",
+   "cat": "wrong_authority",
+   "gold": "UNTRUSTED_OR_INAPPLICABLE",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D29",
+   "cat": "wrong_municipality_instrument",
+   "gold": "UNTRUSTED_OR_INAPPLICABLE",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D30",
+   "cat": "scope_overreach",
+   "gold": "UNTRUSTED_OR_INAPPLICABLE",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D31",
+   "cat": "user_declared_as_official",
+   "gold": "UNTRUSTED_OR_INAPPLICABLE",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D32",
+   "cat": "critical_licence_confirmed",
+   "gold": "INSUFFICIENT_INPUT",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D33",
+   "cat": "critical_exemption",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D34",
+   "cat": "critical_exemption",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_claim",
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D35",
+   "cat": "condition_omitted",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/15",
+   "quote_path_verified": "0/5",
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": "D01",
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D36",
+   "cat": "translation_pt_en",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": true,
+   "mr_of": "D01",
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D37",
+   "cat": "translation_pt_en",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": true,
+   "mr_of": "D02",
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D38",
+   "cat": "restriction_complement_inference",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "predicted": "PARTIAL",
+   "verified_runs": "5/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": true,
+   "mr_of": "D05",
+   "issue_codes": [
+    "unsupported_legal_claim",
+    "unverified_zoning"
+   ]
+  },
+  {
+   "id": "D39",
+   "cat": "citation_true_proposition_wrong",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/10",
+   "quote_path_verified": null,
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  },
+  {
+   "id": "D40",
+   "cat": "same_word_other_subject",
+   "gold": "CONTRADICTED",
+   "predicted": "NOT_VERIFIED",
+   "verified_runs": "0/15",
+   "quote_path_verified": "0/5",
+   "false_verified": false,
+   "false_rejected": false,
+   "mr_of": null,
+   "issue_codes": [
+    "unsupported_legal_claim"
+   ]
+  }
+ ]
+}

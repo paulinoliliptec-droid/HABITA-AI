@@ -1,0 +1,318 @@
+{
+ "version": "hr003-semantic-dev-v1",
+ "frozen": "2026-11-01",
+ "split": "dev (builder-authored; the 40-case holdout must be written by an independent annotator the builder never sees)",
+ "annotation": "single annotator (Claude Code, builder); NOT double-reviewed; NOT reviewed by a lawyer. Labels are the builder's reading of the fixture texts only.",
+ "gold_classes": [
+  "SUPPORTED_CONDITIONAL",
+  "CONTRADICTED",
+  "INSUFFICIENT_INPUT",
+  "UNTRUSTED_OR_INAPPLICABLE"
+ ],
+ "cases": [
+  {
+   "id": "D01",
+   "cat": "literal_rule",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "cites": "pdm",
+   "text": "Nas operações urbanísticas de edificação sujeitas a licenciamento ou comunicação prévia deve ser assegurada a dotação de estacionamento.",
+   "quote": "sujeitas a licenciamento ou comunicação prévia, deve ser assegurada a dotação de estacionamento"
+  },
+  {
+   "id": "D02",
+   "cat": "literal_rule_numeric_exception",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "cites": "num",
+   "text": "Nas moradias unifamiliares com área de construção até 200 m2, é admitida a ampliação até 20 % da área existente, exceto em edifícios classificados.",
+   "quote": "Nas moradias unifamiliares com área de construção até 200 m2, é admitida a ampliação até 20 % da área existente, exceto em edifícios classificados"
+  },
+  {
+   "id": "D03",
+   "cat": "literal_rule",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "cites": "law",
+   "text": "Urban operations, including building works and alterations, are subject to municipal prior control under the RJUE.",
+   "quote": "Urban operations, including building works and alterations, are subject to municipal prior control under the RJUE"
+  },
+  {
+   "id": "D04",
+   "cat": "authority_competence",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "cites": "auth",
+   "text": "Licensing of urban operations, including building permits (licenciamento urbanístico) is handled by Câmara Municipal de Cascais."
+  },
+  {
+   "id": "D05",
+   "cat": "restriction_literal",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "cites": "civil",
+   "text": "Only autonomous units can be the object of horizontal property.",
+   "quote": "Only autonomous units can be the object of horizontal property"
+  },
+  {
+   "id": "D06",
+   "cat": "negation_flip",
+   "gold": "CONTRADICTED",
+   "cites": "pdm",
+   "mr_of": "D01",
+   "text": "Nas operações urbanísticas de edificação não é exigida dotação de estacionamento."
+  },
+  {
+   "id": "D07",
+   "cat": "number_changed",
+   "gold": "CONTRADICTED",
+   "cites": "num",
+   "mr_of": "D02",
+   "text": "Nas moradias unifamiliares com área de construção até 200 m2, é admitida a ampliação até 30 % da área existente, exceto em edifícios classificados.",
+   "quote": "é admitida a ampliação até 30 % da área existente"
+  },
+  {
+   "id": "D08",
+   "cat": "exception_reversed",
+   "gold": "CONTRADICTED",
+   "cites": "num",
+   "mr_of": "D02",
+   "text": "Nas moradias unifamiliares com área de construção até 200 m2, é admitida a ampliação até 20 % da área existente, incluindo em edifícios classificados."
+  },
+  {
+   "id": "D09",
+   "cat": "exception_omitted",
+   "gold": "CONTRADICTED",
+   "cites": "num",
+   "mr_of": "D02",
+   "text": "Nas moradias unifamiliares com área de construção até 200 m2, é admitida a ampliação até 20 % da área existente.",
+   "quote": "Nas moradias unifamiliares com área de construção até 200 m2, é admitida a ampliação até 20 % da área existente"
+  },
+  {
+   "id": "D10",
+   "cat": "threshold_changed",
+   "gold": "CONTRADICTED",
+   "cites": "num",
+   "mr_of": "D02",
+   "text": "Nas moradias unifamiliares com área de construção até 300 m2, é admitida a ampliação até 20 % da área existente, exceto em edifícios classificados."
+  },
+  {
+   "id": "D11",
+   "cat": "exemption_claim",
+   "gold": "CONTRADICTED",
+   "cites": "law",
+   "mr_of": "D03",
+   "text": "Urban operations are exempt from municipal prior control under the RJUE."
+  },
+  {
+   "id": "D12",
+   "cat": "negation_flip",
+   "gold": "CONTRADICTED",
+   "cites": "law",
+   "mr_of": "D03",
+   "text": "Building works never require municipal prior control under the RJUE."
+  },
+  {
+   "id": "D13",
+   "cat": "negation_flip",
+   "gold": "CONTRADICTED",
+   "cites": "auth",
+   "mr_of": "D04",
+   "text": "Câmara Municipal de Cascais cannot handle licensing of urban operations."
+  },
+  {
+   "id": "D14",
+   "cat": "restriction_to_negation",
+   "gold": "CONTRADICTED",
+   "cites": "civil",
+   "mr_of": "D05",
+   "text": "Autonomous units cannot be the object of horizontal property."
+  },
+  {
+   "id": "D15",
+   "cat": "deontic_permission_to_obligation",
+   "gold": "CONTRADICTED",
+   "cites": "num",
+   "mr_of": "D02",
+   "text": "Nas moradias unifamiliares com área de construção até 200 m2, é obrigatória a ampliação até 20 % da área existente, exceto em edifícios classificados."
+  },
+  {
+   "id": "D16",
+   "cat": "deontic_obligation_to_permission",
+   "gold": "CONTRADICTED",
+   "cites": "pdm",
+   "mr_of": "D01",
+   "text": "Nas operações urbanísticas de edificação sujeitas a licenciamento ou comunicação prévia pode ser assegurada a dotação de estacionamento."
+  },
+  {
+   "id": "D17",
+   "cat": "user_fact_contradicted",
+   "gold": "CONTRADICTED",
+   "cites": "user",
+   "text": "The property is licensed for office use."
+  },
+  {
+   "id": "D18",
+   "cat": "parcel_fact_no_evidence",
+   "gold": "INSUFFICIENT_INPUT",
+   "cites": "none",
+   "text": "The property has three floors."
+  },
+  {
+   "id": "D19",
+   "cat": "applicability_without_parcel_facts",
+   "gold": "INSUFFICIENT_INPUT",
+   "cites": "num",
+   "text": "The extension of this property is admitted."
+  },
+  {
+   "id": "D20",
+   "cat": "applicability_without_parcel_facts",
+   "gold": "INSUFFICIENT_INPUT",
+   "cites": "num",
+   "text": "This building is not classified, so the 20 % extension applies."
+  },
+  {
+   "id": "D21",
+   "cat": "user_declared_gap",
+   "gold": "INSUFFICIENT_INPUT",
+   "cites": "user",
+   "text": "The property's construction area is under 200 m2."
+  },
+  {
+   "id": "D22",
+   "cat": "applicability_without_parcel_facts",
+   "gold": "CONTRADICTED",
+   "cites": "pdm",
+   "text": "Parking provision is not required for this change of use."
+  },
+  {
+   "id": "D23",
+   "cat": "procedure_without_operation_facts",
+   "gold": "INSUFFICIENT_INPUT",
+   "cites": "law",
+   "text": "These works need only a prior communication."
+  },
+  {
+   "id": "D24",
+   "cat": "licence_confusion",
+   "gold": "INSUFFICIENT_INPUT",
+   "cites": "auth",
+   "text": "The licence for these works has been granted by Câmara Municipal de Cascais."
+  },
+  {
+   "id": "D25",
+   "cat": "classification_to_permission",
+   "gold": "INSUFFICIENT_INPUT",
+   "cites": "parcel",
+   "text": "The property is in Espaço central histórico, so housing is permitted here."
+  },
+  {
+   "id": "D26",
+   "cat": "other_municipality_source",
+   "gold": "UNTRUSTED_OR_INAPPLICABLE",
+   "cites": "sintra",
+   "text": "Em solo urbano é admitida a construção de moradias unifamiliares."
+  },
+  {
+   "id": "D27",
+   "cat": "untrusted_source",
+   "gold": "UNTRUSTED_OR_INAPPLICABLE",
+   "cites": "blog",
+   "text": "Interior works never need a licence in Cascais."
+  },
+  {
+   "id": "D28",
+   "cat": "wrong_authority",
+   "gold": "UNTRUSTED_OR_INAPPLICABLE",
+   "cites": "auth",
+   "text": "Licensing of urban operations is handled by Câmara Municipal de Sintra."
+  },
+  {
+   "id": "D29",
+   "cat": "wrong_municipality_instrument",
+   "gold": "UNTRUSTED_OR_INAPPLICABLE",
+   "cites": "pdm",
+   "text": "Under the PDM of Lisboa, parking provision must be ensured in building operations."
+  },
+  {
+   "id": "D30",
+   "cat": "scope_overreach",
+   "gold": "UNTRUSTED_OR_INAPPLICABLE",
+   "cites": "pdm",
+   "text": "Article 120 of the PDM-Cascais requires parking provision in every building in Portugal."
+  },
+  {
+   "id": "D31",
+   "cat": "user_declared_as_official",
+   "gold": "UNTRUSTED_OR_INAPPLICABLE",
+   "cites": "user",
+   "text": "Câmara Municipal de Cascais confirmed the property is licensed as one single-family dwelling."
+  },
+  {
+   "id": "D32",
+   "cat": "critical_licence_confirmed",
+   "gold": "INSUFFICIENT_INPUT",
+   "cites": "auth",
+   "text": "Licenciamento confirmado pela Câmara Municipal de Cascais."
+  },
+  {
+   "id": "D33",
+   "cat": "critical_exemption",
+   "gold": "CONTRADICTED",
+   "cites": "law",
+   "text": "O imóvel está isento de licença."
+  },
+  {
+   "id": "D34",
+   "cat": "critical_exemption",
+   "gold": "CONTRADICTED",
+   "cites": "none",
+   "text": "No licence is needed for these works."
+  },
+  {
+   "id": "D35",
+   "cat": "condition_omitted",
+   "gold": "CONTRADICTED",
+   "cites": "pdm",
+   "mr_of": "D01",
+   "text": "Nas operações urbanísticas de edificação deve ser assegurada a dotação de estacionamento.",
+   "quote": "deve ser assegurada a dotação de estacionamento"
+  },
+  {
+   "id": "D36",
+   "cat": "translation_pt_en",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "cites": "pdm",
+   "mr_of": "D01",
+   "text": "In building operations subject to a licence or prior communication, parking provision must be ensured."
+  },
+  {
+   "id": "D37",
+   "cat": "translation_pt_en",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "cites": "num",
+   "mr_of": "D02",
+   "text": "In single-family houses with a construction area up to 200 m2, an extension of up to 20 % of the existing area is admitted, except in classified buildings."
+  },
+  {
+   "id": "D38",
+   "cat": "restriction_complement_inference",
+   "gold": "SUPPORTED_CONDITIONAL",
+   "cites": "civil",
+   "mr_of": "D05",
+   "text": "Without its own exit, a unit can't be in horizontal property."
+  },
+  {
+   "id": "D39",
+   "cat": "citation_true_proposition_wrong",
+   "gold": "CONTRADICTED",
+   "cites": "pdm",
+   "text": "Nas operações urbanísticas de edificação sujeitas a licenciamento deve ser assegurada a demolição do edifício."
+  },
+  {
+   "id": "D40",
+   "cat": "same_word_other_subject",
+   "gold": "CONTRADICTED",
+   "cites": "num",
+   "text": "Nos edifícios classificados é admitida a ampliação até 20 % da área existente.",
+   "quote": "é admitida a ampliação até 20 % da área existente"
+  }
+ ],
+ "note_quote": "A case with 'quote' is also run through the literal-quote path (planning_basis general_rule), the only path by which MU-9 lets normative content verify."
+}

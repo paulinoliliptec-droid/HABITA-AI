@@ -547,11 +547,13 @@ _COMPETENCE_PREDICATES = ("handled", "handles", "responsible", "competent", "com
                           "tratada", "competente", "responsavel")
 
 
-_NEGATION_WORDS = re.compile(r"\b(?:no|not|never|none|nor|nobody|nothing|cannot|nao|nunca|nenhum|nenhuma|nem|ninguem|nada)\b"
+_NEGATION_WORDS = re.compile(r"\b(?:no|not|never|none|nor|neither|nobody|nothing|cannot|without|nao|nunca|nenhum|nenhuma|"
+                             r"nem|ninguem|nada|sem)\b"
                              r"|\b\w+n['’]t\b")
 _RESTRICTIVE_WORDS = re.compile(r"\b(?:only|exclusively|solely|unless|except\w*|apenas|somente|exclusivamente|"
                                 r"salvo|exceto|excepto)\b")
 _NUMBER = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)?")
+_SEQUENCE_TOKEN = re.compile(r"[a-z]+|\d+(?:[.,]\d+)?|[<>≤≥=≠%]")
 
 
 _STATUS = r"(?:licen\w*|approv\w*|aprov\w*|authori[sz]\w*|autoriz\w*|permit\w*|legal\w*|conform\w*|compliant|valid\w*)"
@@ -603,13 +605,26 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
     # A negation is a function word for ``_tokens``, so it was never grounded ("The Câmara handles no applications"
     # against "handles applications"): every negation a free-text statement asserts must be in a cited record.
     # Only the statement's own cited records can state a negation (an uncited address's PT "no" is not one).
-    cited_text = fold(" ".join(" ".join((e.excerpt, e.source_title)) for e in cited if not is_user_declared(e)))
-    stated = set(_NEGATION_WORDS.findall(cited_text))
-    if _RESTRICTIVE_WORDS.search(cited_text):
-        # "Only autonomous units can …" states that the others can't: a restriction grounds a negation.
-        stated |= set(_NEGATION_WORDS.findall(fold(text)))
-    asserted_text = " ".join(_DEFERRAL.sub(" ", _subject_question_removed(x, names)) for x in _sentences(fold(text)))
-    ungrounded += sorted(set(_NEGATION_WORDS.findall(asserted_text)) - stated)
+    # A restriction in the record ("Only X can …") does NOT ground a negation: without scope analysis it verified the
+    # opposite claim ("X cannot …"), TD-003 (Codex 2026-11-01, P1). Negation scope is research (TD-045); until then a
+    # negation must be the record's own word, fail-closed.
+    # TD-003 rounds 2-3 (Codex 2026-11-01, P1): a negation word anywhere in the records verified the opposite of an
+    # unrelated sentence ("X cannot A. X can B." → "X cannot B."), or moved between clauses of one sentence ("cannot
+    # A, but can B" → "can A, but cannot B"), or borrowed words from a title. Negation scope is research (TD-045):
+    # until then a statement sentence with a negation is grounded only when its whole word sequence, negation
+    # included and in order, is contiguous in ONE cited sentence (a verbatim restatement). Fail-closed: a negated
+    # paraphrase does not verify. A deferral ("… is not confirmed") is removed first, as before: it asserts nothing.
+    # Numbers are part of the sequence (TD-003 round 4: "1 cannot …, 2 can …" → "2 cannot …, 1 can …").
+    cited_sequences = [" " + " ".join(_SEQUENCE_TOKEN.findall(x)) + " " for e in cited if not is_user_declared(e)
+                       for x in _sentences(fold(e.excerpt))]
+    for sentence in _sentences(fold(text)):
+        asserted_sentence = _DEFERRAL.sub(" ", _subject_question_removed(sentence, names))
+        negations = sorted(set(_NEGATION_WORDS.findall(asserted_sentence)))
+        if not negations:
+            continue
+        sequence = " " + " ".join(_SEQUENCE_TOKEN.findall(asserted_sentence)) + " "
+        if not any(sequence in c for c in cited_sequences):
+            ungrounded += negations
     # Numbers aren't words for ``_tokens``, so they were never grounded ("Confirm the 3 documents …"): every number a
     # free-text statement asserts must be one of its cited records'.
     numbers = {n for e in [*cited, *case_facts] if not is_user_declared(e)

@@ -84,7 +84,9 @@ def default_draft(payload: dict) -> dict:
         "procedure": [{"step": "Apply for municipal prior control",
                        "description": "Submit the application to the Câmara Municipal under the RJUE.",
                        "evidence_ids": rjue + authority, **none}],
-        "risks": [{"text": "Without its own exit, a unit can't be in horizontal property and the title is null.",
+        # TD-003 (2026-11-01): was "Without its own exit, a unit can't be in horizontal property …", a legitimate
+        # inference the verifier now rejects (a restriction no longer grounds a negation). Kept as a TD-045 case.
+        "risks": [{"text": "Only autonomous units with their own exit to a common part or to the public way can be the object of horizontal property.",
                    "evidence_ids": civil, **none}] if civil else [],
         "next_actions": [{"text": "Request confirmation of the conditions from the Câmara Municipal de Cascais.",
                           "evidence_ids": authority, **none}]
