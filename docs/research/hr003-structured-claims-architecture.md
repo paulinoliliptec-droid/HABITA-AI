@@ -54,3 +54,38 @@ CONTRADICTED; it can only add a warning or an escalation, never a VERIFIED.
   NOT_DETERMINED, latency.
 - Prerequisites: the structural parser of articles/paragraphs (TD-002), version metadata in the source registry.
 - Decision gate: adopt only if it reaches 0 false VERIFIED on dev + holdout with coverage ≥ the current verifier's.
+
+## 5. Owner decision 2026-11-02: fields every claim carries, and the path from the TD-003 hotfix
+
+The lexical fix loop is closed (five Codex rounds on patch (j) and TD-061, five Muse rounds on the TD-003 hotfix, each
+finding a new wording). The TD-003 hotfix candidate (`hr003/td003-hotfix-candidate`) is the first step of this design:
+a free sentence verifies only as one whole cited sentence or as a canonical sentence HABITA derives from a structured
+record (competence, location). The next steps replace free text with claims carrying these typed fields:
+
+| Field | Meaning | Checked against |
+|---|---|---|
+| `legal_subject` | who or what the rule or fact is about (span) | the cited sentence's subject span; never moved between phrases (TD-003 attachment class) |
+| `predicate` + `deontic_operator` | OBLIGATORY / PERMITTED / PROHIBITED / EXEMPT / NOT_DETERMINED | HABITA's operator lexicon on the modal span (§2.3) |
+| `fact_or_action` | what is permitted, required, or stated (span) | the cited sentence |
+| `conditions`, `exceptions` | every one present in the sentence (spans) | none may be dropped (§2.2) |
+| `jurisdiction` + `in_force` (from, to) | where and when the rule applies | the source registry version metadata; a superseded rule is INAPPLICABLE |
+| `time` (case facts) | when a case fact held ("before the fire", "until the sale") | the record's own time phrase; a fact without its time is not the record's fact |
+| `official_evidence` | evidence id, source id, snapshot id + sha256, article, paragraph | TrustPin and the structural parser (TD-002) |
+| `parcel_identity` | the property the claim applies to (property id, binding version) | C2 identity binding; `applies_to: this_parcel` needs an authoritative parcel determination |
+| `trust_state` | `official_text` / `system_record` / `user_declared` / `unverified` | the evidence status; a user declaration never fills an official field |
+
+Case facts (property, authority, jurisdiction records) become typed records with roles: `{agent, action, object,
+attachments: [{role: "of" | "for" | "in", head, dependent}], time, place}`. HABITA renders them; the model can cite
+them by id but cannot rephrase them. Structured inputs already exist for the user's answers (TD-061 typed criteria:
+unit areas bound to units, ownership kind, work elements).
+
+### NLI / open-weight model
+The NLI model (multilingual, PT-PT) runs in shadow on every free-text explanation and on every verifier decision: it
+labels SUPPORTED / CONTRADICTED / NOT_ENOUGH_INFO. It can add a warning or escalate; it can never raise a verdict and
+never replaces an MU-9 rule. Shadow data feed the benchmark (dev + independent holdout) before any gate uses it.
+
+### Order of work
+1. TD-003 hotfix candidate (structural containment, this branch's twin) — owner review, then publication decision.
+2. Case-fact records with roles and time (property, authority, jurisdiction): rendering only, no free restatement.
+3. Structured norm claims with spans (§1–2) behind an experiment flag; benchmark: false VERIFIED = 0 on dev + holdout.
+4. NLI shadow measurement; TD-001 / TD-031 / TD-033 gates as in `hr003-stage2-protocols.md`.
