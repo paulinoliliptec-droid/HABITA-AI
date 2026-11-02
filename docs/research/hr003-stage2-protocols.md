@@ -166,3 +166,24 @@ sentence, the corpus keeps 0 unsupported VERIFIED in 211 attacks, but legitimate
 stop verifying (≈ 45 test cases). **Strict mode as such is NO-GO.** Viable variant: HABITA renders the case-fact
 sentences itself (authority competence, location, user declarations), as it already renders next actions since
 TD-065; the model's remaining free text then goes through strict mode. That is a separate design for the owner.
+
+## 8. Stage 3 additions (2026-11-02)
+
+### TD-033 monetary ceiling
+Prices (reported by third parties, **not on Meta's own pricing page — confirm in the Meta API console**): Muse Spark
+$1.25 / M input tokens, $4.25 / M output tokens (reasoning billed as output); Muse Voice Transcribe $3.00 / 1,000 min.
+HABITA records no per-run token counts, so the estimate is conservative: per permit run ≤ 6 Muse calls × (≤ 25k input
++ ≤ 6k output incl. reasoning) ≈ 150k in + 36k out ≈ **$0.34**; 12 runs ≈ $4.1; dictation (≤ 1 min) ≈ $0.003; Google
+Static Maps / Street View ≤ 6 loads ≈ $0.05; ElevenLabs within the plan.
+**Proposed hard ceiling: €10 for the whole TD-033 gate** (≈ 2.3× the estimate). Enforcement: runs are started one by
+one; after each, the Meta console's spend is read by the owner (or the run stops at 12); if the console shows
+≥ €8 the gate stops and reports what ran.
+
+### NLI candidates — PT-PT facts
+- mDeBERTa-v3-base-xnli-multilingual-nli-2mil7: MIT; fine-tuned on XNLI (no Portuguese) and on multilingual-NLI-26lang
+  whose Portuguese part is **machine-translated** from English NLI data (model card). No published Portuguese, let
+  alone PT-PT legal, accuracy. Its quality on our texts is unknown until measured on the dev set; Brazilian-leaning
+  vocabulary from MT is likely.
+- AlignScore: English-only training; PT-PT expected weak.
+- Therefore the experiment's first output is a PT-PT quality measurement on the 40 dev + 40 holdout cases (per class
+  and per category: negation, modality, exception, number), not a deployment.
