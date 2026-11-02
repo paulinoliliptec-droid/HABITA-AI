@@ -705,8 +705,8 @@
 
 /* HR-005 polish 2: six columns (about 1,290 px) don't fit beside the 22rem detail panel on common laptop and desktop
    widths, so the last column hid behind it. Until the screen is wide enough for both, the detail goes under the
-   graph and the graph gets the full width. */
-@media (min-width: 901px) and (max-width: 1640px) {
+   graph and the graph gets the full width (1,290 px + 22rem + gap + both gutters ≈ 1,760 px). */
+@media (min-width: 901px) and (max-width: 1760px) {
   .body {
     flex-direction: column;
     flex: none;
@@ -759,4 +759,26 @@
   border-radius: 0;
   background: none;
   border-top: 2px dashed #857e70;
+}
+
+/* The block's stored relations, in words (the canvas draws them as lines). */
+.stepLinks {
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  color: var(--color-text-secondary);
+}
+
+/* Blocks of the selected flow: a tint and a label, so the flow never relies on colour alone. */
+.stepNode[data-flow]:not([aria-expanded="true"]) {
+  background: var(--forest-tint);
+}
+
+.stepInFlow {
+  justify-self: start;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--forest);
 }

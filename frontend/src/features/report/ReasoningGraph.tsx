@@ -128,6 +128,16 @@ export function ReasoningGraph({
   const flow = useMemo(() => flowOf(graph, node.id), [graph, node.id]);
   const flowNodes = graph.nodes.filter((n) => flow.nodes.has(n.id) && n.id !== node.id);
   const narrow = useNarrow();
+  // The list shows each block's stored relations in words: the lines of the canvas (Codex HR-005 r1, P1).
+  const linkedTo = useMemo(() => {
+    const titles = new Map(graph.nodes.map((n) => [n.id, n.title]));
+    const out = new Map<string, string[]>();
+    for (const e of graph.edges) {
+      out.set(e.from, [...(out.get(e.from) ?? []), titles.get(e.to) ?? e.to]);
+      out.set(e.to, [...(out.get(e.to) ?? []), titles.get(e.from) ?? e.from]);
+    }
+    return out;
+  }, [graph]);
   const canvasRef = useRef<HTMLDivElement>(null);
   // HR-005 polish 6: arrow keys move between blocks (left/right: columns, up/down: within a column).
   const onNodeKey = (event: KeyboardEvent, id: string) => {
@@ -158,12 +168,15 @@ export function ReasoningGraph({
   const select = (id: string) => {
     setSelected(id);
     if (narrow) {
-      requestAnimationFrame(() =>
-        document.getElementById(`${listId}-${id}`)?.scrollIntoView({
+      requestAnimationFrame(() => {
+        const item = document.getElementById(`${listId}-${id}`);
+        item?.scrollIntoView({
           block: "start",
           behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-        }),
-      );
+        });
+        // The focused flow link disappears with the old detail: focus moves to the chosen block (Codex HR-005 r1).
+        item?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+      });
     }
   };
 
@@ -223,6 +236,14 @@ export function ReasoningGraph({
                             {n.title}
                           </span>
                           <span className={styles.stepText}>{n.text}</span>
+                          {(linkedTo.get(n.id)?.length ?? 0) > 0 && (
+                            <span className={styles.stepLinks}>
+                              {t("Linked to: {blocks}", { blocks: [...new Set(linkedTo.get(n.id))].join(", ") })}
+                            </span>
+                          )}
+                          {n.id !== node.id && flow.nodes.has(n.id) && (
+                            <span className={styles.stepInFlow}>{t("In the selected flow")}</span>
+                          )}
                         </button>
                         {open && (
                           <div className={styles.stepDetail} aria-live="polite">

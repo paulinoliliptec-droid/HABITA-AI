@@ -699,5 +699,7 @@
   "Legend": "Legenda",
   "To confirm or not verified": "Por confirmar ou não verificado",
   "Record": "Registo",
-  "Dashed line: only part of the group is cited": "Linha tracejada: só parte do grupo é citada"
+  "Dashed line: only part of the group is cited": "Linha tracejada: só parte do grupo é citada",
+  "Linked to: {blocks}": "Ligado a: {blocks}",
+  "In the selected flow": "No fluxo selecionado"
 }
