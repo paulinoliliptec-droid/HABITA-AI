@@ -47,7 +47,7 @@ tools over the official sources, asks the user for missing facts and drafts an a
 persisted and resumable (PLANNING → NEEDS_INPUT → VERIFIED / ESCALATE / REJECTED / FAILED). Contributor-mode models
 are refused. Code: `services/permit/`, `integrations/meta/`.
 
-### HR-003 · Official sources, MU-9 legal verification — Partial (controlled validation)
+### HR-003 · Official sources, MU-9 legal verification — In progress (controlled validation)
 - **Official sources:** a registry of Cascais and national sources (PDM regulation, amendments, planning maps, RJUE,
   RGEU…) with lifecycle states (candidate → validated → trusted → retired); trusted documents are fetched,
   snapshotted (sha256, version) and indexed for retrieval.
@@ -60,9 +60,21 @@ are refused. Code: `services/permit/`, `integrations/meta/`.
   structured record (competence, location). A question or reservation ("Confirm whether …", "… must be confirmed")
   may carry only a pointer ("this", "the conditions") or one whole cited sentence. This closes the reworded-fact class
   (for example "The owner sold the south unit." from "The owner of the south unit sold the north unit.", or a dropped
-  condition, time or scope). Accepted by the owner with residual risks after independent Codex and Muse reviews; the
-  open items (records that themselves contain a question, jurisdiction and address from two records, advisory
-  structural explanations) are listed in the risk register and planned for the structured-claims design.
+  condition, time or scope): 0 of 14 structural attacks verify in any section (13 of 14 did on the previous version),
+  0 false VERIFIED on the 32 negatives of the dev benchmark. Four rounds of independent review by Codex and Muse; the
+  final round still **failed** on residual items that the previous version also had (a record that itself holds a
+  question, a record title, a jurisdiction level combined with another record's address, advisory structural
+  explanations). **The owner accepted it with these residual risks on 2026-11-02; it is not an independent PASS and
+  HR-003 is not closed.** Cost: correct answers that reword a record, or a clause of it, are now refused.
+- **Work in progress, not merged (branch [`hr003/empirical-verification-20261101`](https://github.com/paulinoliliptec-droid/HABITA-AI/tree/hr003/empirical-verification-20261101)):** the
+  TD-003 review history (Codex rounds, benchmark dev v1.1), a reservation check against its own cited record (patch
+  (j), five Codex rounds, coverage limits registered), typed criteria for the user's structural answers (areas bound to
+  units, ownership kind, work elements; Codex found remaining free-text cases, so typed fields in the interface are
+  proposed), stage-2 protocols (Atlas identity binding, shadow measurement, live gate) and the structured legal claims
+  design ([`docs/research/hr003-structured-claims-architecture.md`](https://github.com/paulinoliliptec-droid/HABITA-AI/blob/hr003/empirical-verification-20261101/docs/research/hr003-structured-claims-architecture.md)):
+  subject, deontic operator, conditions, exceptions, validity, official evidence, parcel identity and trust state,
+  with an NLI model only in shadow. Still to run before closing HR-003: Atlas identity binding, shadow measurement on
+  real answers and the live gate.
 - **Limitations (honest):** verification is structural and lexical, not semantic entailment, so correct answers that
   reword a record are rejected (fail-closed) and a few structural descriptions stay advisory; zoning has **no validated GIS
   connector**, so the classification always requires manual confirmation; the real MongoDB replica-set run of the
@@ -220,12 +232,13 @@ commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
 **https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — backend updated on 2026-11-02 to commit `1d03ab3`
-(revision `00065`, TD-003 structural containment; rollback revision `00063`), frontend updated on 2026-11-02 to commit
+(revision `00065`, TD-003 structural containment; `00063` is NOT a safe rollback: it brings back the old
+verifier with the known false-VERIFIED paths, so a backend problem is fixed forward), frontend updated on 2026-11-02 to commit
 `b8e10a6` (revision `00064`, workspace areas and phone report bar; rollback revision `00062`), with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
-current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
-command (`infrastructure/STAGING.md`). Historical results verified under the old protocol are never shown
+current protocol) and the PDF with road map, satellite and Street View. A frontend rollback to its previous revision
+is one command (`infrastructure/STAGING.md`); a backend rollback must not go to a revision older than `00065`. Historical results verified under the old protocol are never shown
 as current VERIFIED: they read as superseded (legacy, not revalidated), with their original provenance.
 
 Access requires an authorised Google account and the official proxy, on the computer where the browser runs:
@@ -267,7 +280,7 @@ MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentia
 
 ## Roadmap and technical debt
 - Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002
-  done; HR-003 in controlled validation; HR-004 and HR-006 MVP complete (why, and what would make them full: roadmap "Why HR-004 and HR-006 are MVP complete"); HR-005, HR-007, HR-008 and HR-009 to HR-012 live, acceptance pending;
+  done; HR-003 in progress (TD-003 containment live and accepted with residual risk; Atlas, shadow and live gates not run); HR-004 and HR-006 MVP complete (why, and what would make them full: roadmap "Why HR-004 and HR-006 are MVP complete"); HR-005, HR-007, HR-008 and HR-009 to HR-012 live, acceptance pending;
   HR-013…HR-015 pending definition.
 - Main open items: redeploy staging with the latest HR-004/HR-006 code (including the real PDF images); set Google
   Cloud API quotas and review the Maps Platform terms for imagery in PDFs; improve answers to procedure questions (repeated zoning conditions, missing RJUE
