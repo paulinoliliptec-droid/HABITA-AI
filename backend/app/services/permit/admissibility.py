@@ -682,6 +682,30 @@ def _address_parts_hold(parts: list[str], segments: list[str]) -> bool:
     return True
 
 
+_CLAUSE_SPLIT = re.compile(r"[,;:]|\b(?:and|but|while|whereas|or|mas|e|ou|enquanto|porem)\b")
+
+
+def _clause_bound(statement: str, cited_sentence: str, free: set[str], names: set[str], ordered: bool = True) -> bool:
+    """Every clause of ``statement`` takes its content words from one clause of ``cited_sentence``, in order and
+    without skipping a clause (Muse review r3, P0: "The north unit has a balcony and the south unit has a garage"
+    can't give "The north unit has a garage"; "Licensing of urban operations, including building permits …" still
+    restates its record clause by clause)."""
+    def clause_stems(text: str) -> list[set[str]]:
+        return [{_stem(w) for w in _tokens(c) if w not in names} - free for c in _CLAUSE_SPLIT.split(text)]
+    wanted = [c for c in clause_stems(statement) if c]
+    have = clause_stems(cited_sentence)
+    if not wanted:
+        return True
+    if not ordered:  # HABITA's own location records: a hierarchy restated in any order, each clause from one clause
+        return all(any(c <= h for h in have) for c in wanted)
+    # positions[k] = cited clauses where statement clause k can come from, given clause k-1's position.
+    reachable = {i for i, c in enumerate(have) if wanted[0] <= c}
+    for clause in wanted[1:]:
+        reachable = {j for i in reachable for j in (i, i + 1, i + 2) if j < len(have) and clause <= have[j]
+                     and all(not have[k] for k in range(i + 1, j))}  # only empty clauses may be skipped
+    return bool(reachable)
+
+
 def _covers_operators(sequence: str, cited: str) -> bool:
     """``sequence`` occurs in ``cited`` and no operator of ``cited`` lies outside the occurrence (Muse review r1, P0:
     "The owner can transfer ownership, except to the tenant" can't give "The owner can transfer ownership")."""
@@ -754,10 +778,9 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
                 free |= {_stem(w) for w in _COMPETENCE_PREDICATES}
             titles = {_stem(w) for e in cited if not is_user_declared(e) for w in _tokens(e.source_title)}
             needed = content - free - titles
-            if needed and not holders and not any(
-                    needed <= {_stem(w) for w in _tokens(x)} for e in cited if not is_user_declared(e)
-                    for x in _sentences(fold(e.excerpt))):
-                ungrounded.append("(combines words from different cited sentences)")
+            if needed and not any(_clause_bound(asserted_sentence, x, free | titles, names, ordered=not only_locations)
+                                  for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))):
+                ungrounded.append("(combines words from different cited sentences or clauses)")
             continue
         tokens = [re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(asserted_sentence)]
         if only_locations and all(o.isdigit() for o in operators):

@@ -383,3 +383,32 @@ async def test_muse_r2_recombination_across_sentences_and_number_words(record_te
     rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("The north unit has a balcony and the south unit has a garage.", "The north unit has a garage."),
+    ("The north unit has a balcony, the south unit has a garage.", "The north unit has a garage."),
+    ("The north unit is large and the south unit is small.", "The north unit is small."),
+    ("The owner transferred ownership to Ana and the tenant leased the shop.", "The owner leased the shop."),
+    ("North Street, Cascais, South Street, Porto.", "North Street, Porto."),
+    ("A unidade norte tem varanda e a unidade sul tem garagem.", "A unidade norte tem garagem."),
+    ("A unidade norte é grande e a unidade sul é pequena.", "A unidade norte é pequena."),
+    ("O dono transferiu a propriedade para a Ana e o inquilino arrendou a loja.", "O dono arrendou a loja."),
+])
+async def test_muse_r3_recombination_within_one_cited_sentence(record_text, text):
+    """Muse Code review of the TD-003 hotfix, round 3 (2026-11-02, P0)."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("The north unit has a balcony and the south unit has a garage.", "The north unit has a balcony."),
+    ("A unidade norte é grande e a unidade sul é pequena.", "A unidade sul é pequena."),
+])
+async def test_muse_r3_a_clause_restated_on_its_own_still_verifies(record_text, text):
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome == "VERIFIED", report.issues
