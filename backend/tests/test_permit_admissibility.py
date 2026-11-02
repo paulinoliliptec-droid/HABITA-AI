@@ -281,7 +281,9 @@ async def test_the_reviewer_flag_is_enforced_by_code():
      "isolated from each other, with their own exit to a common part of the building or to the public way.", ["E7"]),
     ("You state each floor has its own street door.", ["E8"]),
     ("Confirm the conditions with the Câmara Municipal de Cascais before you apply.", ["E9"]),
-    ("Confirm with the Câmara whether the works need a licence or prior communication.", ["E1"]),
+    # TD-003 structural (2026-11-02): a question carries only a whole cited sentence or nothing factual; "whether the
+    # works need a licence …" in the model's words is an availability cost (see the false-positive suite).
+    ("Confirm this with the Câmara before you apply.", ["E1"]),
 ])
 @pytest.mark.parametrize("section", SECTIONS)
 async def test_grounded_non_planning_statements_verify(text, cites, section):

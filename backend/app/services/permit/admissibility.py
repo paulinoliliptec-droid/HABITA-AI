@@ -546,8 +546,6 @@ _LOCATION_PREDICATES = ("located", "situated", "localizado", "localizada", "situ
 _LOCATION_SUBJECTS = ("property", "building", "parcel", "site", "imovel", "predio", "edificio", "parcela", "parish",
                       "municipality", "district", "country", "freguesia", "concelho", "municipio", "distrito", "pais")
 _LOCATION_RECORDS = ("jurisdiction_record", "property_record")
-#: HABITA's records of facts of this case (as opposed to regulatory or reference texts).
-_CASE_FACT_RECORDS = ("jurisdiction_record", "property_record", "authority_record")
 #: Neutral competence predicates (EN + PT): usable only when restating a cited authority record.
 _COMPETENCE_PREDICATES = ("handled", "handles", "responsible", "competent", "competence", "trata", "tratado",
                           "tratada", "competente", "responsavel")
@@ -685,6 +683,12 @@ def _sequence(text: str) -> str:
 _SENTENCE_TOKEN = re.compile(r"[a-z]+|(?:[-−–—‒‑+±]\s*)?\d+(?:[.,]\d+)?|[<>≤≥=≠%]|[,;:()]")
 
 
+#: The addressee of a check (a public body), which a question names but does not assert: a closed grammar.
+_ADDRESSEE = re.compile(r"\b(?:(?:with|to|from|by|at|com|junto\s+d[aeo]s?|pela|pelo|na|no|a)\s+)?(?:the\s+|a\s+|o\s+)?"
+                        r"(?:camara|municipality|municipal\s+council|council|municipio|autoridade|authority|"
+                        r"competent\s+authority|autoridade\s+competente)(?:\s+municipal)?(?:\s+de\s+[a-z]+)?\b")
+
+
 def _sentence_sequence(text: str) -> str:
     return " " + " ".join(re.sub(r"\s+", "", t) for t in _SENTENCE_TOKEN.findall(text)) + " "
 
@@ -815,22 +819,13 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
                     else plain[:reserved.start()] if reserved and plain[:reserved.start()].strip()
                     else plain[reserved.end():] if reserved else None)  # what is to be confirmed ("Confirm X …")
         if embedded is not None:
+            embedded = _ADDRESSEE.sub(" ", embedded)  # "with the Câmara": who confirms, not what is carried
             carried = {_stem(w) for w in _tokens(embedded) if w not in names} - free - titles
-            # (a) a figure, an operator or a negation in it (a swapped number, a dropped exception or condition), or
-            # (b) any word of a cited CASE FACT (property, authority, jurisdiction record): then it restates a record
-            # and must be that whole sentence. A question about the legal topic itself ("whether the works need a
-            # licence") carries neither and stays admitted.
-            # A number is a fact of the case: always. An operator or negation: when the carried statement is an
-            # excerpt of a cited sentence (all its words in it), i.e. that sentence with its exception or condition
-            # cut off; a question in words of its own ("whether the works NEED prior control") restates no record.
-            words = {_stem(w) for w in _tokens(embedded) if w not in names}
-            excerpt = bool(words) and any(words <= {_stem(w) for w in _tokens(x)} for e in cited
-                                          if not is_user_declared(e) for x in _sentences(fold(e.excerpt), False))
-            figures = bool(_NUMBER.search(embedded) or excerpt and (_NEGATION_WORDS.search(embedded)
-                                                                     or _OPERATOR_WORDS.search(embedded)))
-            case_words = {_stem(w) for e in cited if not is_user_declared(e) and e.source_type in _CASE_FACT_RECORDS
-                          for w in _tokens(e.excerpt)} - free - titles
-            if (figures or carried & case_words) and not _whole_sentence(embedded, cited_sequences):
+            # Any factual content at all (Muse candidate review r2, P0: a narrower gate on case-fact words, figures
+            # and excerpts was bypassed through regulatory records): a question about the legal topic in the model's
+            # own words is not certified either; "This must be confirmed with the Câmara" and HABITA's rendered
+            # condition stay available.
+            if (carried or _NUMBER.search(embedded)) and not _whole_sentence(embedded, cited_sequences):
                 ungrounded.append("(a question or reservation carries a statement that is not one whole cited "
                                   "sentence)")
                 continue

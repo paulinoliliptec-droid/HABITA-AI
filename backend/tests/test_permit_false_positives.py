@@ -488,6 +488,16 @@ async def test_td003_structural_whole_and_canonical_sentences_still_verify(text)
     assert report.outcome == "VERIFIED", report.issues
 
 
+def admissible(eid, source_type, text):
+    """A record the verifier admits: a regulatory one with trusted provenance (Muse candidate review r2, P3-1: without
+    it the record is inadmissible and a test passes whatever the rule), a case record as HABITA writes it."""
+    from tests.test_permit_admissibility import record
+    if source_type == "regulatory_source":
+        return record(eid, "regulatory_source", text, source="pt-rjue", jurisdiction="pt", authority_class="primary_law",
+                      title="RJUE")
+    return record(eid, source_type, text, status="system_record", title="Câmara Municipal de Cascais")
+
+
 #: TD-003 candidate review r1 (Codex 2026-11-02): location records, parentheses, semicolons and address prefixes.
 CANDIDATE_R1_ATTACKS = [
     ("property_record", "The owner of the south unit sold the north unit.", "The owner sold the south unit."),
@@ -527,8 +537,8 @@ CANDIDATE_R1_ATTACKS = [
 @pytest.mark.parametrize("section", ["conclusion", "claim", "procedure", "risk", "next action"])
 @pytest.mark.parametrize("source_type,record_text,text", CANDIDATE_R1_ATTACKS)
 async def test_td003_candidate_r1_no_false_verified(source_type, record_text, text, section):
-    from tests.test_permit_admissibility import CASE_RECORDS, in_section, record, rendered_verify
-    rec = record("E50", source_type, record_text, status="system_record", title="Câmara Municipal de Cascais")
+    from tests.test_permit_admissibility import CASE_RECORDS, in_section, rendered_verify
+    rec = admissible("E50", source_type, record_text)
     report = await rendered_verify(in_section(section, text, ["E50"]), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", (section, report.issues)
 
@@ -558,7 +568,51 @@ CARRIED_ATTACKS = [
 @pytest.mark.parametrize("source_type,record_text,text", CARRIED_ATTACKS)
 async def test_td003_candidate_r1_a_question_or_reservation_carries_no_false_statement(source_type, record_text,
                                                                                        text, section):
-    from tests.test_permit_admissibility import CASE_RECORDS, in_section, record, rendered_verify
-    rec = record("E50", source_type, record_text, status="system_record", title="Câmara Municipal de Cascais")
+    from tests.test_permit_admissibility import CASE_RECORDS, in_section, rendered_verify
+    rec = admissible("E50", source_type, record_text)
     report = await rendered_verify(in_section(section, text, ["E50"]), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", (section, report.issues)
+
+
+#: Muse candidate review r2 (P0): the carried statement of a question, citing an ADMISSIBLE regulatory record.
+CARRIED_R2_ATTACKS = [
+    ("The owner of the south unit sold the north unit.", "Confirm whether the owner sold the south unit."),
+    ("The owner of the south unit sold the north unit.", "Ask whether the owner sold the south unit."),
+    ("The owner of the south unit sold the north unit.", "Check if the owner sold the south unit."),
+    ("The owner of the south unit sold the north unit.", "Whether the owner sold the south unit should be verified."),
+    ("O dono da unidade sul vendeu a unidade norte.", "Confirme se o dono vendeu a unidade sul."),
+    ("The owner can transfer ownership.", "Confirm whether the owner must transfer ownership."),
+    ("The owner can transfer ownership.", "Whether the owner must transfer ownership must be confirmed."),
+    ("If the works are approved, the owner sold the shop.", "Confirm whether the owner sold the shop."),
+    ("After the inspection, the tenant occupied the shop.", "Confirm whether the tenant occupied the shop."),
+    ("Only the tenant can appeal. The owner can sell.", "Confirm whether only the owner can appeal."),
+    ("The north unit has ten windows. The south unit has twenty windows.",
+     "Confirm whether the south unit has ten windows."),
+    ("O dono pode transferir a propriedade.", "Confirme se apenas o dono pode transferir a propriedade."),
+]
+
+
+@pytest.mark.parametrize("section", ["conclusion", "claim", "procedure", "risk", "next action"])
+@pytest.mark.parametrize("record_text,text", CARRIED_R2_ATTACKS)
+async def test_td003_candidate_r2_a_question_carries_only_a_whole_cited_sentence(record_text, text, section):
+    from tests.test_permit_admissibility import CASE_RECORDS, in_section, rendered_verify
+    rec = admissible("E50", "regulatory_source", record_text)
+    report = await rendered_verify(in_section(section, text, ["E50"]), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", (section, report.issues)
+
+
+async def test_td003_candidate_r2_the_admissible_record_is_admitted():
+    """The control for the tests above: the same admissible record verifies its own whole sentence."""
+    from tests.test_permit_admissibility import CASE_RECORDS, rendered_verify
+    rec = admissible("E50", "regulatory_source", "The owner of the south unit sold the north unit.")
+    report = await rendered_verify(in_section_claim("The owner of the south unit sold the north unit."),
+                                   [*CASE_RECORDS, rec])
+    assert report.outcome == "VERIFIED", report.issues
+
+
+async def test_td003_candidate_r2_a_question_in_its_own_words_is_an_availability_cost():
+    from tests.test_permit_admissibility import CASE_RECORDS, rjue, rendered_verify
+    report = await rendered_verify(
+        in_section_claim("Confirm with the Câmara whether the works need a licence or prior communication."),
+        [*CASE_RECORDS, rjue("E50")])
+    assert report.outcome != "VERIFIED"

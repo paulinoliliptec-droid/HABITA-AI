@@ -337,12 +337,11 @@ async def test_a_model_material_false_label_cannot_exempt_a_claim():
     assert report.outcome == "REJECTED" and "unsupported_claim" in codes(report.issues)
 
 
-async def test_td003_structural_a_question_cut_from_its_record_with_an_operator_is_not_certified():
-    """TD-003 structural (2026-11-02), availability cost registered: a question whose words all come from one cited
-    sentence and that keeps an operator is that sentence cut short, which is how an exception or a condition is
-    dropped ("Confirm whether the owner can transfer ownership" from "…, except to the tenant")."""
+async def test_td003_structural_a_question_of_procedural_words_carries_nothing_and_is_admitted():
+    """TD-003 structural (2026-11-02): a question carries only a whole cited sentence or nothing factual; "which
+    documents the application needs" names only procedure, and the Câmara is the addressee."""
     d = draft(next_actions=[NextAction(text="Ask the Câmara which documents the application needs.", evidence_ids=["E1"])])
     grounded = ev("E1").model_copy(update={"excerpt": "An application for prior control must be submitted to the "
                                                       "Câmara with the documents it needs."})
     report, _ = await verify(d, [grounded])
-    assert report.outcome != "VERIFIED"
+    assert report.outcome == "VERIFIED", report.issues
