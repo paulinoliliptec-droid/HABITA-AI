@@ -688,18 +688,36 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
         operators = sorted(set(_NEGATION_WORDS.findall(operators_text))
                            | {o.strip() for o in _OPERATOR_WORDS.findall(operators_text)})
         if not operators:
+            # Final review r4 (Codex P1): an operator-free sentence can't drop the negation or operator of the
+            # sentence it restates ("The deed is not verified" → "The deed is verified"). If every cited sentence
+            # holding all its content words carries a negation or a word operator, it is a deletion, not a
+            # restatement. (Numbers alone don't count here: an address restated without its postcode is fine.)
+            # A reservation or an instruction to check asserts nothing, so it can't drop anything.
+            if question or subject or asserted_sentence.split() != plain.split():
+                continue
+
+            def word_operators(x: str) -> set[str]:
+                x = re.sub(r"\d", "", x)
+                return set(_NEGATION_WORDS.findall(x)) | {o.strip() for o in _OPERATOR_WORDS.findall(x)}
+            content = {_stem(w) for w in _tokens(asserted_sentence) if w not in names}
+            holders = [x for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))
+                       if content and content <= {_stem(w) for w in _tokens(x)}]
+            if holders and all(word_operators(x) for x in holders):
+                ungrounded.append("(drops an operator of its cited sentence)")
             continue
         tokens = [re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(asserted_sentence)]
         if only_locations and all(o.isdigit() for o in operators):
             # Final review r3: the address itself must be verbatim, not only its numbers ("South Street 10" can't
             # take North Street's number). Only a leading location predicate may differ.
-            located = _LOCATED_AT.match(" ".join(tokens))
-            rest = (" ".join(tokens)[located.end():] if located else " ".join(tokens)).split()
-            # From the start of the address to its last number ("Praça 5 de Outubro, Cascais" keeps verifying; a
-            # trailing locality is grounded word by word as before).
-            numeric = [i for i, tok in enumerate(rest) if any(ch.isdigit() for ch in tok)]
-            rest = rest[:numeric[-1] + 1] if numeric else rest
-            if not any(" " + " ".join(rest) + " " in c for c in cited_sequences):
+            # Every comma-separated part of the address must be verbatim in the SAME cited sentence (final review
+            # r4: "North Street 10, Porto" can't take South Street's city); parts may be omitted ("Praça 5 de
+            # Outubro, Cascais" restates "Praça 5 de Outubro, Centro Historico, 2750-427 Cascais, Portugal").
+            located = _LOCATED_AT.match(asserted_sentence.strip())
+            address = asserted_sentence.strip()[located.end():] if located else asserted_sentence
+            parts = [" " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(p)) + " "
+                     for p in re.split(r"[,;]", address)]
+            parts = [p for p in parts if p.strip()]
+            if not any(all(p in c for p in parts) for c in cited_sequences):
                 ungrounded += [f"{o} (not a verbatim restatement)" for o in operators]
             continue
         # Anywhere else a sentence with an operator or a number needs the whole sentence verbatim ("the south unit is
