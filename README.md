@@ -149,6 +149,15 @@ its own block. Report texts arrive in the reader's language (the backend transla
 stays as written.
 Code: `frontend/src/features/report/reasoningGraph.ts`.
 
+**Polish for the hackathon across HR-007…HR-012 (2026-11-02):** the voice no longer cuts a sentence after an ordinal,
+a decimal or an abbreviation ("2.º Trimestre", "Art. 67.º") and says a doubled end ("..", "?.") once; dictation drops
+the stray full stop after a question; INE periods read "Q2 2026" / "September 2026" for English readers; plan labels
+in capitals ("KITCHEN") are now translated instead of keeping the whole sentence in English (the translation check took
+them for acronyms); the property profile uses HABITA's serif. Already in place and checked: the voice's spend ceiling
+(daily cap shared by instances, per-minute bucket, cached sentences) and the before/after gallery on phones. Still the
+owner's: the listening test and the ElevenLabs key rotation (HR-007), and a lawyer-reviewed fixed procedure per
+request type (HR-009, TD-067), which HABITA does not write on its own.
+
 ### HR-007 · Voice Explanation — Live; owner's listening test pending
 The report can be heard with Listen, Pause, Resume, Repeat and Stop, with the sentence on screen. Audio is an
 explanation, never legal proof: it opens and closes by saying so, follows the report's status rule and says every
