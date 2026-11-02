@@ -9,6 +9,8 @@ section is shown once, then referenced ("same as K3") with its own evidence ids,
 """
 
 import base64
+import hashlib
+import json
 import re
 from collections import Counter
 from html import escape
@@ -103,6 +105,12 @@ table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 8.
 th, td { padding: 1.6mm 2mm; text-align: left; vertical-align: top; hyphens: manual; }
 thead { display: table-header-group; } tr { break-inside: avoid; }
 .muted { color: #5f646b; } .small { font-size: 8.4pt; } .mono { font-family: monospace; font-size: 7.6pt; word-break: break-all; }
+.annex-list { columns: 2; column-gap: 6mm; font-size: 7pt; margin: 0 0 4mm; padding-left: 5mm; }
+.annex-list li { break-inside: avoid; margin-bottom: 1mm; word-break: break-all; }
+.annex-pin { columns: 3; column-gap: 5mm; font-size: 6.8pt; margin: 0 0 4mm; padding: 0; list-style: none; }
+.annex-pin li { break-inside: avoid; word-break: break-all; }
+.ref { font-size: 7pt; color: #5f646b; vertical-align: super; }
+table.compact td { padding-top: 0.8mm; padding-bottom: 0.8mm; }
 .pill { display: inline-block; padding: 1.2mm 3mm; border-radius: 1.5mm; font-weight: 700; letter-spacing: .4px; font-size: 9pt; }
 .pill.ok { background: #e3f1e8; color: #1f6f43; } .pill.bad { background: #f8e3e3; color: #9b2c2c; } .pill.warn { background: #fbefd9; color: #7a5200; }
 .box, .legend { hyphens: manual; text-align: left; }
@@ -492,7 +500,10 @@ def _analysis(report: PermitReport) -> str:
                    f"<tr><td>{t('Report')}</td><td>{_e(v.verification_id)}</td></tr>"
                    f"<tr><td>{t('Verified at')}</td><td>{v.created_at:%Y-%m-%d %H:%M} UTC</td></tr>"
                    f"<tr><td>{t('Protocol')}</td><td>{_e(v.protocol)}</td></tr>"
-                   f"<tr><td>{t('Trust pin')}</td><td class='small'>{'<br/>'.join(f'{_e(k)}: {_e(val)}' for k, val in sorted(v.trust_pin.items())) or '—'}</td></tr></table>")
+                   f"<tr><td>{t('Trust pin')}</td><td class='small'>"
+                   + (t("{n} sources pinned · fingerprint {fp} · full list in the annex", n=len(v.trust_pin),
+                        fp=_pin_fingerprint(v.trust_pin)) if v.trust_pin else "—")
+                   + "</td></tr></table>")
     if a.evidence:
         out.append(f'<h3>{t("Evidence and provenance")}</h3><table><thead><tr><th>Id</th><th>{t("Source")}</th>'
                    f'<th>{t("Status")}</th><th>{t("Provenance")}</th></tr></thead><tbody>')
@@ -508,20 +519,59 @@ def _analysis(report: PermitReport) -> str:
     return "".join(out) + "</section>"
 
 
+def _pin_fingerprint(pin: dict[str, str]) -> str:
+    """A short fingerprint of the trust pin (its sorted pairs), so the summary and the annex can be matched."""
+    return hashlib.sha256(json.dumps(sorted(pin.items()), ensure_ascii=False).encode()).hexdigest()[:16]
+
+
 def _sources(report: PermitReport) -> str:
     t = translator_for(report.language)
     out = []
     if report.pending:
         out.append(f'<h3>{t("Pending confirmation")}</h3><ul>' + "".join(f"<li>{_e(x)}</li>" for x in report.pending) + "</ul>")
     if report.sources:
-        out.append(f'<h3>{t("Official sources for this jurisdiction")}</h3><table><thead><tr><th>{t("Source")}</th>'
-                   f'<th>{t("Publisher")}</th><th>{t("Status")}</th></tr></thead><tbody>' + "".join(
-                       f"<tr><td>{_e(s.title)}" + (f"<br/><span class='mono'>{_url(s.url)}</span>" if s.url else "")
-                       + f"</td><td class='small'>{_e(s.publisher)}</td><td class='small'>{_e(t(s.status))}"
-                       + (f"<br/>{t('verified')} {s.verified_on}" if s.verified_on else "") + "</td></tr>"
-                       for s in report.sources) + "</tbody></table>")
+        # HR-006 polish 1: grouped by publisher, one line each; the long links are numbered in the annex.
+        refs = _source_refs(report)
+        out.append(f'<h3>{t("Official sources for this jurisdiction")}</h3>')
+        groups: dict[str, list] = {}
+        for s in report.sources:
+            groups.setdefault(s.publisher or t("Other"), []).append(s)
+        for publisher, items in groups.items():
+            # The version most of the group shares is said once; a source names its own only when it differs.
+            common, n = Counter(s.version for s in items if s.version).most_common(1)[0] if any(s.version for s in items) else (None, 0)
+            common = common if n > 1 else None
+            out.append(f'<p class="small"><b>{_e(publisher)}</b> · {len(items)}'
+                       + (f'<br/><span class="muted">{t("Version")}: {_e(common)}</span>' if common else "") + "</p>"
+                       f'<table class="compact"><tbody>' + "".join(
+                           f"<tr><td>{_e(s.title)}" + (f" <span class='ref'>[{refs[s.source_id]}]</span>" if s.source_id in refs else "")
+                           + (f"<br/><span class='small muted'>{_e(s.version)}</span>" if s.version and s.version != common else "")
+                           + f"</td><td class='small' style='white-space:nowrap'>{_e(t(s.status))}"
+                           + (f" · {s.verified_on}" if s.verified_on else "") + "</td></tr>"
+                           for s in items) + "</tbody></table>")
     return (f'<section><h2>{t("Sources and pending items")}</h2>{"".join(out)}<p class="small muted">{_e(report.disclaimer)}'
             "</p></section>")
+
+
+def _source_refs(report: PermitReport) -> dict[str, int]:
+    """Annex numbers of the sources that have a link, in the report's order."""
+    return {s.source_id: i for i, s in enumerate((s for s in report.sources if s.url), start=1)}
+
+
+def _annex(report: PermitReport) -> str:
+    """The audit appendix: every source link (numbered as in the list) and the full trust pin, in small print."""
+    t = translator_for(report.language)
+    out = []
+    linked = [s for s in report.sources if s.url]
+    if linked:
+        out.append(f'<h3>{t("Links of the official sources")}</h3><ol class="annex-list">'
+                   + "".join(f'<li><span class="mono">{_url(s.url)}</span></li>' for s in linked) + "</ol>")
+    v = report.assessment.verification if report.assessment else None
+    if v and v.trust_pin:
+        out.append(f'<h3>{t("Trust pin")} · {_pin_fingerprint(v.trust_pin)}</h3><ul class="annex-pin">'
+                   + "".join(f"<li>{_e(k)}: {_e(val)}</li>" for k, val in sorted(v.trust_pin.items())) + "</ul>")
+    if not out:
+        return ""
+    return f'<section><h2>{t("Annex: links and trust pin")}</h2>{"".join(out)}</section>'
 
 
 def render_html(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico") -> str:
@@ -533,7 +583,7 @@ def render_html(report: PermitReport, maps: LocationMaps | None = None, style: s
             f"<style>{FONT_FACES[style]()}\n{css}\n{CSS_STYLE[style]}</style></head><body class='{style}'>"
             f'<div class="disclaimer-running">{"<b>" + t(DEMO) + ".</b> " if report.demo else ""}{_e(report.disclaimer)}</div>'
             f"{_cover(report)}{_glance(report, style)}{_location(maps, t)}{_planning(report)}{_profile(report)}{_concepts(report)}{_afford(report)}{_analysis(report)}"
-            f"{_sources(report)}</body></html>")
+            f"{_sources(report)}{_annex(report)}</body></html>")
 
 
 def render_premium_pdf(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico") -> bytes:
