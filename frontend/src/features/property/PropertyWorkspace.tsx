@@ -12,7 +12,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
 import { AddressSearch } from "./AddressSearch";
 import { getCachedProperty, getProperty, subscribeToProperties } from "./api";
-import { PRECISION, splitAddress } from "./format";
+import { placeLine, PRECISION, splitAddress } from "./format";
 import { JurisdictionSection } from "./JurisdictionSection";
 import { LocationSection } from "./LocationSection";
 import { PropertyIdentity } from "./PropertyIdentity";
@@ -105,6 +105,13 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
               coordinates={property.coordinates}
               zoom={PRECISION[property.precision].zoom}
               label={property.formatted_address}
+              card={{
+                lines: [placeLine(property.jurisdiction), t(PRECISION[property.precision].label)],
+                onOpen: () => {
+                  go("question");
+                  document.getElementById("area-question")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                },
+              }}
             />
           </div>
         ) : (
@@ -123,7 +130,7 @@ function LoadError({ error, onRetry }: { error: ApiError | null; onRetry: () => 
       <Notice
         title={t("This property isn't in HABITA yet")}
         action={
-          <ButtonLink href="/" variant="secondary">
+          <ButtonLink href="/demo" variant="secondary">
             <Icon name="arrowLeft" size={16} />
             {t("Search for an address")}
           </ButtonLink>

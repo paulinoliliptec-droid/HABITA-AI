@@ -69,9 +69,20 @@
   background: var(--color-canvas);
 }
 
+.guideTitle {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-8) var(--gutter) 0;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
 .outputList {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   max-width: var(--content-max);
   margin: 0 auto;
   padding-inline: var(--gutter);
@@ -121,6 +132,17 @@
 .legal a {
   color: var(--color-text-secondary);
   text-underline-offset: 3px;
+}
+
+@media (max-width: 1100px) {
+  .outputList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .output:nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+  }
 }
 
 @media (max-width: 820px) {

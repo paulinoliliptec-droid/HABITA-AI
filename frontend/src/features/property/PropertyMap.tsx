@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { msg } from "@/i18n/core";
 import { useI18n } from "@/i18n/useI18n";
 import { HABITA_MAP_STYLE } from "@/lib/google-maps/mapStyle";
@@ -21,8 +22,27 @@ const UNAVAILABLE_COPY: Record<MapsUnavailableError["reason"], { title: string; 
   load_failed: { title: msg("The map couldn't load") },
 };
 
-export function PropertyMap({ coordinates, zoom, label }: { coordinates: Coordinates; zoom: number; label: string }) {
+/** What the marker's card shows (UX-REFINE-001 §5): facts of the location only, never zoning or a licence. */
+export interface MarkerCard {
+  lines: string[];
+  onOpen?: () => void;
+}
+
+export function PropertyMap({
+  coordinates,
+  zoom,
+  label,
+  card,
+}: {
+  coordinates: Coordinates;
+  zoom: number;
+  label: string;
+  card?: MarkerCard;
+}) {
   const { t } = useI18n();
+  // The marker's DOM node: its label and card are rendered into it by React (a portal), so they translate and
+  // take keyboard focus like the rest of the page.
+  const [markerEl, setMarkerEl] = useState<HTMLElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const [state, setState] = useState<MapState>({ status: "loading" });
@@ -56,8 +76,10 @@ export function PropertyMap({ coordinates, zoom, label }: { coordinates: Coordin
         map.setCenter(coordinates);
         map.setZoom(zoom);
 
-        marker = createLocationMarker(OverlayView, coordinates, label);
+        const created = createLocationMarker(OverlayView, coordinates, label);
+        marker = created.overlay;
         marker.setMap(map);
+        setMarkerEl(created.el);
         setState({ status: "ready" });
       } catch (error) {
         if (cancelled) return;
@@ -115,6 +137,52 @@ export function PropertyMap({ coordinates, zoom, label }: { coordinates: Coordin
           ))}
         </div>
       )}
+      {markerEl && card && createPortal(<MarkerLabel label={label} card={card} />, markerEl)}
+    </div>
+  );
+}
+
+/** "Property under analysis" beside the point; a click or Enter opens a small card. */
+function MarkerLabel({ label, card }: { label: string; card: MarkerCard }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={styles.markerLabelWrap}>
+      <button
+        type="button"
+        className={styles.markerLabel}
+        aria-expanded={open}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+      >
+        {t("Property under analysis")}
+      </button>
+      {open && (
+        <div className={styles.markerCard} role="dialog" aria-label={t("Property under analysis")}>
+          <p className={styles.markerCardTitle}>{label}</p>
+          {card.lines.map((line) => (
+            <p key={line} className={styles.markerCardLine}>
+              {line}
+            </p>
+          ))}
+          <p className={styles.markerCardNote}>{t("Approximate location: a point, not a parcel boundary.")}</p>
+          {card.onOpen && (
+            <button
+              type="button"
+              className={styles.markerCardAction}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+                card.onOpen?.();
+              }}
+            >
+              {t("Open the analysis")}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -124,14 +192,17 @@ function createLocationMarker(
   OverlayView: typeof google.maps.OverlayView,
   position: Coordinates,
   label: string,
-): google.maps.OverlayView {
+): { overlay: google.maps.OverlayView; el: HTMLElement } {
+  // Built once here, never in onAdd: the label and card are a React portal inside this node, and rewriting its
+  // HTML when the map attaches it would remove them.
+  const el = document.createElement("div");
+  el.className = styles.marker;
+  el.setAttribute("aria-label", label);
+  el.innerHTML = `<span class="${styles.markerHalo}"></span><span class="${styles.markerDot}"></span>`;
   class LocationMarker extends OverlayView {
-    private el = document.createElement("div");
+    private el = el;
 
     onAdd() {
-      this.el.className = styles.marker;
-      this.el.title = label;
-      this.el.innerHTML = `<span class="${styles.markerHalo}"></span><span class="${styles.markerDot}"></span>`;
       this.getPanes()?.overlayMouseTarget.append(this.el);
     }
 
@@ -144,5 +215,5 @@ function createLocationMarker(
       this.el.remove();
     }
   }
-  return new LocationMarker();
+  return { overlay: new LocationMarker(), el };
 }

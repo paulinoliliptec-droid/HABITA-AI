@@ -525,3 +525,67 @@
 .detailIcon {
   color: var(--current);
 }
+
+/* HABITA theme (UX-REFINE-001 §6, 2026-11-02): the graph now uses the platform's paper and forest green instead of the
+   deep blue field. Cream ground, white blocks, forest lines and highlights, amber and red only for status. No neon, no
+   drifting points, no shimmer; a selected flow is still lit, in green. Declared last, so it wins over the rules above. */
+.overlay {
+  --current: #2e5e4e;
+  --spark: #e5ede9;
+  --cream: #ffffff;
+  --color-canvas: #f6f5f1;
+  --color-surface: #ffffff;
+  --color-text: #1b1d1c;
+  --color-text-secondary: #575b58;
+  --color-border: #e4e1d9;
+  --color-border-strong: #cdc8bd;
+  background: var(--color-canvas);
+  animation: none;
+}
+
+.overlay::before {
+  background-image: radial-gradient(circle, #e4e1d9 1px, transparent 1.6px);
+  animation: none;
+}
+
+.overlay::after {
+  display: none;
+}
+
+.title {
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  color: var(--color-text);
+  animation: none;
+}
+
+.canvas::after {
+  display: none;
+}
+
+.column {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.node {
+  box-shadow: 0 1px 2px rgb(27 29 28 / 0.06);
+  border-color: var(--color-border);
+}
+
+.soma,
+.detail {
+  animation: none;
+}
+
+.node,
+.node[data-flow],
+.node[aria-pressed="true"] {
+  animation: none;
+}
+
+/* On the paper ground the relations need a stronger line than the old glow (still neutral; green when active). */
+.edge {
+  stroke: #a39d90;
+  stroke-width: 1.25;
+}
