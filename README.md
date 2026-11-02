@@ -220,8 +220,8 @@ commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
 **https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — backend updated on 2026-11-02 to commit `1d03ab3`
-(revision `00065`, TD-003 structural containment; rollback revision `00063`), frontend on commit `8b4b8b2` (revision
-`00062`), with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
+(revision `00065`, TD-003 structural containment; rollback revision `00063`), frontend updated on 2026-11-02 to commit
+`b8e10a6` (revision `00064`, workspace areas and phone report bar; rollback revision `00062`), with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. Rollback to the previous revisions is one
