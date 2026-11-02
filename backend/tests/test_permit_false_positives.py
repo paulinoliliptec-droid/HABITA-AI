@@ -347,3 +347,21 @@ async def test_td003_final_r5_two_addresses_in_one_cited_sentence():
                  status="system_record", title="HABITA property record")
     report = await rendered_verify(in_section_claim("North Street 10, Porto."), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("The owner can transfer ownership, except to the tenant.", "The owner can transfer ownership."),
+    ("Except to the tenant, the owner can transfer ownership.", "The owner can transfer ownership."),
+    ("O dono pode transferir a propriedade, exceto para o inquilino.", "O dono pode transferir a propriedade."),
+    ("The fee is 10 euros.", "The fee is euros."),
+    ("The owner can transfer ownership.", "Transfer is necessary."),
+    ("O dono pode transferir a propriedade.", "A transferência é necessária."),
+    ("The owner can transfer ownership.", "The owner could transfer ownership."),
+    ("Higher fees apply to the north unit. Lower fees apply to the south unit.", "Lower fees apply to the north unit."),
+])
+async def test_muse_r1_affix_deletion_dropped_numbers_and_unlisted_modals(record_text, text):
+    """Muse Code review of the TD-003 hotfix, round 1 (2026-11-02): P0 affix deletion, P1/P2 findings."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues

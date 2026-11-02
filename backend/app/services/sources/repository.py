@@ -40,6 +40,12 @@ class StatusChangedConcurrently(Exception):
     """The source's status or trust_version moved since the operator's change was validated (CX-3)."""
 
 
+def _check_chunk_count(snapshot: SourceSnapshot, chunks: list[RegulatoryChunk]) -> None:
+    """A snapshot declares exactly the chunks published with it (Muse r1, P2)."""
+    if snapshot.chunk_count != len(chunks) or any(c.snapshot_id != snapshot.snapshot_id for c in chunks):
+        raise ValueError("The snapshot's chunk_count and chunks don't match.")
+
+
 class InMemorySourceRepository:
     def __init__(self) -> None:
         self.sources: dict[str, OfficialSource] = {}
@@ -98,8 +104,12 @@ class InMemorySourceRepository:
 
     async def save_snapshot(self, snapshot: SourceSnapshot, chunks: list[RegulatoryChunk]) -> SourceSnapshot:
         """The stored snapshot: this one, or the one already stored for the same (source_id, sha256) (CX-4)."""
+        _check_chunk_count(snapshot, chunks)
         if (winner := await self.find_snapshot(snapshot.source_id, snapshot.sha256)) is not None:
             return winner
+        stored = self.snapshots.get(snapshot.snapshot_id)
+        if stored is not None:  # Muse r1 (P2): an ID reused for other content never replaces a published snapshot
+            raise StorageUnavailableError(_UNAVAILABLE)
         self.snapshots[snapshot.snapshot_id] = snapshot
         self.chunks[snapshot.snapshot_id] = list(chunks)
         return snapshot
@@ -188,6 +198,7 @@ class MongoSourceRepository:
         Chunks first: a snapshot document only exists once its passages are stored. If another worker published the
         same content first (duplicate key), or the chunk write fails part-way, this snapshot's chunks are removed so
         none is left orphaned, and the winner is returned (HR-003 CX-4)."""
+        _check_chunk_count(snapshot, chunks)
         chunks_written = False
         # TD-003 round 3 (Codex 2026-11-01, P1): every cleanup deletes only the chunks THIS call wrote (its writer
         # token), never another call's chunks under the same snapshot ID, whatever the interleaving.

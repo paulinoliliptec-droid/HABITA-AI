@@ -578,6 +578,8 @@ _OPERATOR_WORDS = re.compile(
     r"|\b(?:has|have|had)\s+to\b|\b(?:is|are|was|were)\s+to\b|\bought\b|\b(?:tem|teem|tinha)\s+de\b|\bha\s+que\b"
     r"|\b(?:precis|necessit|carec|obrigad|requer|exig)\w*"
     r"|[-−–—‒‑+±]\s*\d"
+    r"|\b(?:could|necess\w*|compulsory|eligib\w*|ineligib\w*|poderia\w*|higher|lower|larger|smaller|greater|"
+    r"bigger|maior|maiores|menor|menores)\b"
     r"|\b(?:able|unable|entitled|capable|authori[sz]ed|licensed|empowered|capaz|capazes|habilitad\w*|autorizad\w*|"
     r"licenciad\w*|consegu\w*|impossib\w*|impossivel|infeasib\w*|inviavel)\b"
     r"|\b(?:over|under|above|below|ate|acima\s+de|abaixo\s+de|entre)\s+[-−+±]?\d"
@@ -674,6 +676,18 @@ def _address_parts_hold(parts: list[str], segments: list[str]) -> bool:
     return True
 
 
+def _covers_operators(sequence: str, cited: str) -> bool:
+    """``sequence`` occurs in ``cited`` and no operator of ``cited`` lies outside the occurrence (Muse review r1, P0:
+    "The owner can transfer ownership, except to the tenant" can't give "The owner can transfer ownership")."""
+    start = cited.find(sequence)
+    while start >= 0:
+        outside = cited[:start] + " | " + cited[start + len(sequence):]
+        if not (_NEGATION_WORDS.search(outside) or _OPERATOR_WORDS.search(outside)):
+            return True
+        start = cited.find(sequence, start + 1)
+    return False
+
+
 def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list[str]:
     """TD-003: the operators (negation, modality, restriction, comparison, numbers and signs) of each sentence of a
     free-text statement that is not a verbatim restatement of one cited sentence. Empty when every such sentence is."""
@@ -715,7 +729,9 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
                 continue
 
             def word_operators(x: str) -> set[str]:
-                x = re.sub(r"\d", "", x)
+                # Numbers count too (Muse r1: "The fee is 10 euros" → "The fee is euros"), except in HABITA's own
+                # location records, where an address may be restated without its postcode.
+                x = re.sub(r"\d", "", x) if only_locations else x
                 return set(_NEGATION_WORDS.findall(x)) | {o.strip() for o in _OPERATOR_WORDS.findall(x)}
             content = {_stem(w) for w in _tokens(asserted_sentence) if w not in names}
             holders = [x for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))
@@ -741,7 +757,7 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
         # Anywhere else a sentence with an operator or a number needs the whole sentence verbatim ("the south unit is
         # 10 m2" can't take the north unit's figure: final review r2).
         sequence = " " + " ".join(tokens) + " "
-        if not any(sequence in c for c in cited_sequences):
+        if not any(_covers_operators(sequence, c) for c in cited_sequences):
             ungrounded += [f"{o} (not a verbatim restatement)" for o in operators]
     return ungrounded
 
