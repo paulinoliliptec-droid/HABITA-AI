@@ -639,5 +639,7 @@
   "Next, for this question:": "A seguir, para esta pergunta:",
   "Add photos & plans": "Adicionar fotos e plantas",
   "See before / after": "Ver antes / depois",
-  "Estimate costs": "Estimar custos"
+  "Estimate costs": "Estimar custos",
+  "Add a photo of a room, or a plan, in Photos & plans first. HABITA uses only files it has checked and found no people in.": "Junte primeiro, em Fotos e plantas, uma fotografia de uma divisão ou uma planta. O HABITA só usa ficheiros que verificou e onde não encontrou pessoas.",
+  "Before / after concepts are not offered for this type of request.": "Os conceitos antes / depois não estão disponíveis para este tipo de pedido."
 }

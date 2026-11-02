@@ -144,7 +144,10 @@ export function PermitConcepts({ matterId, token, filesVersion }: { matterId: st
     }
   }
 
-  if (!options.length) return null; // this type of request has no concepts
+  if (!options.length) {
+    // This type of request has no concepts: say so, the area is never blank (Codex UX-A r1).
+    return <p className={styles.fieldHint}>{t("Before / after concepts are not offered for this type of request.")}</p>;
+  }
   return (
     <div className={styles.files}>
       <h3 className={styles.filesTitle}>{t("Before / after concepts")}</h3>
@@ -153,7 +156,7 @@ export function PermitConcepts({ matterId, token, filesVersion }: { matterId: st
       </p>
       {photos.length === 0 ? (
         <p className={styles.fieldHint}>
-          {t("Add a photo of a room, or a plan, above first. HABITA uses only files it has checked and found no people in.")}{" "}
+          {t("Add a photo of a room, or a plan, in Photos & plans first. HABITA uses only files it has checked and found no people in.")}{" "}
           <Button variant="ghost" onClick={() => setAttempt((n) => n + 1)}>
             {t("Refresh")}
           </Button>

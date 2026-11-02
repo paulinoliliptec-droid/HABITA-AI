@@ -171,7 +171,11 @@ export function PermitSection({
 
   const ready = Boolean(matter && token && !running);
   // Photos, concepts and costs belong to a question: until there is one, their area says how to start.
-  const needQuestion = (
+  const needQuestion = available === false ? (
+    <Notice title={t("Permit intelligence isn't available yet")}>
+      {t("The reasoning model isn't configured on this server. Property and jurisdiction data remain available.")}
+    </Notice>
+  ) : (
     <Notice
       title={t("Start with a question")}
       action={
