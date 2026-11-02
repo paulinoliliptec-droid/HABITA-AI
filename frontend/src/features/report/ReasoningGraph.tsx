@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -128,6 +128,31 @@ export function ReasoningGraph({
   const flow = useMemo(() => flowOf(graph, node.id), [graph, node.id]);
   const flowNodes = graph.nodes.filter((n) => flow.nodes.has(n.id) && n.id !== node.id);
   const narrow = useNarrow();
+  const canvasRef = useRef<HTMLDivElement>(null);
+  // HR-005 polish 6: arrow keys move between blocks (left/right: columns, up/down: within a column).
+  const onNodeKey = (event: KeyboardEvent, id: string) => {
+    const from = positions.get(id);
+    if (!from) return;
+    const keys: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    const move = keys[event.key];
+    if (!move) return;
+    event.preventDefault();
+    const [dx, dy] = move;
+    let best: { id: string; score: number } | null = null;
+    for (const n of graph.nodes) {
+      const p = positions.get(n.id);
+      if (!p || n.id === id) continue;
+      const ddx = p.x - from.x;
+      const ddy = p.y - from.y;
+      const ahead = dx ? Math.sign(ddx) === dx && ddx !== 0 : ddx === 0 && Math.sign(ddy) === dy && ddy !== 0;
+      if (!ahead) continue;
+      const score = dx ? Math.abs(ddx) * 10 + Math.abs(ddy) : Math.abs(ddy);
+      if (!best || score < best.score) best = { id: n.id, score };
+    }
+    if (!best) return;
+    setSelected(best.id);
+    canvasRef.current?.querySelector<HTMLButtonElement>(`[data-node="${best.id}"]`)?.focus();
+  };
   const listId = useId().replaceAll(":", "");
   // In the list, choosing a block from "Blocks in this flow" brings that block into view.
   const select = (id: string) => {
@@ -215,7 +240,7 @@ export function ReasoningGraph({
       ) : (
       <div className={styles.body}>
         <div className={styles.scroller}>
-          <div className={styles.canvas} style={{ width, height }}>
+          <div ref={canvasRef} className={styles.canvas} style={{ width, height }}>
             {COLUMNS.map((name, column) => (
               <p key={name} className={styles.column} style={{ left: columnX(column), width: NODE_WIDTH }}>
                 {t(name)}
@@ -278,6 +303,8 @@ export function ReasoningGraph({
                   data-out={flow.nodes.has(n.id) ? undefined : true}
                   aria-pressed={n.id === node.id}
                   title={n.text ? `${n.title}: ${n.text}` : n.title}
+                  data-node={n.id}
+                  onKeyDown={(e) => onNodeKey(e, n.id)}
                   style={{ left: x, top: y, width: NODE_WIDTH, height: NODE_HEIGHT, "--column": n.column } as CSSProperties}
                   onClick={() => setSelected(n.id)}
                 >
