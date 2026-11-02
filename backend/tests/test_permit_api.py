@@ -304,3 +304,60 @@ def test_td061_final_r4_unit_phrases_still_give_unit_areas(client, answer):
     client.post(f"/api/permit/matters/{mid}/continue")
     res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {"intended_use": answer}})
     assert res.status_code == 200, res.text
+
+
+@pytest.mark.parametrize("key,answer", [
+    ("intended_use", "Two floors. The first unit has 60 m2 and 80 m2. Each unit has its own street door"),
+    ("intended_use", "Dois pisos. A primeira fração tem 60 m2 e 80 m2. Cada uma com entrada própria da rua"),
+    ("ownership_status", "The owner is unclear"),
+    ("ownership_status", "O proprietário é uma questão em aberto"),
+])
+def test_td061_typed_an_answer_without_the_typed_data_does_not_close_the_question(client, key, answer):
+    """TD-061 typed criteria (owner 2026-11-02, Codex final r5 P1): each area bound to one unit; ownership must name
+    its legal kind; works must name at least one element of the building."""
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {key: answer}})
+    assert res.status_code == 409 and res.json()["error"]["code"] == "input_incomplete"
+    assert client.get(f"/api/permit/matters/{mid}").json()["inputs"] == {}
+
+
+@pytest.mark.parametrize("key,answer", [
+    ("intended_use", "Unit A 60 m2 and unit B 80 m2, one per floor, each with its own street door"),
+    ("intended_use", "T1 com 50 m2 no rés-do-chão e T2 com 75 m2 no 1.º andar, entradas independentes pela rua"),
+    ("intended_use", "Two apartments of roughly 55 m² and 62 m², one per floor, separate street doors"),
+    ("ownership_status", "Several co-owners (three siblings)"),
+    ("ownership_status", "Herdeiros, herança indivisa"),
+    ("ownership_status", "It is owned by a company"),
+])
+def test_td061_typed_answers_with_the_typed_data_are_accepted(client, key, answer):
+    mid = new_matter(client)
+    client.post(f"/api/permit/matters/{mid}/continue")
+    res = client.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {key: answer}})
+    assert res.status_code == 200, res.text
+
+
+@pytest.mark.parametrize("answer,complete", [
+    ("I plan works soon. They do not touch anything", False),
+    ("Vou fazer obras em breve, nada de especial", False),
+    ("Renovation of the whole flat", False),
+    ("New kitchen and bathroom; no load-bearing walls, facade or roof", True),
+    ("Remodelar a cozinha e trocar o pavimento, sem mexer em paredes mestras", True),
+])
+def test_td061_typed_works_name_an_element_of_the_building(answer, complete):
+    """TD-061 typed criteria (owner 2026-11-02, Codex final r5 P1): generic "works" name no element."""
+    from app.services.permit.answers import NEED_WORKS, answer_problem
+    assert answer_problem("interior_works", "works_description", answer) == (None if complete else NEED_WORKS)
+
+
+def test_td061_typed_works_end_to_end():
+    from tests.permit_fakes import ScriptedModel as _Model
+    from tests.test_permit_workflow import create, run, typed
+    with make_client(_Model(checklist=typed("interior_works"), investigation=lambda r, m: [])) as c:
+        final = run(c, create(c, "Can I redo the kitchen and bathroom?")["matter_id"])
+        mid = final["matter_id"]
+        bad = c.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {"works_description": "I plan works soon. They do not touch anything"}})
+        assert bad.status_code == 409 and bad.json()["error"]["code"] == "input_incomplete"
+        assert c.get(f"/api/permit/matters/{mid}").json()["inputs"] == {}
+        good = c.post(f"/api/permit/matters/{mid}/inputs", json={"inputs": {"works_description": "New kitchen and bathroom; no load-bearing walls, facade or roof"}})
+        assert good.status_code == 200, good.text

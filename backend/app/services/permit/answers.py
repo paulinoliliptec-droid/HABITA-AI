@@ -35,7 +35,8 @@ _NUMBER_WORDS = ("one|two|three|four|five|six|a single|single|um|uma|dois|duas|t
                  "unico|unica|ground|first|second|third|top|res do chao|r c|primeiro|segundo|terceiro|cave|sotao")
 _FLOORS = re.compile(rf"(?:\b\d+\b|\b(?:{_NUMBER_WORDS})\b)[\w\s-]{{0,25}}\b(?:floors?|storeys?|stories|levels?|"
                      rf"pisos?|andar(?:es)?|niveis|nivel)\b|\b(?:floors?|storeys?|pisos?|andar(?:es)?)\s+\d+\b|"
-                     rf"\b(?:per|each|por|cada)\s+(?:floor|storey|piso|andar)\b|\bground\s+floor\b|\bres do chao\b")
+                     rf"\b(?:per|each|por|cada)\s+(?:floor|storey|piso|andar)\b|\bground\s+floor\b|\bres\W?do\W?chao\b|"
+                     rf"\b\d+\W{{0,3}}o?\s*(?:andar|piso)\b")
 _ACCESS = re.compile(r"\b(?:entrances?|doors?|exits?|access(?:es)?|hall(?:way)?|stair(?:case|s)?|"
                      r"entradas?|portas?|saidas?|acessos?|escadas?|patio|corredor|hall)\b")
 #: How a unit is entered, not just the word "entrance" (Codex r4: "2 floors 60 m2 entrance").
@@ -80,14 +81,45 @@ def _figure_phrase(folded: str, m: re.Match) -> str:
     return f"{before} {after}"
 
 
+#: A unit reference: a unit noun with what tells the units apart (a letter, a number, an ordinal, a floor), or a
+#: typology (T2). Typed, not a vocabulary of answers: the noun says it is a unit, the discriminator which one.
+_ORDINAL = r"(?:first|second|third|fourth|1st|2nd|3rd|4th|ground|upper|lower|top|primeir[oa]|segund[oa]|terceir[oa]|quart[oa])"
+_UNIT_NOUN = r"(?:units?|flats?|apartments?|dwellings?|floors?|storeys?|levels?|fracao|fracoes|apartamentos?|fogos?|pisos?|andar)"
+_UNIT_REF = re.compile(rf"\b{_ORDINAL}\s+{_UNIT_NOUN}\b|\b{_UNIT_NOUN}\s+(?:[a-z]|\d+)\b(?!\s*(?:m2|m²|sqm))|"
+                       rf"\b\d+\W{{0,3}}o?\s*(?:andar|piso)\b|\bres\W?do\W?chao\b|\bt\d\b")
+#: "Two apartments of 55 m2 and 62 m2": a counted plural names that many units, in the order of their areas.
+_COUNTED = re.compile(r"\b(two|three|four|2|3|4|dois|duas|tres|quatro)\s+(?:\w+\s+)?(?:units|flats|apartments|"
+                      r"dwellings|fracoes|apartamentos|fogos)\b")
+_COUNT = {"two": 2, "2": 2, "dois": 2, "duas": 2, "three": 3, "3": 3, "tres": 3, "four": 4, "4": 4, "quatro": 4}
+
+
 def _area_per_unit(folded: str) -> bool:
-    """Two area figures, or one figure tied to each unit within a few words ("about 60 m2 each", "cada um com 60 m2")."""
+    """Each unit's area, typed: every area figure is bound to the unit reference nearest before it (an area with no
+    reference of its own continues the previous one). Complete when two different units have an area, when one area
+    is said of each unit ("about 60 m2 each"), or when a counted plural ("two flats") gets exactly that many areas.
+    "The first unit has 60 m2 and 80 m2" binds both figures to one unit: incomplete (Codex final r5)."""
     # A total, a garden, the plot or a room is not a unit's area (Codex final r2-r4): only a figure whose own phrase
     # is a unit phrase counts (Codex final r3 P2: "second unit 80 m2, and a 40 m2 garden").
     found = [m for m in _AREA.finditer(folded) if _unit_phrase(_figure_phrase(folded, m))]
-    if len(found) >= 2:
+    if any(_EACH.search(_figure_phrase(folded, m)) for m in found):  # "each" of this figure's own phrase
         return True
-    return any(_EACH.search(folded[max(0, m.start() - 30):m.end() + 25]) for m in found)
+    bound: dict[str, int] = {}
+    anchor, previous_end = None, 0
+    for m in found:
+        refs = list(_UNIT_REF.finditer(folded, previous_end, m.start()))
+        counted = list(_COUNTED.finditer(folded, previous_end, m.start()))
+        if refs:
+            anchor = re.sub(r"\W+", " ", refs[-1].group(0))
+        elif counted:
+            anchor = "count:" + counted[-1].group(1)
+        if anchor is not None:
+            bound[anchor] = bound.get(anchor, 0) + 1
+        previous_end = m.end()
+    if len([a for a in bound if not a.startswith("count:")]) >= 2:
+        return all(n == 1 for a, n in bound.items() if not a.startswith("count:"))
+    return any(a.startswith("count:") and n == _COUNT[a[6:]] for a, n in bound.items())
+
+
 #: An answer that says part of it is unknown is not complete (Codex r4: "entrance unknown").
 _UNKNOWN = re.compile(r"\b(?:unknown|unsure|not (?:\w+ )?sure|(?:don|doesn)\W?t (?:\w+ )?know|(?:do|does) not (?:\w+ )?know|"
                       r"nao (?:\w+ )?sei|nao (?:\w+ )?sabe\w*|"
@@ -103,16 +135,27 @@ _USE = re.compile(r"\b(?:hous\w*|dwelling\w*|residen\w*|home|flats?|apartments?|
                   r"servic\w*|services?|restaurant\w*|cafe|bar|industr\w*|warehouse|armaz\w*|storage|garage\w*|"
                   r"garag\w*|tourism|turis\w*|alojamento|hotel\w*|hostel|clinic\w*|clinica|studio|estudio|atelier|"
                   r"workshop|oficina|school|escola|gym|ginasio|mixed|misto|vacant|devoluto|ruin\w*)\b")
-_OWNERSHIP = re.compile(r"\b(?:single|sole|one|only|unico|unica|so|um|uma|several|two|three|co\s?own\w*|"
-                        r"compropriedade|coproprietar\w*|herdeiros|heirs|fractions?|fraccoes|fracoes|fracao|"
-                        r"horizontal|condominium|condominio|owners?|ownership|propriet\w*|dono\w*|donos|"
-                        r"divided|dividid\w*|undivided|indivis\w*)\b")
-_WORKS = re.compile(r"\b(?:kitchen|bath\w*|floor\w*|tiles?|paint\w*|walls?|windows?|doors?|roof|facade|"
-                    r"plumb\w*|electric\w*|ceiling|stairs?|partition\w*|cozinha|banho|wc|pavimento|chao|azulej\w*|"
-                    r"pintur\w*|pint\w*|parede\w*|janela\w*|porta\w*|cobertura|telhado|fachada|canaliza\w*|"
-                    r"eletric\w*|electric\w*|tecto|teto|escada\w*|divisoria\w*|remodel\w*|renov\w*|demol\w*|"
-                    r"build\w*|obra\w*|works?|replace\w*|substitu\w*|install\w*|instal\w*|load\s?bearing|"
-                    r"mestra\w*|estrutur\w*|structur\w*)\b")
+#: The kinds of ownership the assessment distinguishes (a closed legal enum). The word "owner" alone names no kind
+#: ("The owner is unclear": Codex final r5).
+_OWNERSHIP_KIND = {
+    "sole": re.compile(r"\b(?:single|sole|one|only|unico|unica|so|apenas)\s+(?:\w+\s+)?(?:owner|proprietari[oa]|don[oa])\b|"
+                       r"\b(?:owner|proprietari[oa]|don[oa])\s+(?:unic[oa]|exclusiv[oa])\b|\b(?:i|we)\s+own\s+(?:it|all)\b|"
+                       r"\b(?:i am|i m|sou)\s+(?:the\s+|o\s+|a\s+)?(?:only|sole|unic[oa])\s+\w+"),
+    "co_owned": re.compile(r"\bco\W?own\w*|\bcompropriedade\b|\bcoproprietari\w*|"
+                           r"\b(?:several|two|three|four|\d+|multiple|varios|varias|dois|duas|tres|quatro)\s+(?:\w+\s+)?"
+                           r"(?:owners|proprietari[oa]s|don[oa]s)\b|\bjointly\s+owned\b|\bowned\s+jointly\b"),
+    "horizontal": re.compile(r"\bhorizontal\b|\bfrac(?:c)?(?:ao|oes)\b|\bfractions?\b|\bcondomini\w*"),
+    "heirs": re.compile(r"\bherdeir\w*|\bheranca\b|\bheirs?\b|\binherit\w*|\bestate\b"),
+    "company": re.compile(r"\bcompany\b|\bcorporation\b|\bempresa\b|\bsociedade\b|\blda\b|\bltd\b|\bs\s?a\b"),
+}
+#: The elements of a building that works can touch (a closed taxonomy). "Works", "obras", "renovation" name none
+#: ("I plan works soon. They do not touch anything": Codex final r5).
+_WORK_ELEMENT = re.compile(r"\b(?:kitchen|bath\w*|toilet|floor\w*|tiles?|paint\w*|walls?|windows?|doors?|roof|facade|"
+                           r"plumb\w*|electric\w*|wiring|ceiling|stairs?|staircase|partition\w*|structur\w*|beams?|"
+                           r"load\W?bearing|extension|annex|demoli\w*|height|storey|insulation|"
+                           r"cozinha|banho|wc|casa de banho|pavimento\w*|chao|azulej\w*|pintur\w*|parede\w*|janela\w*|"
+                           r"porta\w*|cobertura|telhado|fachada|canaliza\w*|eletric\w*|electric\w*|tecto|teto|escada\w*|"
+                           r"divisoria\w*|estrutur\w*|viga\w*|mestra\w*|ampliac\w*|anexo|altura|isolamento)\b")
 
 NOT_AN_ANSWER = msg("This doesn't answer the question. Please describe it in a few words.")
 TOO_SHORT = msg("Please answer with a few words, so HABITA records what you declare.")
@@ -164,7 +207,7 @@ def answer_problem(intent: str | None, key: str, answer: str) -> str | None:
             return missing[0] if missing else None
         return None if _USE.search(folded) else NEED_USE
     if key == "ownership_status":
-        return None if _OWNERSHIP.search(folded) else NEED_OWNERSHIP
+        return None if any(kind.search(folded) for kind in _OWNERSHIP_KIND.values()) else NEED_OWNERSHIP
     if key == "works_description":
-        return None if _WORKS.search(folded) and len(words) >= 3 else NEED_WORKS
+        return None if _WORK_ELEMENT.search(folded) and len(words) >= 3 else NEED_WORKS
     return TOO_SHORT if len(words) < 2 else None
