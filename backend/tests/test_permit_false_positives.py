@@ -419,3 +419,14 @@ async def test_j_final_r2_a_listed_subject_is_established_item_by_item():
                  title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section_claim("The deed is not verified."), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", report.issues
+
+
+async def test_j_final_r3_a_reservation_listed_with_commas():
+    """Patch (j) final review r3 (Codex 2026-11-02, P1). Codex's own wording ("… and plan …") is rewritten by HABITA
+    into its fixed planning condition (the word "plan"), so this test uses a listed subject without it."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", "The deed is verified. The title and the registration are on file.",
+                 status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim("The deed, title and registration are not verified."),
+                                   [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues

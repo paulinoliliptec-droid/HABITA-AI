@@ -809,7 +809,9 @@ def reservation_contradiction(text: str, cited: list[Evidence]) -> str | None:
             far = max([0] + [k.end() for k in _STRONG_BREAK.finditer(sentence, 0, m.start())])
             whole = sentence[far:m.start()]
             # "The deed and title are not verified" reserves the deed and the title (Codex final r1).
-            for subject_text in [sentence[near:m.start()], whole, *_CONJUNCTION.split(whole)]:
+            # Listed with commas too ("The deed, title and plan are not verified", Codex final r3).
+            for subject_text in [sentence[near:m.start()], whole,
+                                 *re.split(r"[,;]|\b(?:and|e)\b", sentence[:m.start()])]:
                 subject = _subject_stems(subject_text)
                 if subject and subject in established:
                     return ("says a fact is not established that its own cited record states as established (same "
