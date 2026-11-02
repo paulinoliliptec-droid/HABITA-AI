@@ -412,3 +412,18 @@ async def test_muse_r3_a_clause_restated_on_its_own_still_verifies(record_text, 
     rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
     assert report.outcome == "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("source_type,record_text,text", [
+    ("property_record", "North Street, Cascais, South Street, Porto.", "North Street, Porto."),
+    ("authority_record", "The north unit has a balcony plus the south unit has a garage.", "The north unit has a garage."),
+    ("authority_record", "The north unit has a balcony, with the south unit having a garage.", "The north unit has a garage."),
+    ("authority_record", "The tenant who leased the shop owns the north unit.", "The tenant owns the shop."),
+    ("authority_record", "A unidade norte tem varanda, com a unidade sul a ter garagem.", "A unidade norte tem garagem."),
+])
+async def test_muse_r4_numberless_addresses_and_more_joiners(source_type, record_text, text):
+    """Muse Code review of the TD-003 hotfix, round 4 (2026-11-02, P0)."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", source_type, record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues

@@ -668,6 +668,11 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
     return None
 
 
+#: A segment naming a street is another address, never a skippable locality ("Centro Historico" may be omitted).
+_STREET = re.compile(r"\b(?:street|st|road|rd|avenue|av|ave|square|lane|way|rua|avenida|praca|largo|travessa|estrada|"
+                     r"alameda|calcada|beco|rotunda|azinhaga|caminho)\b")
+
+
 def _address_parts_hold(parts: list[str], segments: list[str]) -> bool:
     """The address parts appear, in order, in segments of ONE cited sentence, with no other numbered segment between
     them (final review r5: "North Street 10, Cascais, South Street 20, Porto" can't give "North Street 10, Porto")."""
@@ -676,13 +681,15 @@ def _address_parts_hold(parts: list[str], segments: list[str]) -> bool:
         found = next((k for k in range(position + 1 if i else 0, len(segments)) if part in segments[k]), None)
         if found is None:
             return False
-        if i and any(re.search(r"\d", segments[k]) for k in range(position + 1, found)):
+        if i and any(re.search(r"\d", segments[k]) or _STREET.search(segments[k]) for k in range(position + 1, found)):
             return False
         position = found
     return True
 
 
-_CLAUSE_SPLIT = re.compile(r"[,;:]|\b(?:and|but|while|whereas|or|mas|e|ou|enquanto|porem)\b")
+_CLAUSE_SPLIT = re.compile(r"[,;:()]|\b(?:and|but|while|whereas|or|plus|with|including|together|as well as|who|whom|"
+                           r"whose|which|that|where|mas|e|ou|enquanto|porem|com|incluindo|bem como|que|quem|cujo|"
+                           r"cuja|cujos|cujas|onde)\b")
 
 
 def _clause_bound(statement: str, cited_sentence: str, free: set[str], names: set[str], ordered: bool = True) -> bool:
@@ -731,6 +738,7 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
     speaks_of_possible = any(_NEGATION_WORDS.search(x) or _OPERATOR_WORDS.search(re.sub(r"\d", "", x))
                              for e in cited if not is_user_declared(e) for x in [fold(e.excerpt)])
     only_locations = bool(cited) and all(e.source_type in _LOCATION_RECORDS for e in cited if not is_user_declared(e))
+    only_properties = bool(cited) and all(e.source_type == "property_record" for e in cited if not is_user_declared(e))
     # Each cited sentence as its comma-separated segments, for addresses (final review r5).
     cited_address_segments = [[" " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(seg)) + " "
                                for seg in re.split(r"[,;]", x)]
@@ -749,6 +757,16 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
         operators_text = asserted_sentence if speaks_of_possible else _HEDGE.sub(" possible ", asserted_sentence)
         operators = sorted(set(_NEGATION_WORDS.findall(operators_text))
                            | {o.strip() for o in _OPERATOR_WORDS.findall(operators_text)})
+        if not operators and only_properties and "," in asserted_sentence:
+            # Muse review r4 (P0): a numberless address is checked part by part too ("North Street, Porto" can't
+            # take its city from "North Street, Cascais, South Street, Porto").
+            located = _LOCATED_AT.match(asserted_sentence.strip())
+            address = asserted_sentence.strip()[located.end():] if located else asserted_sentence
+            parts = [" " + " ".join(_SEQUENCE_TOKEN.findall(p)) + " " for p in re.split(r"[,;]", address)]
+            parts = [p for p in parts if p.strip()]
+            if not any(_address_parts_hold(parts, c) for c in cited_address_segments):
+                ungrounded.append("(an address part from another address)")
+            continue
         if not operators:
             # Final review r4 (Codex P1): an operator-free sentence can't drop the negation or operator of the
             # sentence it restates ("The deed is not verified" → "The deed is verified"). If every cited sentence
