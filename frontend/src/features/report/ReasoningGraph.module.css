@@ -586,6 +586,6 @@
 
 /* On the paper ground the relations need a stronger line than the old glow (still neutral; green when active). */
 .edge {
-  stroke: #a39d90;
+  stroke: #857e70; /* 3.7:1 on the cream ground (non-text contrast >= 3:1, Muse UX-B r1) */
   stroke-width: 1.25;
 }

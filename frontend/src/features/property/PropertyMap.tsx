@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { msg } from "@/i18n/core";
 import { useI18n } from "@/i18n/useI18n";
@@ -76,7 +76,7 @@ export function PropertyMap({
         map.setCenter(coordinates);
         map.setZoom(zoom);
 
-        const created = createLocationMarker(OverlayView, coordinates, label);
+        const created = createLocationMarker(OverlayView, coordinates);
         marker = created.overlay;
         marker.setMap(map);
         setMarkerEl(created.el);
@@ -146,12 +146,26 @@ export function PropertyMap({
 function MarkerLabel({ label, card }: { label: string; card: MarkerCard }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const cardId = useId();
+  const toggle = useRef<HTMLButtonElement>(null);
   return (
-    <div className={styles.markerLabelWrap}>
+    <div
+      className={styles.markerLabelWrap}
+      onKeyDown={(e) => {
+        // Esc closes the card and gives focus back to its button (Muse UX-B r1).
+        if (e.key === "Escape" && open) {
+          e.stopPropagation();
+          setOpen(false);
+          toggle.current?.focus();
+        }
+      }}
+    >
       <button
+        ref={toggle}
         type="button"
         className={styles.markerLabel}
         aria-expanded={open}
+        aria-controls={open ? cardId : undefined}
         onClick={(e) => {
           e.stopPropagation();
           setOpen((o) => !o);
@@ -160,10 +174,10 @@ function MarkerLabel({ label, card }: { label: string; card: MarkerCard }) {
         {t("Property under analysis")}
       </button>
       {open && (
-        <div className={styles.markerCard} role="dialog" aria-label={t("Property under analysis")}>
+        <div id={cardId} className={styles.markerCard} role="group" aria-label={t("Property under analysis")}>
           <p className={styles.markerCardTitle}>{label}</p>
-          {card.lines.map((line) => (
-            <p key={line} className={styles.markerCardLine}>
+          {card.lines.map((line, i) => (
+            <p key={i} className={styles.markerCardLine}>
               {line}
             </p>
           ))}
@@ -191,14 +205,12 @@ function MarkerLabel({ label, card }: { label: string; card: MarkerCard }) {
 function createLocationMarker(
   OverlayView: typeof google.maps.OverlayView,
   position: Coordinates,
-  label: string,
 ): { overlay: google.maps.OverlayView; el: HTMLElement } {
   // Built once here, never in onAdd: the label and card are a React portal inside this node, and rewriting its
   // HTML when the map attaches it would remove them.
   const el = document.createElement("div");
   el.className = styles.marker;
-  el.setAttribute("aria-label", label);
-  el.innerHTML = `<span class="${styles.markerHalo}"></span><span class="${styles.markerDot}"></span>`;
+  el.innerHTML = `<span class="${styles.markerHalo}" aria-hidden="true"></span><span class="${styles.markerDot}" aria-hidden="true"></span>`;
   class LocationMarker extends OverlayView {
     private el = el;
 

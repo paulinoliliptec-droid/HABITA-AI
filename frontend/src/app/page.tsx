@@ -71,7 +71,7 @@ export default function LandingPage() {
               {t("How it works")}
             </ButtonLink>
             <ButtonLink href={GITHUB} target="_blank" rel="noopener noreferrer" variant="secondary" size="lg">
-              GitHub ↗
+              GitHub <span aria-hidden="true">↗</span>
             </ButtonLink>
           </div>
           <p className={styles.scope}>

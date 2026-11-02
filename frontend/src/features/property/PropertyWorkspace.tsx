@@ -109,7 +109,10 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
                 lines: [placeLine(property.jurisdiction), t(PRECISION[property.precision].label)],
                 onOpen: () => {
                   go("question");
-                  document.getElementById("area-question")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                  const tab = document.getElementById("area-tab-question");
+                  tab?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+                  tab?.focus({ preventScroll: true }); // focus never drops to the page when the card closes
                 },
               }}
             />
