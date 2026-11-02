@@ -22,7 +22,7 @@ declared, what is only observed and what is still unknown:
 |---|---|---|
 | "Which rules apply here, and who decides?" | Resolves the address to its jurisdiction chain and competent authority | HR-001 |
 | "What exactly am I asking for?" | Places the request in a closed catalogue (division into units, change of use, interior works) and asks only the facts it needs | HR-002, HR-009 |
-| "Is the answer true?" | Retrieves official documents, snapshots them, and shows an answer as **verified** only when every statement is backed by an official source (MU-9) | HR-003 |
+| "Is the answer true?" | Retrieves official documents and snapshots them; MU-9 checks each statement against its cited records (official text, or records HABITA builds from them) and refuses to call an answer **verified** when they do not support it — limits listed under HR-003 | HR-003 |
 | "Show me, on the ground" | Map with post-its, official aerial photo with outlines from Meta SAM 3.1, a clickable reasoning graph from property to conclusion | HR-004, HR-005 |
 | "I need something to keep and share" | A PDF report with its verification record, sources and integrity seal; the same report spoken aloud | HR-006, HR-007 |
 | "What do we actually know about this property?" | A profile that keeps official facts, the user's declarations and observations apart, each with its origin | HR-008 |
