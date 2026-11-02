@@ -710,6 +710,52 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
     return ungrounded
 
 
+#: Patch (j), owner decision 2026-11-02: a reservation ("the deed is not verified") stays a deferral that asserts
+#: nothing, EXCEPT when one of its own cited records states the same fact as established ("the deed is verified").
+#: Same fact = same subject (identical content words) and an "established" predicate; a different subject or scope
+#: ("the norm is verified" vs "the parcel's zoning is not verified") is not a contradiction.
+_NEGATIVE_RESERVATION = re.compile(
+    r"\b(?:is|are|has|have|was|were)\s+(?:not|never)\s+(?:yet\s+)?(?:been\s+)?"
+    r"(?:confirm|determin|verif|establish|known|settled|resolved)\w*"
+    r"|\b(?:is|are|remains?)\s+(?:still\s+)?(?:unknown|unconfirmed|undetermined|unverified|pending)\b"
+    r"|\b(?:ainda\s+)?nao\s+(?:foi|foram|esta|estao|se encontra)\s+(?:ainda\s+)?"
+    r"(?:determinad|confirmad|verificad|apurad|definid)\w*"
+    r"|\b(?:e|esta|sao|estao)\s+(?:ainda\s+)?desconhecid\w*")
+_ESTABLISHED = re.compile(
+    r"\b(?:is|are|was|were|has been|have been|foi|foram|esta|estao|e|sao)\s+(?:already\s+|ja\s+)?"
+    r"(?:confirm|determin|verif|establish|known|settled|resolved|confirmad|verificad|determinad|apurad|definid|"
+    r"conhecid)\w*")
+
+
+def _subject_stems(text: str) -> frozenset[str]:
+    return frozenset(_stem(w) for w in _tokens(text))
+
+
+def reservation_contradiction(text: str, cited: list[Evidence]) -> str | None:
+    """Patch (j): the reservation in ``text`` that a cited record contradicts for the same subject, or None."""
+    established: list[frozenset[str]] = []
+    for e in cited:
+        if is_user_declared(e):
+            continue  # a user's "it is confirmed" establishes nothing
+        for x in _sentences(fold(e.excerpt)):
+            m = _ESTABLISHED.search(x)
+            if m and not _NEGATION_WORDS.search(x):
+                subject = _subject_stems(x[:m.start()])
+                if subject:
+                    established.append(subject)
+    if not established:
+        return None
+    for sentence in _sentences(fold(text)):
+        m = _NEGATIVE_RESERVATION.search(sentence)
+        if not m:
+            continue
+        subject = _subject_stems(sentence[:m.start()])
+        if subject and subject in established:
+            return ("says a fact is not established that its own cited record states as established (same subject); "
+                    "a reservation can't contradict its evidence")
+    return None
+
+
 USER_FRAME = "You stated (declared by you, not verified by HABITA): "
 USER_STEP = "Your declaration"
 
@@ -831,6 +877,9 @@ def statement_problem(
     if any(is_planning_evidence(e) for e in cited):
         return "cites planning evidence without a structured planning basis"
     full = ". ".join(filter(None, (step, text)))  # the step name is its own sentence (as claims.assess reads it)
+    contradiction = reservation_contradiction(full, cited)
+    if contradiction:
+        return contradiction
     authorities = [e for e in cited if e.source_type == "authority_record"]
     if authorities and not all(_competence_oriented(_tokens(x), authorities) for x in _sentences(full)):
         # "Licensing … is responsible for the Câmara": a competence relation the record doesn't state (reversed), even

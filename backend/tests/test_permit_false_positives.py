@@ -312,6 +312,36 @@ async def test_td003_final_r2_obligations_hedges_signs_and_numbers(record_text, 
     assert report.outcome != "VERIFIED", report.issues
 
 
+# --- Patch (j): a reservation that contradicts its own cited record for the same fact ------------------------------
+
+@pytest.mark.parametrize("record_text,text", [
+    ("The deed is verified.", "The deed is not verified."),
+    ("The deed is verified.", "The deed has not been confirmed."),
+    ("The deed is verified.", "The deed is still unconfirmed."),
+    ("A escritura foi verificada.", "A escritura não foi confirmada."),
+    ("A escritura está confirmada.", "A escritura ainda não está verificada."),
+])
+async def test_j_a_reservation_contradicting_its_record_for_the_same_fact_is_refused(record_text, text):
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("The deed is verified. The licence is on file.", "The licence is not verified."),  # another fact
+    ("The deed is verified. The deed's registration is on file.",
+     "The deed's registration is not verified."),  # another scope of the same object
+    ("The deed is not verified.", "The deed is not verified."),            # agrees with the record
+    ("The deed exists.", "The deed is not verified."),                    # the record establishes nothing
+])
+async def test_j_a_legitimate_reservation_about_a_different_fact_still_verifies(record_text, text):
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome == "VERIFIED", report.issues
+
+
 @pytest.mark.parametrize("source_type,record_text,text", [
     ("property_record", "North Street 10. South Street 20.", "South Street 10."),
     ("authority_record", "The transfer must be allowed.", "The transfer may be possible."),
