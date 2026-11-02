@@ -225,7 +225,10 @@ class MongoSourceRepository:
             if by_id is not None:
                 if by_id.source_id == snapshot.source_id and by_id.sha256 == snapshot.sha256:
                     return by_id  # this very snapshot, already published (a retry): its chunks are in use
-                # The ID is taken by other content: its chunks are the stored snapshot's, never touched.
+                # The ID is taken by other content: its chunks are the stored snapshot's, never touched. The chunks
+                # THIS call inserted under that ID would be read as the stored snapshot's passages: removed by this
+                # call's writer token, which matches nothing else (TD-003 candidate review, Codex P2).
+                await self._call(self._chunks.delete_many(mine))
                 raise StorageUnavailableError(_UNAVAILABLE) from None
             if not chunks_written:
                 # The duplicate is a chunk of this snapshot ID written by an overlapping call that has not published
@@ -249,7 +252,9 @@ class MongoSourceRepository:
                 if stored is not None:
                     if stored.get("source_id") == snapshot.source_id and stored.get("sha256") == snapshot.sha256:
                         return SourceSnapshot.model_validate(stored)  # what is stored, never the incoming object
-                    raise StorageUnavailableError(_UNAVAILABLE)  # ID taken by other content: touch nothing
+                    # ID taken by other content: the stored chunks stay; only this call's own are removed (Codex P2).
+                    await self._chunks.delete_many(mine)
+                    raise StorageUnavailableError(_UNAVAILABLE)
                 await self._chunks.delete_many(mine)
             except PyMongoError:
                 pass

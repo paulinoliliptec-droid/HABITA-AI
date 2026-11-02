@@ -112,6 +112,7 @@ async def test_td003_a_reused_snapshot_id_with_other_content_keeps_the_stored_ch
     """TD-003 (Codex 2026-11-01, P2): an ID reused for different content is refused; the stored snapshot keeps all
     its chunks."""
     r = repo()
+    r._chunks.unique = ("_id",)  # as MongoDB: a chunk _id is unique, never overwritten
     await r.save_snapshot(*snapshot("ss_same"))
     other, other_chunks = snapshot("ss_same")
     other = other.model_copy(update={"sha256": "cd" * 32})
@@ -143,3 +144,18 @@ async def test_td003_r3_a_failed_call_cleaning_up_never_deletes_the_chunks_anoth
         await r.save_snapshot(snap, chunks)  # A
     assert "ss_gap" in r._snapshots.docs
     assert len([d for d in r._chunks.docs.values() if d["snapshot_id"] == "ss_gap"]) == snap.chunk_count
+
+
+async def test_td003_candidate_a_reused_id_with_other_chunk_ids_leaves_none_of_its_chunks():
+    """TD-003 candidate review r1 (Codex 2026-11-02, P2): other content under a taken snapshot ID, with chunk IDs of
+    its own, was refused but its chunks stayed under the published ID (read by ``list_chunks``)."""
+    r = repo()
+    r._chunks.unique = ("_id",)
+    await r.save_snapshot(*snapshot("ss_taken"))
+    other, other_chunks = snapshot("ss_taken")
+    other = other.model_copy(update={"sha256": "cd" * 32, "chunk_count": 1})
+    stray = other_chunks[0].model_copy(update={"chunk_id": "ch_stray", "text": "Injected passage."})
+    with pytest.raises(StorageUnavailableError):
+        await r.save_snapshot(other, [stray])
+    assert len([d for d in r._chunks.docs.values() if d["snapshot_id"] == "ss_taken"]) == 3
+    assert "ch_stray" not in r._chunks.docs
