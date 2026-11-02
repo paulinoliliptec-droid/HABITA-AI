@@ -220,7 +220,9 @@ class MongoSourceRepository:
                 # The duplicate is a chunk of this snapshot ID written by an overlapping call that has not published
                 # its snapshot yet: those chunks are in use, not orphans. Nothing is deleted; the caller retries
                 # (ingestion builds a new snapshot ID). If that call never publishes, its chunks stay unreferenced
-                # (retrieval reads only a published snapshot's chunks).
+                # (retrieval reads only a published snapshot's chunks). Chunks THIS call inserted before the duplicate
+                # (an ordered insert stops part-way) are removed by its writer token (final review, Codex P2).
+                await self._call(self._chunks.delete_many(mine))
                 raise StorageUnavailableError(_UNAVAILABLE) from None
             winner = await self.find_snapshot(snapshot.source_id, snapshot.sha256)
             if winner is None:

@@ -553,7 +553,33 @@ _NEGATION_WORDS = re.compile(r"\b(?:no|not|never|none|nor|neither|nobody|nothing
 _RESTRICTIVE_WORDS = re.compile(r"\b(?:only|exclusively|solely|unless|except\w*|apenas|somente|exclusivamente|"
                                 r"salvo|exceto|excepto)\b")
 _NUMBER = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)?")
-_SEQUENCE_TOKEN = re.compile(r"[a-z]+|\d+(?:[.,]\d+)?|[<>≤≥=≠%]")
+_SEQUENCE_TOKEN = re.compile(r"[a-z]+|[-−+±]?\d+(?:[.,]\d+)?|[<>≤≥=≠%]")
+#: TD-003 final review (Codex 2026-11-02, P1): words and signs that change what a rule says. A free-text sentence with
+#: any of them (or a number) verifies only as a verbatim restatement of one cited sentence: modality ("can" → "must",
+#: "pode" → "deve"), restriction ("only", "apenas", "exceto"), comparison and limits ("more than", "até", "mínimo"),
+#: and numbers with their signs and units.
+#: "Confirm with the Câmara whether the works need a licence": the embedded question of an instruction to check asserts
+#: nothing, so its operators are not claims. Only a single clause with no negation qualifies (no ", they don't").
+_CHECK_QUESTION = re.compile(r"^\s*(?:please\s+)?(?:confirm|check|ask|verify|request|find out|confirme|verifique|"
+                             r"pergunte|solicite|consulte|confirmar|verificar)\b[^,;:]*?"
+                             r"\b(?:whether|if|which|what|how|se|quais|qual|que|como)\b([^,;:]*)$")
+#: "Whether the works need prior control must be confirmed with the Câmara" (FP-4): the subject question asserts nothing.
+_WHETHER_SUBJECT = re.compile(r"^\s*(?:whether|se)\b([^,;:]*?)\b(?:must|should|has to|have to|needs? to|tem de|deve|devem|"
+                              r"precisa(?:m)? de)\s+(?:still\s+|ainda\s+)?(?:be\s+|ser\s+)?(?:confirm|check|verif|determin|"
+                              r"assess|establish|clarif|apur|avali)\w*")
+_OPERATOR_WORDS = re.compile(
+    r"\b(?:can|cannot|may|might|must|shall|should|will|would|need|needs|required?|requires|mandatory|obligatory|"
+    r"allowed|permitted|prohibited|forbidden|banned|exempt\w*|admitted|admissible|only|exclusively|solely|unless|"
+    r"except\w*|minimum|maximum|exceed\w*|pode|podem|podera|poderao|deve|devem|devera|deverao|obrigatori\w*|"
+    r"permitid\w*|proibid\w*|interdit\w*|isent\w*|admitid\w*|admissive\w*|apenas|somente|exclusivamente|salvo|"
+    r"exceto|excepto|superior\w*|inferior\w*|minim\w*|maxim\w*|excede\w*)\b"
+    r"|\b(?:more|less|fewer|greater|smaller|higher|lower|larger)\s+than\b|\bat\s+(?:least|most)\b|\bup\s+to\b"
+    r"|\b(?:mais|menos|maior|menor)\s+(?:de|do|da|que)\b|\bno\s+(?:minimo|maximo)\b"
+    r"|\b(?:over|under|above|below|ate|acima\s+de|abaixo\s+de|entre)\s+[-−+±]?\d"
+    r"|[<>≤≥=≠%±−]|\d")
+#: An epistemic hedge on the answer ("a division may be possible") is not a permission: its modal is not an operator.
+_HEDGE = re.compile(r"\b(?:may|might|could|can)\s+(?:still\s+)?(?:be|become)\s+(?:possible|feasible|viable)\b"
+                    r"|\b(?:pode|podera)\s+(?:ainda\s+)?ser\s+(?:possivel|viavel)\b")
 
 
 _STATUS = r"(?:licen\w*|approv\w*|aprov\w*|authori[sz]\w*|autoriz\w*|permit\w*|legal\w*|conform\w*|compliant|valid\w*)"
@@ -614,17 +640,7 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
     # until then a statement sentence with a negation is grounded only when its whole word sequence, negation
     # included and in order, is contiguous in ONE cited sentence (a verbatim restatement). Fail-closed: a negated
     # paraphrase does not verify. A deferral ("… is not confirmed") is removed first, as before: it asserts nothing.
-    # Numbers are part of the sequence (TD-003 round 4: "1 cannot …, 2 can …" → "2 cannot …, 1 can …").
-    cited_sequences = [" " + " ".join(_SEQUENCE_TOKEN.findall(x)) + " " for e in cited if not is_user_declared(e)
-                       for x in _sentences(fold(e.excerpt))]
-    for sentence in _sentences(fold(text)):
-        asserted_sentence = _DEFERRAL.sub(" ", _subject_question_removed(sentence, names))
-        negations = sorted(set(_NEGATION_WORDS.findall(asserted_sentence)))
-        if not negations:
-            continue
-        sequence = " " + " ".join(_SEQUENCE_TOKEN.findall(asserted_sentence)) + " "
-        if not any(sequence in c for c in cited_sequences):
-            ungrounded += negations
+    ungrounded += operator_problems(text, cited, names)
     # Numbers aren't words for ``_tokens``, so they were never grounded ("Confirm the 3 documents …"): every number a
     # free-text statement asserts must be one of its cited records'.
     numbers = {n for e in [*cited, *case_facts] if not is_user_declared(e)
@@ -634,6 +650,41 @@ def grounding_problem(text: str, cited: list[Evidence], case_facts: list[Evidenc
     if len(ungrounded) > UNGROUNDED_ALLOWED:
         return f"is not grounded in its cited evidence (unsupported words: {', '.join(ungrounded)})"
     return None
+
+
+def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list[str]:
+    """TD-003: the operators (negation, modality, restriction, comparison, numbers and signs) of each sentence of a
+    free-text statement that is not a verbatim restatement of one cited sentence. Empty when every such sentence is."""
+    ungrounded: list[str] = []
+    # Numbers are part of the sequence (TD-003 round 4: "1 cannot …, 2 can …" → "2 cannot …, 1 can …").
+    # The cited sentences go through the same deferral removal as the statement, so both sides compare alike.
+    cited_sequences = [" " + " ".join(_SEQUENCE_TOKEN.findall(_DEFERRAL.sub(" ", x))) + " "
+                       for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))]
+    for sentence in _sentences(fold(text)):
+        plain = _subject_question_removed(sentence, names).strip().rstrip(".!?")
+        question = _CHECK_QUESTION.match(plain)
+        if question and not _NEGATION_WORDS.search(question.group(1)):
+            plain = plain[:question.start(1)]
+        subject = _WHETHER_SUBJECT.match(plain)
+        if subject and not _NEGATION_WORDS.search(subject.group(1)):
+            plain = plain[:subject.start(1)] + plain[subject.end(1):]
+        asserted_sentence = _DEFERRAL.sub(" ", plain)
+        operators_text = _HEDGE.sub(" possible ", asserted_sentence)
+        operators = sorted(set(_NEGATION_WORDS.findall(operators_text))
+                           | {o.strip() for o in _OPERATOR_WORDS.findall(operators_text)})
+        if not operators:
+            continue
+        tokens = _SEQUENCE_TOKEN.findall(asserted_sentence)
+        if all(o.isdigit() for o in operators):
+            # Only numbers (an address, a date, a figure): the span from the first to the last number, with the
+            # words between them, must be verbatim in one cited sentence ("10 euros or 20 dollars" can't become
+            # "10 dollars or 20 euros"); the rest of the sentence is grounded word by word as before.
+            numeric = [i for i, tok in enumerate(tokens) if any(ch.isdigit() for ch in tok)]
+            tokens = tokens[numeric[0]:numeric[-1] + 1] if numeric else tokens
+        sequence = " " + " ".join(tokens) + " "
+        if not any(sequence in c for c in cited_sequences):
+            ungrounded += [f"{o} (not a verbatim restatement)" for o in operators]
+    return ungrounded
 
 
 USER_FRAME = "You stated (declared by you, not verified by HABITA): "
@@ -763,6 +814,10 @@ def statement_problem(
         # though "responsible" is a generic word (FP-3 review).
         return "states a competence relation its authority record doesn't (the authority is not its agent or subject)"
     if has_planning_content(full) and case_restatement(full, cited):
+        names = {w for e in cited if e.source_type == "authority_record" for w in _tokens(e.source_title)}
+        operators = operator_problems(full, cited, names)
+        if operators:  # TD-003: a case restatement that changes a figure or an operator is not a restatement
+            return f"is not grounded in its cited evidence (unsupported words: {', '.join(operators)})"
         return case_fact_problem(full, cited, case_facts)
     return grounding_problem(full, cited, case_facts)
 

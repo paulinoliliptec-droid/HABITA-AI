@@ -334,3 +334,20 @@ async def test_td003_overlapping_snapshot_retry_on_a_real_server_keeps_the_chunk
     with pytest.raises(StorageUnavailableError):
         await w.src.save_snapshot(other.model_copy(update={"sha256": "cd" * 32}), more)
     assert await w.db["regulatory_chunks"].count_documents({"snapshot_id": "ss_overlap_rs"}) == snap.chunk_count
+
+
+@scenario
+async def test_td003_final_a_partial_duplicate_chunk_write_leaves_no_orphan(w: World):
+    """TD-003 final review (Codex, P2): an ordered insert writes chunk 0, then hits a duplicate at chunk 1 (written
+    by an overlapping call); this call's chunk 0 is removed, the overlapping call's chunk is kept."""
+    from app.core.errors import StorageUnavailableError
+    from tests.test_sources_ingest_concurrency import snapshot
+    snap, chunks = snapshot("ss_partial_rs")
+    await w.src.ensure_indexes()
+    other = chunks[1]
+    await w.db["regulatory_chunks"].insert_one({"_id": other.chunk_id, "seq": 1, "writer": "other",
+                                                **other.model_dump(mode="python")})
+    with pytest.raises(StorageUnavailableError):
+        await w.src.save_snapshot(snap, chunks)
+    left = await w.db["regulatory_chunks"].find({"snapshot_id": "ss_partial_rs"}).to_list(None)
+    assert [d["_id"] for d in left] == [other.chunk_id]

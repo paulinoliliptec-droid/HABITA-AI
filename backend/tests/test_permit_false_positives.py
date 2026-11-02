@@ -262,3 +262,34 @@ async def test_td003_r5_comparison_signs_are_part_of_a_negated_sentence(record_t
     rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("Only the owner can transfer ownership.", "The owner can only transfer ownership."),
+    ("The owner can transfer ownership.", "Only the owner can transfer ownership."),
+    ("The owner can transfer ownership.", "The owner must transfer ownership."),
+    ("O dono pode transferir a propriedade.", "O dono deve transferir a propriedade."),
+    ("The fee is more than 10 euros and less than 20 euros.", "The fee is less than 10 euros and more than 20 euros."),
+    ("The fee is 10 euros or 20 dollars.", "The fee is 10 dollars or 20 euros."),
+    ("A taxa é superior a 10 euros e inferior a 20 euros.", "A taxa é inferior a 10 euros e superior a 20 euros."),
+    ("A área mínima é 10 m2 e a área máxima é 20 m2.", "A área máxima é 10 m2 e a área mínima é 20 m2."),
+    ("The fee is not −10 euros.", "The fee is not 10 euros."),
+    ("The owner can transfer ownership.", "The owner can transfer ownership, except to the tenant."),
+])
+async def test_td003_final_operators_change_the_rule_only_verbatim(record_text, text):
+    """TD-003 final review (Codex 2026-11-02, P1): restriction placement, modality, thresholds, units and signs."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("text", [
+    "The fee is more than 10 euros and less than 20 euros.",
+    "O dono pode transferir a propriedade.",
+])
+async def test_td003_final_a_verbatim_operator_sentence_still_verifies(text):
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome == "VERIFIED", report.issues
