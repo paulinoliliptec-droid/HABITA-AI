@@ -79,7 +79,7 @@ export function VoiceExplanation({ report, own }: { report: PermitReport; own: M
     <div className={styles.voice}>
       <div className={styles.controls}>
         {(state === "idle" || state === "failed") && (
-          <Button variant="secondary" onClick={listen} disabled={!script} aria-label={t("Listen")} title={t("Listen")}>
+          <Button onClick={listen} disabled={!script} aria-label={t("Listen")} title={t("Listen")}>
             <Icon name="speaker" />
           </Button>
         )}

@@ -444,5 +444,20 @@
   "{n} source checked": "{n} fonte verificada",
   "{n} statement(s)": "{n} afirmação(ões)",
   "{outcome} — recorded for draft revision {revision}; history only, not the current status ({status})": "{outcome} — registado para a revisão {revision} do rascunho; apenas histórico, não é o estado atual ({status})",
-  "{per} per m², {total} in total": "{per} por m², {total} no total"
+  "{per} per m², {total} in total": "{per} por m², {total} no total",
+  "Question": "Pergunta",
+  "Photos & plans": "Fotos e plantas",
+  "Before / after": "Antes / depois",
+  "Costs": "Custos",
+  "Place": "Local",
+  "Areas": "Áreas",
+  "Start with a question": "Comece por uma pergunta",
+  "Ask a question": "Fazer uma pergunta",
+  "Photos and plans, before/after concepts and costs are attached to a question about this property. Ask it first, then come back here.": "As fotos e plantas, os conceitos antes/depois e os custos ficam associados a uma pergunta sobre este imóvel. Faça a pergunta primeiro e depois volte aqui.",
+  "Next, for this question:": "A seguir, para esta pergunta:",
+  "Add photos & plans": "Adicionar fotos e plantas",
+  "See before / after": "Ver antes / depois",
+  "Estimate costs": "Estimar custos",
+  "Add a photo of a room, or a plan, in Photos & plans first. HABITA uses only files it has checked and found no people in.": "Junte primeiro, em Fotos e plantas, uma fotografia de uma divisão ou uma planta. O HABITA só usa ficheiros que verificou e onde não encontrou pessoas.",
+  "Before / after concepts are not offered for this type of request.": "Os conceitos antes / depois não estão disponíveis para este tipo de pedido."
 }

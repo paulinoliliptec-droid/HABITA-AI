@@ -29,6 +29,10 @@
   min-height: 0;
 }
 
+.mapCanvas {
+  height: 100%;
+}
+
 .mapPlaceholder {
   width: 100%;
   height: 100%;
@@ -52,10 +56,21 @@
     padding: var(--space-3) var(--space-4);
   }
 
+  /* The map, then the report bar (PDF, listen, graph, profile) below it, never on top of it. */
   .mapArea {
     order: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mapCanvas {
+    order: 0;
     height: 46dvh;
     min-height: 18rem;
+  }
+
+  .mapPlaceholder {
+    height: 46dvh;
   }
 
   .panelBody {

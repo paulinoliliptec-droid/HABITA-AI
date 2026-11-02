@@ -21,7 +21,9 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
   // The report shown and the capability it was read with: the PDF always downloads that same report.
   const [shown, setShown] = useState<{ report: PermitReport; own: MatterCapability | null; version: number; lang: Lang } | null>(null);
   const [version, setVersion] = useState(0);
-  const [open, setOpen] = useState(true);
+  // On a phone the notes start folded, so the map stays visible (UX-REFINE-001 §5). The board renders only in the
+  // browser (after the report loads), so reading the viewport here is safe.
+  const [open, setOpen] = useState(() => typeof window === "undefined" || !window.matchMedia("(max-width: 900px)").matches);
   const [downloading, setDownloading] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -68,7 +70,7 @@ export function MapPostIts({ propertyId }: { propertyId: string }) {
         <button type="button" className={styles.toggle} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
           {t("Notes")} {open ? "▾" : "▸"}
         </button>
-        <Button variant="secondary" onClick={download} disabled={downloading}>
+        <Button onClick={download} disabled={downloading}>
           {downloading ? t("Preparing…") : t("PDF report")}
         </Button>
         <Button variant="secondary" onClick={() => setGraphOpen(true)}>

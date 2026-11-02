@@ -28,10 +28,22 @@ import { INTENT_LABEL, SUGGESTED_QUESTIONS, sourcesLine } from "./present";
 import { STABLE_STATES, type Evidence, type PermitIntent, type PermitMatter } from "./types";
 import styles from "./Permit.module.css";
 import { DictateButton } from "@/features/voice/DictateButton";
+import type { AreaId } from "@/features/property/areas";
 
 const POLL_MS = 1500;
 
-export function PermitSection({ propertyId, authorityName }: { propertyId: string; authorityName: string | null }) {
+export function PermitSection({
+  propertyId,
+  authorityName,
+  area = "question",
+  onGo,
+}: {
+  propertyId: string;
+  authorityName: string | null;
+  /** The workspace area shown; the others stay mounted but hidden, so nothing in progress is lost. */
+  area?: AreaId;
+  onGo?: (area: AreaId) => void;
+}) {
   const { lang, t } = useI18n();
   const [available, setAvailable] = useState<boolean | null>(null);
   const [matter, setMatter] = useState<PermitMatter | null>(null);
@@ -157,7 +169,28 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
     }
   }
 
+  const ready = Boolean(matter && token && !running);
+  // Photos, concepts and costs belong to a question: until there is one, their area says how to start.
+  const needQuestion = available === false ? (
+    <Notice title={t("Permit intelligence isn't available yet")}>
+      {t("The reasoning model isn't configured on this server. Property and jurisdiction data remain available.")}
+    </Notice>
+  ) : (
+    <Notice
+      title={t("Start with a question")}
+      action={
+        onGo && (
+          <Button onClick={() => onGo("question")}>{t("Ask a question")}</Button>
+        )
+      }
+    >
+      {t("Photos and plans, before/after concepts and costs are attached to a question about this property. Ask it first, then come back here.")}
+    </Notice>
+  );
+
   return (
+    <>
+    <div role="tabpanel" id="area-question" aria-labelledby="area-tab-question" hidden={area !== "question"}>
     <Section label={t("Permit intelligence")} id="permit">
       {available === false ? (
         <Notice title={t("Permit intelligence isn't available yet")}>
@@ -190,11 +223,22 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
             <PermitResult matter={matter} evidence={evidence} authorityName={authorityName} shown={shown} note={note} />
           )}
 
-          {token && !running && (
-            <PermitFiles matterId={matter.matter_id} token={token} onChange={() => setFilesVersion((n) => n + 1)} />
+          {ready && onGo && (
+            <div className={styles.next}>
+              <p className={styles.fieldHint}>{t("Next, for this question:")}</p>
+              <div className={styles.suggestions}>
+                <button type="button" className={styles.suggestion} onClick={() => onGo("documents")}>
+                  {t("Add photos & plans")}
+                </button>
+                <button type="button" className={styles.suggestion} onClick={() => onGo("concepts")}>
+                  {t("See before / after")}
+                </button>
+                <button type="button" className={styles.suggestion} onClick={() => onGo("costs")}>
+                  {t("Estimate costs")}
+                </button>
+              </div>
+            </div>
           )}
-          {token && !running && <PermitConcepts matterId={matter.matter_id} token={token} filesVersion={filesVersion} />}
-          {token && !running && <PermitAfford matterId={matter.matter_id} token={token} />}
 
           {STABLE_STATES.has(matter.state) && !running && (choosing || matter.intent === "out_of_scope") && (
             <div className={styles.suggestions}>
@@ -237,6 +281,25 @@ export function PermitSection({ propertyId, authorityName }: { propertyId: strin
         </p>
       )}
     </Section>
+    </div>
+    <div role="tabpanel" id="area-documents" aria-labelledby="area-tab-documents" hidden={area !== "documents"}>
+      {ready && matter && token ? (
+        <PermitFiles matterId={matter.matter_id} token={token} onChange={() => setFilesVersion((n) => n + 1)} />
+      ) : (
+        needQuestion
+      )}
+    </div>
+    <div role="tabpanel" id="area-concepts" aria-labelledby="area-tab-concepts" hidden={area !== "concepts"}>
+      {ready && matter && token ? (
+        <PermitConcepts matterId={matter.matter_id} token={token} filesVersion={filesVersion} />
+      ) : (
+        needQuestion
+      )}
+    </div>
+    <div role="tabpanel" id="area-costs" aria-labelledby="area-tab-costs" hidden={area !== "costs"}>
+      {ready && matter && token ? <PermitAfford matterId={matter.matter_id} token={token} /> : needQuestion}
+    </div>
+    </>
   );
 }
 
@@ -280,7 +343,7 @@ function GoalForm({ onAsk, onCancel }: { onAsk: (question: string) => Promise<vo
         ))}
       </div>
       <div className={styles.actions}>
-        <Button type="submit" loading={submitting} disabled={question.trim().length < 8}>
+        <Button type="submit" size="lg" loading={submitting} disabled={question.trim().length < 8}>
           {t("Investigate")}
         </Button>
         {onCancel && (
