@@ -216,10 +216,9 @@ export function ReasoningGraph({
             <svg className={styles.edges} width={width} height={height} aria-hidden="true">
               <defs>
                 {/* Bends the selected node's lines like an arc; a change of shape, slow, never a flash. */}
+                {/* Static noise (HR-005 polish 4): the old animated seed ran even with reduced motion (Muse UX-B). */}
                 <filter id={sparkId} x="-10%" y="-40%" width="120%" height="180%">
-                  <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3" result="noise">
-                    <animate attributeName="seed" values="3;9;17;26;3" dur="2.4s" calcMode="discrete" repeatCount="indefinite" />
-                  </feTurbulence>
+                  <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3" result="noise" />
                   <feDisplacementMap in="SourceGraphic" in2="noise" scale="7" />
                 </filter>
               </defs>
