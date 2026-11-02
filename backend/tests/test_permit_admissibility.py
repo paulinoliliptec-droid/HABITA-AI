@@ -276,7 +276,9 @@ async def test_the_reviewer_flag_is_enforced_by_code():
 
 @pytest.mark.parametrize("text, cites", [
     ("The Câmara Municipal de Cascais is the competent authority.", ["E9"]),
-    ("Only autonomous units can be the object of horizontal property.", ["E7"]),
+    # TD-003 structural (2026-11-02): a free sentence verifies only whole; the head before the colon no longer does.
+    ("Only autonomous units can be the object of horizontal property: units that are independent, distinct and "
+     "isolated from each other, with their own exit to a common part of the building or to the public way.", ["E7"]),
     ("You state each floor has its own street door.", ["E8"]),
     ("Confirm the conditions with the Câmara Municipal de Cascais before you apply.", ["E9"]),
     ("Confirm with the Câmara whether the works need a licence or prior communication.", ["E1"]),

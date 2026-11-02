@@ -713,16 +713,45 @@ def _clause_bound(statement: str, cited_sentence: str, free: set[str], names: se
     return bool(reachable)
 
 
-def _covers_operators(sequence: str, cited: str) -> bool:
-    """``sequence`` occurs in ``cited`` and no operator of ``cited`` lies outside the occurrence (Muse review r1, P0:
-    "The owner can transfer ownership, except to the tenant" can't give "The owner can transfer ownership")."""
-    start = cited.find(sequence)
-    while start >= 0:
-        outside = cited[:start] + " | " + cited[start + len(sequence):]
-        if not (_NEGATION_WORDS.search(outside) or _OPERATOR_WORDS.search(outside)):
-            return True
-        start = cited.find(sequence, start + 1)
-    return False
+def _sequence(text: str) -> str:
+    return " " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(text)) + " "
+
+
+def _whole_sentence(sentence: str, cited_sequences: list[str]) -> bool:
+    """``sentence`` is, token for token, one whole cited sentence (same normalisation as ``cited_sequences``)."""
+    sequence = _sequence(sentence)
+    return sequence.strip() != "" and any(sequence == c for c in cited_sequences)
+
+
+#: The canonical competence sentences HABITA derives from an authority record "<Authority>: <activity>." (FP-3):
+#: "<activity> is handled by <Authority>", "<Authority> handles <activity>", "<Authority> is responsible for / competent
+#: for <activity>", PT "<atividade> é tratado/a pela <Autoridade>". Nothing else of the record may change.
+_COMPETENCE_FORMS = (
+    "{a} is handled by {t}", "{a} are handled by {t}", "{a} is handled by the {t}", "{a} are handled by the {t}",
+    "{t} handles {a}", "the {t} handles {a}", "{t} is responsible for {a}", "the {t} is responsible for {a}",
+    "{t} is competent for {a}", "the {t} is competent for {a}", "{a} e tratado pela {t}", "{a} e tratada pela {t}",
+    "{a} sao tratados pela {t}", "{a} sao tratadas pela {t}", "a {t} trata {a}", "{t} trata {a}",
+    "a {t} e competente para {a}", "{t} e competente para {a}", "a {t} e responsavel por {a}",
+    "{t} e responsavel por {a}",
+)
+
+
+def competence_sentences(cited: list[Evidence]) -> list[str]:
+    """The canonical competence sentences (as sequences) of the cited authority records."""
+    out = []
+    for e in cited:
+        if e.source_type != "authority_record" or is_user_declared(e):
+            continue
+        title = fold(e.source_title).strip()
+        for x in _sentences(fold(e.excerpt)):
+            head, sep, activity = x.partition(":")
+            if not sep or _sequence(head) != _sequence(title):
+                continue
+            activity = activity.strip().rstrip(".")
+            # The record's trailing gloss in parentheses ("(licenciamento urbanístico)") may be left out, nothing else.
+            for a in {activity, re.sub(r"\s*\([^()]*\)$", "", activity)}:
+                out += [_sequence(form.format(a=a, t=title)) for form in _COMPETENCE_FORMS]
+    return out
 
 
 def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list[str]:
@@ -733,6 +762,7 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
     # The cited sentences go through the same deferral removal as the statement, so both sides compare alike.
     cited_sequences = [" " + " ".join(re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(_DEFERRAL.sub(" ", x))) + " "
                        for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))]
+    cited_sequences += competence_sentences(cited)  # HABITA's canonical competence sentences (FP-3)
     # The hedge is exempt only when the cited records state no modality at all (final review r3: "must be allowed"
     # → "may be possible" is refused).
     speaks_of_possible = any(_NEGATION_WORDS.search(x) or _OPERATOR_WORDS.search(re.sub(r"\d", "", x))
@@ -796,9 +826,18 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
                 free |= {_stem(w) for w in _COMPETENCE_PREDICATES}
             titles = {_stem(w) for e in cited if not is_user_declared(e) for w in _tokens(e.source_title)}
             needed = content - free - titles
-            if needed and not any(_clause_bound(asserted_sentence, x, free | titles, names, ordered=not only_locations)
-                                  for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))):
-                ungrounded.append("(combines words from different cited sentences or clauses)")
+            if needed and only_locations:
+                # HABITA's own location records (structured jurisdiction levels and addresses): a hierarchy restated
+                # in any order, each clause from one clause.
+                if not any(_clause_bound(asserted_sentence, x, free | titles, names, ordered=False)
+                           for e in cited if not is_user_declared(e) for x in _sentences(fold(e.excerpt))):
+                    ungrounded.append("(combines words from different cited sentences or clauses)")
+            elif needed and not _whole_sentence(asserted_sentence, cited_sequences):
+                # TD-003 structural containment (owner 2026-11-02, Muse r5 P0): which word a phrase attaches to
+                # ("the owner OF THE SOUTH UNIT sold …", "the tenant LEASING the shop …"), a condition, a time or a
+                # scope ("If …, ", "Before …, ", "In …, ") can't be read by word lists. A free factual sentence
+                # verifies only as one whole cited sentence, word for word; anything else is not certified.
+                ungrounded.append("(not one whole cited sentence, word for word)")
             continue
         tokens = [re.sub(r"\s+", "", t) for t in _SEQUENCE_TOKEN.findall(asserted_sentence)]
         if only_locations and all(o.isdigit() for o in operators):
@@ -817,8 +856,9 @@ def operator_problems(text: str, cited: list[Evidence], names: set[str]) -> list
             continue
         # Anywhere else a sentence with an operator or a number needs the whole sentence verbatim ("the south unit is
         # 10 m2" can't take the north unit's figure: final review r2).
-        sequence = " " + " ".join(tokens) + " "
-        if not any(_covers_operators(sequence, c) for c in cited_sequences):
+        # A part of a sentence drops what the rest of it says, operator or not ("If the works are approved, the owner
+        # can sell" can't give "The owner can sell"): the whole sentence, word for word (TD-003 structural).
+        if not _whole_sentence(asserted_sentence, cited_sequences):
             ungrounded += [f"{o} (not a verbatim restatement)" for o in operators]
     return ungrounded
 

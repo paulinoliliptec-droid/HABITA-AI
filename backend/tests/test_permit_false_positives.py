@@ -407,11 +407,15 @@ async def test_muse_r3_recombination_within_one_cited_sentence(record_text, text
     ("The north unit has a balcony and the south unit has a garage.", "The north unit has a balcony."),
     ("A unidade norte é grande e a unidade sul é pequena.", "A unidade sul é pequena."),
 ])
-async def test_muse_r3_a_clause_restated_on_its_own_still_verifies(record_text, text):
+async def test_td003_structural_a_clause_restated_on_its_own_no_longer_verifies(record_text, text):
+    """TD-003 structural containment (owner 2026-11-02): availability cost, registered. A clause of a cited sentence
+    is not certified on its own (the rest of the sentence may scope it); the whole sentence still verifies."""
     from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
     rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
-    assert report.outcome == "VERIFIED", report.issues
+    assert report.outcome != "VERIFIED", report.issues
+    whole = await rendered_verify(in_section_claim(record_text), [*CASE_RECORDS, rec])
+    assert whole.outcome == "VERIFIED", whole.issues
 
 
 @pytest.mark.parametrize("source_type,record_text,text", [
@@ -427,3 +431,53 @@ async def test_muse_r4_numberless_addresses_and_more_joiners(source_type, record
     rec = record("E50", source_type, record_text, status="system_record", title="Câmara Municipal de Cascais")
     report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
     assert report.outcome != "VERIFIED", report.issues
+
+
+#: TD-003 structural containment (owner 2026-11-02). Muse r5 P0-1/P0-2 and the same class written for the battery:
+#: attachment ("of", "for", participles, PT "de/do/da"), dropped conditions, times and scopes, and a passive swap.
+STRUCTURAL_ATTACKS = [
+    ("The owner of the south unit sold the north unit.", "The owner sold the south unit."),
+    ("The owner of the north unit leased the shop.", "The owner leased the north unit."),
+    ("O dono da unidade sul vendeu a unidade norte.", "O dono vendeu a unidade sul."),
+    ("The tenant leasing the shop owns the north unit.", "The tenant owns the shop."),
+    ("The owner of the south unit sold the north unit.", "The south unit sold the north unit."),
+    ("The lawyer for the tenant signed the deed.", "The tenant signed the deed."),
+    ("O inquilino arrendando a loja é dono da unidade norte.", "O inquilino é dono da loja."),
+    ("O advogado do inquilino assinou a escritura.", "O inquilino assinou a escritura."),
+    ("If the works are approved, the owner can sell the shop.", "The owner can sell the shop."),
+    ("Se as obras forem aprovadas, o dono pode vender a loja.", "O dono pode vender a loja."),
+    ("Before the fire, the building had three floors.", "The building had three floors."),
+    ("Until the sale, the tenant occupied the shop.", "The tenant occupied the shop."),
+    ("In the north unit, the owner removed the wall.", "The owner removed the wall."),
+    ("The north unit was sold by the owner to the tenant.", "The tenant was sold the north unit by the owner."),
+    ("Only autonomous units can be the object of horizontal property: units that are independent.",
+     "Only autonomous units can be the object of horizontal property."),
+    ("Câmara Municipal de Cascais: Licensing of urban operations, including building permits.",
+     "Câmara Municipal de Cascais handles building permits."),
+    ("Câmara Municipal de Cascais: Licensing of urban operations, including building permits.",
+     "Building permits is handled by Câmara Municipal de Cascais."),
+]
+
+
+@pytest.mark.parametrize("section", ["conclusion", "claim", "procedure", "risk", "next action"])
+@pytest.mark.parametrize("record_text,text", STRUCTURAL_ATTACKS)
+async def test_td003_structural_a_free_sentence_verifies_only_whole(record_text, text, section):
+    from tests.test_permit_admissibility import CASE_RECORDS, in_section, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section(section, text, ["E50"]), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", (section, report.issues)
+
+
+@pytest.mark.parametrize("text", [
+    "Licensing of urban operations, including building permits is handled by Câmara Municipal de Cascais.",
+    "Câmara Municipal de Cascais handles licensing of urban operations, including building permits.",
+    "Câmara Municipal de Cascais is responsible for licensing of urban operations, including building permits.",
+    "The owner of the south unit sold the north unit.",
+])
+async def test_td003_structural_whole_and_canonical_sentences_still_verify(text):
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", "Câmara Municipal de Cascais: Licensing of urban operations, including "
+                 "building permits. The owner of the south unit sold the north unit.", status="system_record",
+                 title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome == "VERIFIED", report.issues

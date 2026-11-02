@@ -79,7 +79,7 @@ def default_draft(payload: dict) -> dict:
         "conclusion": {"answer": answer, **conclusion, **none},
         "claims": [
             {"text": "The Câmara Municipal de Cascais is the competent authority.", "evidence_ids": authority, **none},
-        ] + ([{"text": "Only autonomous units can be the object of horizontal property.", "evidence_ids": civil, **none}] if civil else [])
+        ] + ([{"text": "Only autonomous units can be the object of horizontal property: units that are independent, distinct and isolated from each other, with their own exit to a common part of the building or to the public way.", "evidence_ids": civil, **none}] if civil else [])
         + ([{"text": "You state each floor has its own street door.", "evidence_ids": user, **none}] if user else []),
         "procedure": [{"step": "Apply for municipal prior control",
                        "description": "Submit the application to the Câmara Municipal under the RJUE.",
