@@ -62,6 +62,16 @@ _ARTICLE = {"A": "O", "a": "o", "da": "do", "pela": "pelo", "à": "ao"}
 _ADDED = ((re.compile(r"\b(?:patrim[oó]\w+|hist[oó]ric\w+)\b", re.I), re.compile(r"heritage|histor|patrim", re.I)),
           (re.compile(r"\bquartos?\b", re.I), re.compile(r"bedroom", re.I)))
 _STATUS_WORDS = {"VERIFIED", "REJECTED", "PENDING", "CONFIRMATION", "HABITA"}
+#: Room labels written in capitals on a plan ("KITCHEN", "LIVING ROOM"): a closed list, lowered before machine
+#: translation so the service translates them and the acronym check no longer refuses the sentence (afinamentos
+#: HR-010). Any other word in capitals (PDM, RJUE, UNESCO, ANACOM) stays protected (Codex r1).
+_LABEL = re.compile(r"\b(?:LIVING ROOM|DINING ROOM|KITCHEN|BEDROOM|BATHROOM|TOILET|LIVING|DINING|STORAGE|STORE ROOM|"
+                    r"GARAGE|BALCONY|TERRACE|HALLWAY|HALL|CORRIDOR|OFFICE|STUDY|LAUNDRY|ENTRANCE|CLOSET|WARDROBE|"
+                    r"PANTRY|BASEMENT|ATTIC|STAIRS|STAIRCASE|ROOM|LOUNGE|SUITE)\b")
+
+
+def _lower_labels(text: str) -> str:
+    return _LABEL.sub(lambda m: m.group().lower(), text)
 
 
 def fidelity_problems(source: str, target: str) -> list[str]:
@@ -189,14 +199,14 @@ class Translator:
         kept, available = 0, True
         if missing:
             try:
-                translated = await self._client.translate([_encode(t) for t in missing], TARGET[lang])
+                translated = await self._client.translate([_encode(_lower_labels(t)) for t in missing], TARGET[lang])
             except TranslationUnavailable:
                 translated, available = [], False
                 out |= {t: t for t in missing}
                 kept = len(missing)
             for source, raw in zip(missing, translated, strict=False):
                 text = _decode(raw)
-                if fidelity_problems(source, text):
+                if fidelity_problems(_lower_labels(source), text):
                     out[source], kept = source, kept + 1
                     continue
                 out[source] = text

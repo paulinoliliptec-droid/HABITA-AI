@@ -235,3 +235,10 @@ async def test_cancelled_while_counting_gives_the_callers_count_back():
         await d.transcribe_admitted(wav(), "1.1.1.1")
     usage.cancel = False
     assert await d.transcribe_admitted(wav(), "1.1.1.1") == "ok"
+
+
+def test_afinamentos_a_question_does_not_end_with_a_stray_full_stop():
+    from app.services.dictation import clean_text
+    assert clean_text("Posso dividir em dois quartos?.") == "Posso dividir em dois quartos?"
+    assert clean_text("Tem cozinha..") == "Tem cozinha."
+    assert clean_text("Espere...") == "Espere..."

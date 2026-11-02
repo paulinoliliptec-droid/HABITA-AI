@@ -23,13 +23,37 @@ ANSWER = {
 }
 
 
+#: Words after which a full stop doesn't end a sentence ("Art. 67.º", "n.º 5", "Sr. Silva").
+_ABBREVIATIONS = {"art", "arts", "n", "nº", "n.º", "sr", "sra", "dr", "dra", "eng", "av", "pç", "fig", "e.g", "i.e", "cf",
+                  "al", "dec.-lei", "proc", "pág", "p"}
+
+
+def _sentences(text: str) -> list[str]:
+    """A sentence ends at '.', '!', '?' or ';' (with any closing quote) followed by a space or the end, whatever comes
+    next (a capital, a digit, a quote, lowercase); never after an abbreviation ("Art. 67.º", "n.º 5"). A mark with no
+    space after it ("2.º", "3.5") is not an end (afinamentos HR-011; Codex r1: no two sentences in one line)."""
+    parts, start = [], 0
+    for m in re.finditer(r"[.!?;]+[\"”»')]*(?=\s|$)", text):
+        before = text[start:m.start()].split()
+        last = before[-1].lower() if before else ""
+        if m.group().startswith(".") and last in _ABBREVIATIONS:
+            continue
+        parts.append(text[start:m.end()])
+        start = m.end()
+    if text[start:].strip():
+        parts.append(text[start:])
+    return parts
+
+
 def speakable(text: str) -> list[str]:
     """Spoken text: no evidence references, and one sentence at a time."""
     clean = re.sub(r"\s+", " ", re.sub(r"\s*\[[EK]\d+(?:,\s*[EK]\d+)*\]", "", text)).strip()
+    # A doubled end ("visible..", "quartos?.") is said once; an ellipsis stays (afinamentos HR-010, dictation).
+    clean = re.sub(r"([?!])\.+", r"\1", re.sub(r"(?<!\.)\.\.(?!\.)", ".", clean))
     if not clean:
         return []
     out: list[str] = []
-    for sentence in re.findall(r"[^.!?;]+[.!?;]*\s*", clean) or [clean]:
+    for sentence in _sentences(clean) or [clean]:
         rest = sentence.strip()
         while len(rest) > MAX_CHARS:
             cut = rest.rfind(" ", 0, MAX_CHARS + 1)

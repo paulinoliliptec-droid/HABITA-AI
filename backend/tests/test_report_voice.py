@@ -185,3 +185,36 @@ def test_without_a_key_the_script_still_comes_and_the_audio_says_unavailable():
         assert script["lines"] and not script["audio"]
         assert c.get(f"{path}/0", params={"version": script["version"]}).status_code == 503
     assert not service.requests
+
+
+def test_hr011_ordinals_decimals_and_abbreviations_are_not_sentence_ends():
+    """Afinamentos: the voice cut 'INE, 2.º Trimestre de 2026' after '2.' (and decimals, 'Art. 67.º')."""
+    assert speakable("Preço mediano: 2 500 €/m², INE, 2.º Trimestre de 2026. Fonte oficial.") == [
+        "Preço mediano: 2 500 €/m², INE, 2.º Trimestre de 2026.", "Fonte oficial."]
+    assert speakable("Área de 3.5 m2 no Art. 67.º do PDM. Confirme.") == ["Área de 3.5 m2 no Art. 67.º do PDM.", "Confirme."]
+
+
+def test_hr010_doubled_end_punctuation_is_said_once():
+    """Afinamentos: observation lines ended with 'visible..' and dictation with '?.'."""
+    assert speakable("A kitchen is visible..") == ["A kitchen is visible."]
+    assert speakable("Dois quartos?. Sim.") == ["Dois quartos?", "Sim."]
+
+
+def test_hr011_ine_periods_in_the_readers_language():
+    from app.services.report.afford_lines import period
+    assert period("2.º Trimestre de 2026", "en") == "Q2 2026"
+    assert period("Setembro de 2026", "en") == "September 2026"
+    assert period("Setembro de 2026", "pt") == "Setembro de 2026"
+    assert period("2026", "en") == "2026"
+
+
+def test_codex_r1_no_two_sentences_in_one_line():
+    assert speakable("Price is 5. 2 conditions remain.") == ["Price is 5.", "2 conditions remain."]
+    assert speakable('It is approved. "Not verified." Check.') == ["It is approved.", '"Not verified."', "Check."]
+    assert speakable("Done. then more.") == ["Done.", "then more."]
+    assert speakable("See n.º 5 of the plan. Next.") == ["See n.º 5 of the plan.", "Next."]
+
+
+def test_codex_r1_only_real_quarters_are_rewritten():
+    from app.services.report.afford_lines import period
+    assert period("9.º Trimestre de 2026", "en") == "9.º Trimestre de 2026"

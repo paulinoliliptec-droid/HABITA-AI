@@ -346,3 +346,23 @@ def test_the_legal_warnings_keep_their_negations_in_portuguese():
     frontend = json.loads(FRONTEND_CATALOG.read_text(encoding="utf-8"))
     assert "não é um limite" in frontend["Location: {coordinates} (rooftop point; not a parcel boundary)"]
     assert "Não é um limite cadastral" in t(next(k for k in PINNED if k.startswith("<b>Legend.")))
+
+
+async def test_afinamentos_a_plan_label_in_capitals_is_translated_not_kept_in_english():
+    """HR-010: 'The plan shows the word KITCHEN and the number 12 m2.' stayed in English: the acronym check took
+    KITCHEN for an acronym and refused the translation. Labels are lowered first; real acronyms stay protected."""
+    def answer(text):
+        assert "KITCHEN" not in text and "kitchen" in text  # the service receives the lowered label
+        return "A planta mostra a palavra cozinha e o número 12 m2."
+    client_ = ScriptedClient(answer)
+    source = "The plan shows the word KITCHEN and the number 12 m2."
+    result = await Translator(client_).translate([source], "pt")
+    assert result(source) == "A planta mostra a palavra cozinha e o número 12 m2." and result.kept_original == 0
+    # An acronym is still protected: a translation that drops PDM is refused.
+    refused = await Translator(ScriptedClient(lambda t: "Veja o plano.")).translate(["See the PDM."], "pt")
+    assert refused("See the PDM.") == "See the PDM."
+
+
+async def test_codex_r1_long_acronyms_stay_protected():
+    refused = await Translator(ScriptedClient(lambda t: "Património mundial.")).translate(["A UNESCO site."], "pt")
+    assert refused("A UNESCO site.") == "A UNESCO site."

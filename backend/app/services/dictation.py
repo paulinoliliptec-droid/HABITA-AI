@@ -60,7 +60,10 @@ def clean_wav(data: bytes) -> tuple[bytes, float]:
 
 
 def clean_text(text: str) -> str:
-    return " ".join(_CONTROL.sub(" ", text).split())[:MAX_TEXT]
+    text = " ".join(_CONTROL.sub(" ", text).split())
+    # The transcript sometimes ends "…dois quartos?." or "cozinha..": one mark, never an ellipsis touched.
+    text = re.sub(r"([?!])\.+", r"\1", re.sub(r"(?<!\.)\.\.(?!\.)", ".", text))
+    return text[:MAX_TEXT]
 
 
 class Dictation:

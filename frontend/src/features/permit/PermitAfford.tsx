@@ -1,5 +1,6 @@
 "use client";
 
+import { inePeriod } from "./inePeriod";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { reportChanged } from "@/features/report/api";
@@ -129,7 +130,7 @@ export function PermitAfford({ matterId, token }: { matterId: string; token: str
                     <span className={styles.fieldHint}>
                       {t(f.source)}
                       {f.author ? ` · ${t(f.author)}` : ""}
-                      {f.as_of ? ` · ${f.as_of}` : ""}
+                      {f.as_of ? ` · ${inePeriod(f.as_of, lang)}` : ""}
                     </span>
                   </li>
                 ))}
@@ -171,7 +172,7 @@ export function PermitAfford({ matterId, token }: { matterId: string; token: str
                     <span className={styles.fieldHint}>
                       {t(f.source)}
                       {f.author ? ` · ${t(f.author)}` : ""}
-                      {f.as_of ? ` · ${f.as_of}` : ""}
+                      {f.as_of ? ` · ${inePeriod(f.as_of, lang)}` : ""}
                     </span>
                   </li>
                 ))}
