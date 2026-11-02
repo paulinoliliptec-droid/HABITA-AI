@@ -20,7 +20,7 @@ from app.schemas.report import PermitReport, VoiceScript
 from app.services.report.builder import build_report
 from app.services.report.localize import localize_report
 from app.services.report.pdf import render_pdf
-from app.services.report.premium import render_premium_pdf
+from app.services.report.premium import AerialFigure, ConceptFigure, render_premium_pdf
 from app.services.report.voice import build_voice_script, script_version
 
 log = logging.getLogger(__name__)
@@ -53,14 +53,63 @@ async def _matter_report(request: Request, matter_id: str, workflow, lang: str) 
                                   await request.app.state.concepts.list(matter_id))
 
 
+async def _aerial_figure(request: Request, property_id: str) -> AerialFigure | None:
+    """HR-006 polish 2: the property's aerial view, if one was made; never a reason for the PDF to fail."""
+    try:
+        aerial = await request.app.state.aerial.get(property_id)
+        jpeg = await request.app.state.aerial.image(property_id) if aerial is not None else None
+    except Exception:  # noqa: BLE001 - storage or service trouble only drops the figure
+        log.exception("aerial view unavailable for the PDF")
+        return None
+    return AerialFigure(jpeg=jpeg, year=aerial.source.year) if aerial is not None and jpeg else None
+
+
+#: At most this many concept images in a PDF, each reduced to this width (the PDF stays light).
+PDF_CONCEPTS, PDF_CONCEPT_WIDTH = 4, 1000
+
+
+def _shrink(jpeg: bytes) -> bytes:
+    from io import BytesIO
+
+    from PIL import Image
+    image = Image.open(BytesIO(jpeg)).convert("RGB")
+    image.thumbnail((PDF_CONCEPT_WIDTH, PDF_CONCEPT_WIDTH * 2))
+    out = BytesIO()
+    image.save(out, "JPEG", quality=82)
+    return out.getvalue()
+
+
+async def _concept_figures(request: Request, report: PermitReport) -> list[ConceptFigure]:
+    """HR-006 polish 3: the matter's own concept images (only a matter report lists concepts, behind its capability);
+    any trouble only drops the images, never the PDF."""
+    if not report.concepts or report.assessment is None:
+        return []
+    matter_id = report.assessment.matter_id
+    try:
+        concepts = (await request.app.state.concepts.list(matter_id))[:PDF_CONCEPTS]
+        figures = []
+        for c in concepts:
+            data = await request.app.state.concepts.content(matter_id, c.concept_id)
+            if data:
+                figures.append(ConceptFigure(jpeg=await run_in_threadpool(_shrink, data), label=c.change_label))
+        return figures
+    except Exception:  # noqa: BLE001
+        log.exception("concept images unavailable for the PDF")
+        return []
+
+
 async def _pdf(request: Request, report: PermitReport, name: str) -> Response:
     p = report.property
     maps = await request.app.state.static_maps.location_maps(p.lat, p.lng, p.precision, place=p.property_id)
     style = request.app.state.settings.report_pdf_style
     content = None
     if style != "legacy":
+        aerial = await _aerial_figure(request, p.property_id)
+        concepts = await _concept_figures(request, report)
         try:  # both renderers are CPU-bound: they run off the event loop
-            content = await run_in_threadpool(render_premium_pdf, report, maps, style)
+            # The public site, for the property link of the integrity seal (never a matter's capability).
+            site = next((o for o in request.app.state.settings.cors_origins if o.startswith("https://")), None)
+            content = await run_in_threadpool(render_premium_pdf, report, maps, style, aerial, concepts, site)
         except (ImportError, OSError):  # WeasyPrint or pango missing in this image: the legacy PDF is still correct
             log.exception("premium PDF unavailable; serving the legacy PDF")
     if content is None:

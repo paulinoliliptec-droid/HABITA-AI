@@ -9,13 +9,18 @@ section is shown once, then referenced ("same as K3") with its own evidence ids,
 """
 
 import base64
+import hashlib
+import json
 import re
 from collections import Counter
 from html import escape
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from dataclasses import dataclass
+
 from app.integrations.maps.static_maps import ATTRIBUTION, LocationMaps
+from app.schemas.aerial import AERIAL_NOTICE
 from app.schemas.report import PermitReport
 from app.services.report import afford_lines, concept_lines
 from app.services.i18n.translator import msg, translator_for
@@ -89,8 +94,14 @@ FONT_FACES = {
 CSS_BASE = """
 @page { size: A4; margin: 22mm 22mm 24mm 22mm;
   @bottom-left { content: element(disclaimer); width: 150mm; vertical-align: top; }
-  @bottom-right { content: "%PAGE% " counter(page) " %OF% " counter(pages); font-size: 7.5pt; color: #6b6f76; } }
-@page cover { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
+  @bottom-right { content: "%PAGE% " counter(page) " %OF% " counter(pages); font-size: 7.5pt; color: #6b6f76; }
+  @top-right { content: "HABITA AI"; font-size: 7.5pt; letter-spacing: 2px; color: #6b6f76; } }
+@page cover { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } @top-right { content: none; } }
+.concepts { display: flex; flex-wrap: wrap; gap: 4mm; } .concept { width: 78mm; margin: 0; break-inside: avoid; }
+.concept img { width: 100%; border: .4pt solid #d9d4c9; } .concept figcaption { font-size: 8pt; color: #5f646b; }
+.seal { margin-top: 4mm; } .cover .seal { font-size: 7.6pt; }
+.cover .mark { display: block; width: 16mm; height: 16mm; margin: 0 auto 5mm; }
+.moderno .cover .mark { margin-left: 0; }
 html { -weasy-hyphens: auto; }
 body { margin: 0; color: #1b1b1b; hyphens: auto; }
 .disclaimer-running { position: running(disclaimer); font-size: 6.6pt; line-height: 1.3; color: #6b6f76; text-align: left; }
@@ -103,6 +114,12 @@ table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 8.
 th, td { padding: 1.6mm 2mm; text-align: left; vertical-align: top; hyphens: manual; }
 thead { display: table-header-group; } tr { break-inside: avoid; }
 .muted { color: #5f646b; } .small { font-size: 8.4pt; } .mono { font-family: monospace; font-size: 7.6pt; word-break: break-all; }
+.annex-list { columns: 2; column-gap: 6mm; font-size: 7pt; margin: 0 0 4mm; padding-left: 5mm; }
+.annex-list li { break-inside: avoid; margin-bottom: 1mm; word-break: break-all; }
+.annex-pin { columns: 3; column-gap: 5mm; font-size: 6.8pt; margin: 0 0 4mm; padding: 0; list-style: none; }
+.annex-pin li { break-inside: avoid; word-break: break-all; }
+.ref { font-size: 7pt; color: #5f646b; vertical-align: super; }
+table.compact td { padding-top: 0.8mm; padding-bottom: 0.8mm; }
 .pill { display: inline-block; padding: 1.2mm 3mm; border-radius: 1.5mm; font-weight: 700; letter-spacing: .4px; font-size: 9pt; }
 .pill.ok { background: #e3f1e8; color: #1f6f43; } .pill.bad { background: #f8e3e3; color: #9b2c2c; } .pill.warn { background: #fbefd9; color: #7a5200; }
 .box, .legend { hyphens: manual; text-align: left; }
@@ -215,6 +232,12 @@ def _wrap(text: str, width: int, lines: int = 3) -> list[str]:
     return out
 
 
+#: Evidence groups of the PDF graph, by verification status (the web graph's groups).
+EVIDENCE_GROUPS = {"official_text": msg("Official texts"), "curated_reference": msg("Curated references"),
+                   "system_record": msg("HABITA records"), "user_declared": msg("Your statements"),
+                   "other": msg("Other evidence")}
+
+
 def graph_model(report: PermitReport) -> tuple[list[list[dict]], list[tuple[str, str]]]:
     """Columns of nodes and the edges between them, each edge backed by a report field."""
     p, pl, a = report.property, report.planning, report.assessment
@@ -235,8 +258,16 @@ def graph_model(report: PermitReport) -> tuple[list[list[dict]], list[tuple[str,
         cols.append([{"id": "pending", "title": t("Pending"), "text": t("{n} item(s) to confirm", n=len(report.pending))}])
         edges.append(("property", "pending"))
         return cols, edges
-    evidence = [{"id": f"ev:{e.evidence_id}", "title": e.evidence_id, "text": e.title} for e in a.evidence]
-    cols.append(evidence or [{"id": "ev:none", "title": t("Evidence"), "text": t("none cited")}])
+    # HR-006 polish 6: evidence grouped by verification status, as in the web graph (one block per E id made a
+    # tangle of lines); each group names its ids, and its lines are the union of its members' stored relations.
+    groups: dict[str, list] = {}
+    for e in a.evidence:
+        groups.setdefault(e.verification_status if e.verification_status in EVIDENCE_GROUPS else "other", []).append(e)
+    evidence = [{"id": f"evg:{key}", "title": t(EVIDENCE_GROUPS[key]),
+                 "text": t("{n} item(s): {ids}", n=len(items), ids=", ".join(e.evidence_id for e in items)),
+                 "ids": {e.evidence_id for e in items}, "types": {e.source_type for e in items}}
+                for key, items in sorted(groups.items(), key=lambda kv: list(EVIDENCE_GROUPS).index(kv[0]))]
+    cols.append(evidence or [{"id": "ev:none", "title": t("Evidence"), "text": t("none cited"), "ids": set(), "types": set()}])
     section_nodes, cited = [], {}
     for key, name in SECTIONS:
         ids = {i for s in a.statements if s.section == key for i in s.evidence_ids}
@@ -249,11 +280,14 @@ def graph_model(report: PermitReport) -> tuple[list[list[dict]], list[tuple[str,
     cited["conclusion"] = set(a.conclusion_evidence_ids)
     cols.append(section_nodes)
     for node, ids in cited.items():
-        edges += [(f"ev:{i}", node) for i in sorted(ids) if any(e["id"] == f"ev:{i}" for e in evidence)]
-    edges += [("planning", f"ev:{e.evidence_id}") for e in a.evidence if e.source_type == "planning_context"]
+        edges += [(g["id"], node) for g in evidence if g["ids"] & ids]
+        for g in evidence:  # a section citing only part of a group: drawn dashed (Codex HR-006 r1, P2)
+            if g["ids"] & ids and not g["ids"] <= ids:
+                g.setdefault("partial_to", set()).add(node)
+    edges += [("planning", g["id"]) for g in evidence if "planning_context" in g["types"]]
     if p.authority:
-        edges += [("authority", f"ev:{e.evidence_id}") for e in a.evidence if e.source_type == "authority_record"]
-    edges += [("jurisdiction", f"ev:{e.evidence_id}") for e in a.evidence if e.source_type == "jurisdiction_record"]
+        edges += [("authority", g["id"]) for g in evidence if "authority_record" in g["types"]]
+    edges += [("jurisdiction", g["id"]) for g in evidence if "jurisdiction_record" in g["types"]]
     return cols, edges
 
 
@@ -275,6 +309,7 @@ def reasoning_graph(report: PermitReport, color: str = "#2c4d82") -> str:
                              f'stroke="#9aa3b2" stroke-width=".6"/><text x="{x + 6}" y="{y + 12}" font-size="8" '
                              f'font-weight="700">{_e(n["title"])}</text><text x="{x + 6}" y="{y + 24}" '
                              f'font-size="7.4">{lines}</text>')
+    partial = {(n["id"], target) for c in cols for n in c for target in n.get("partial_to", ())}
     edges_svg = []
     for a, b in edges:
         if a in pos and b in pos:
@@ -283,14 +318,16 @@ def reasoning_graph(report: PermitReport, color: str = "#2c4d82") -> str:
             if bx <= ax:  # same column: route around the right side
                 sx, ex = ax + node_w, bx + node_w
             mid = (sx + ex) / 2 if bx > ax else sx + 14
+            dash = ' stroke-dasharray="3 2"' if (a, b) in partial else ""
             edges_svg.append(f'<path d="M{sx},{sy} C{mid},{sy} {mid},{ey} {ex},{ey}" fill="none" stroke="{color}" '
-                             f'stroke-width="1" stroke-opacity=".8"/>')
+                             f'stroke-width="1" stroke-opacity=".8"{dash}/>')
     width = x0 + len(cols) * col_w
     return (f'<figure><svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 {width} {height}" '
             f'font-family="sans-serif">{"".join(edges_svg)}{"".join(nodes_svg)}</svg><figcaption>'
             + t("Reasoning graph: each line is a relation stored in this report (jurisdiction chain, planning status, "
                 "the evidence each statement section and the conclusion cite). It shows how the result was reached; it "
-                "is not a legal determination.") + "</figcaption></figure>")
+                "is not a legal determination.") + " " + t("A dashed line: the section cites only some of the group's items "
+                                                "(the analysis names which).") + "</figcaption></figure>")
 
 
 # ── Document ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -311,7 +348,13 @@ def _status(report: PermitReport) -> tuple[str, str, str]:
     return t(label), cls, t(reason)
 
 
-def _cover(report: PermitReport) -> str:
+#: HABITA's mark, the same as the web app's icon (HR-006 polish 4: the identity on the cover).
+MARK = ('<svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="HABITA AI">'
+        '<rect width="32" height="32" rx="6" fill="#1b1d1c"/><path d="M10 8.5v15M22 8.5v15M10 16h12" stroke="#f6f5f1" '
+        'stroke-width="2.25" stroke-linecap="square" fill="none"/><circle cx="16" cy="23.5" r="1.75" fill="#7fa898"/></svg>')
+
+
+def _cover(report: PermitReport, site_url: str | None = None) -> str:
     p, pl = report.property, report.planning
     t = translator_for(report.language)
     label, cls, reason = _status(report)
@@ -322,7 +365,7 @@ def _cover(report: PermitReport) -> str:
              if pl.verified_zoning else t("Zoning not verified: no classification or boundary is stated")),
             (t("Generated"), f"{report.generated_at:%Y-%m-%d %H:%M} UTC")]
     demo = f'<p><span class="pill warn">{t(DEMO)}</span></p>' if report.demo else ""
-    return (f'<div class="cover"><div class="brand">HABITA AI · {t("Property Intelligence")}</div>'
+    return (f'<div class="cover">{MARK}<div class="brand">HABITA AI · {t("Property Intelligence")}</div>'
             f'<h1>{t("Property & Permit Report").replace("&", "&amp;")}</h1><div class="address">{_e(p.address)}</div>{demo}'
             f'<p><span class="pill {cls}">{label}</span> <span class="small">{_e(reason)}</span></p>'
             f'{_translation_box(report)}'
@@ -331,7 +374,7 @@ def _cover(report: PermitReport) -> str:
                                     "Municipal or any other authority; HABITA's statuses, VERIFIED included, are its own "
                                     "checks. Items marked pending must be confirmed with the competent authority before "
                                     "any decision.") + "</div>"
-            f'<div class="foot">{_e(report.disclaimer)}</div></div>')
+            f'{_seal(report, site_url, t)}<div class="foot">{_e(report.disclaimer)}</div></div>')
 
 
 def _translation_box(report: PermitReport) -> str:
@@ -355,12 +398,28 @@ def _glance(report: PermitReport, style: str) -> str:
             f"{reasoning_graph(report, ACCENT[style])}</section>")
 
 
-def _location(maps: LocationMaps | None, t=translator_for("en")) -> str:
+@dataclass(frozen=True)
+class AerialFigure:
+    """HABITA's aerial view for the PDF (HR-006 polish 2): the image the SAM analysis saw, with its year."""
+    jpeg: bytes
+    year: int
+
+
+def _aerial(aerial: AerialFigure | None, t) -> str:
+    """The aerial view, with its notice (approximate, not a survey, no licence); its DGT attribution is in the image."""
+    if aerial is None:
+        return ""
+    return (f'<figure><img class="map" style="width:72%" src="data:image/jpeg;base64,{base64.b64encode(aerial.jpeg).decode()}"/>'
+            f'<figcaption><b>{t("D. Seen from the air (DGT {year} · Meta SAM 3.1)", year=aerial.year)}</b> — '
+            + _e(t(AERIAL_NOTICE, year=aerial.year)) + "</figcaption></figure>")
+
+
+def _location(maps: LocationMaps | None, t=translator_for("en"), aerial: AerialFigure | None = None) -> str:
     if maps is None or not maps.images:
         why = maps.unavailable if maps is not None else "Maps were not requested for this report."
         return (f'<section><h2>{t("Location")}</h2><div class="box"><b>{t("Location maps unavailable.")}</b> {_e(t(why))} '
                 + t("No image has been substituted; use the coordinates in the property identification.")
-                + "</div></section>")
+                + "</div>" + _aerial(aerial, t) + "</section>")
     caps = {"roadmap": t("A. Road map"), "hybrid": t("B. Satellite image (with labels)")}
     figs = [f'<figure><img class="map" src="data:image/jpeg;base64,{base64.b64encode(i.jpeg).decode()}"/><figcaption>'
             f'<b>{caps[i.kind]}</b> — '
@@ -386,7 +445,7 @@ def _location(maps: LocationMaps | None, t=translator_for("en")) -> str:
                   "prove ownership, parcel limits, zoning or the existence of a municipal licence.",
                   radius=maps.radius_m, precision=_e(t(maps.precision)))
               + f" {t('Source:')} {_e(ATTRIBUTION)}.</p>")
-    return f'<section><h2>{t("Location")}</h2>{"".join(figs[:2])}{legend}{"".join(figs[2:])}</section>'
+    return f'<section><h2>{t("Location")}</h2>{"".join(figs[:2])}{legend}{"".join(figs[2:])}{_aerial(aerial, t)}</section>'
 
 
 def _planning(report: PermitReport) -> str:
@@ -428,12 +487,23 @@ def _profile(report: PermitReport) -> str:
             f'<th>{t("Kind")}</th><th>{t("Origin")}</th></tr></thead><tbody>{rows}</tbody></table></section>')
 
 
-def _concepts(report: PermitReport) -> str:
+@dataclass(frozen=True)
+class ConceptFigure:
+    """A before/after concept image for the PDF (HR-006 polish 3), with HABITA's notices already burned in."""
+    jpeg: bytes
+    label: str
+
+
+def _concepts(report: PermitReport, figures: list[ConceptFigure] = ()) -> str:
     if not report.concepts:
         return ""
     t = translator_for(report.language)
     body = "".join(f"<tr><td>{_e(a)}</td><td>{_e(b)}</td></tr>" for a, b in concept_lines.rows(report))
-    return f'<section><h2>{t(concept_lines.TITLE)}</h2><table><tbody>{body}</tbody></table></section>'
+    images = "".join(
+        f'<figure class="concept"><img src="data:image/jpeg;base64,{base64.b64encode(f.jpeg).decode()}"/>'
+        f"<figcaption>{_e(t(f.label))}</figcaption></figure>" for f in figures)
+    return (f'<section><h2>{t(concept_lines.TITLE)}</h2><table><tbody>{body}</tbody></table>'
+            + (f'<div class="concepts">{images}</div>' if images else "") + "</section>")
 
 
 def _afford(report: PermitReport) -> str:
@@ -492,7 +562,10 @@ def _analysis(report: PermitReport) -> str:
                    f"<tr><td>{t('Report')}</td><td>{_e(v.verification_id)}</td></tr>"
                    f"<tr><td>{t('Verified at')}</td><td>{v.created_at:%Y-%m-%d %H:%M} UTC</td></tr>"
                    f"<tr><td>{t('Protocol')}</td><td>{_e(v.protocol)}</td></tr>"
-                   f"<tr><td>{t('Trust pin')}</td><td class='small'>{'<br/>'.join(f'{_e(k)}: {_e(val)}' for k, val in sorted(v.trust_pin.items())) or '—'}</td></tr></table>")
+                   f"<tr><td>{t('Trust pin')}</td><td class='small'>"
+                   + (t("{n} sources pinned · fingerprint {fp} · full list in the annex", n=len(v.trust_pin),
+                        fp=_pin_fingerprint(v.trust_pin)) if v.trust_pin else "—")
+                   + "</td></tr></table>")
     if a.evidence:
         out.append(f'<h3>{t("Evidence and provenance")}</h3><table><thead><tr><th>Id</th><th>{t("Source")}</th>'
                    f'<th>{t("Status")}</th><th>{t("Provenance")}</th></tr></thead><tbody>')
@@ -508,23 +581,79 @@ def _analysis(report: PermitReport) -> str:
     return "".join(out) + "</section>"
 
 
+def report_fingerprint(report: PermitReport) -> str:
+    """HR-006 polish 5: the sha256 of the report's stored content (everything but the generation time), so the same
+    stored results in the same language always give the same fingerprint."""
+    content = report.model_dump(mode="json", exclude={"generated_at"})
+    return hashlib.sha256(json.dumps(content, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def _seal(report: PermitReport, site_url: str | None, t) -> str:
+    fp = report_fingerprint(report)
+    link = (f"{site_url.rstrip('/')}/property/{report.property.property_id}" if site_url else None)
+    return ('<p class="small seal">' + t("<b>Integrity.</b> Report fingerprint (sha256 of its stored content, without "
+                                         "the generation time): {fp}. Downloading the report again from HABITA gives "
+                                         "the same fingerprint while its stored results are unchanged.", fp=f"<span class='mono'>{fp}</span>")
+            + (" " + t("Property in HABITA: {link}", link=f"<span class='mono'>{_e(link)}</span>") if link else "")
+            + "</p>")
+
+
+def _pin_fingerprint(pin: dict[str, str]) -> str:
+    """A short fingerprint of the trust pin (its sorted pairs), so the summary and the annex can be matched."""
+    return hashlib.sha256(json.dumps(sorted(pin.items()), ensure_ascii=False).encode()).hexdigest()[:16]
+
+
 def _sources(report: PermitReport) -> str:
     t = translator_for(report.language)
     out = []
     if report.pending:
         out.append(f'<h3>{t("Pending confirmation")}</h3><ul>' + "".join(f"<li>{_e(x)}</li>" for x in report.pending) + "</ul>")
     if report.sources:
-        out.append(f'<h3>{t("Official sources for this jurisdiction")}</h3><table><thead><tr><th>{t("Source")}</th>'
-                   f'<th>{t("Publisher")}</th><th>{t("Status")}</th></tr></thead><tbody>' + "".join(
-                       f"<tr><td>{_e(s.title)}" + (f"<br/><span class='mono'>{_url(s.url)}</span>" if s.url else "")
-                       + f"</td><td class='small'>{_e(s.publisher)}</td><td class='small'>{_e(t(s.status))}"
-                       + (f"<br/>{t('verified')} {s.verified_on}" if s.verified_on else "") + "</td></tr>"
-                       for s in report.sources) + "</tbody></table>")
+        # HR-006 polish 1: grouped by publisher, one line each; the long links are numbered in the annex.
+        refs = _source_refs(report)
+        out.append(f'<h3>{t("Official sources for this jurisdiction")}</h3>')
+        groups: dict[str, list] = {}
+        for s in report.sources:
+            groups.setdefault(s.publisher or t("Other"), []).append(s)
+        for publisher, items in groups.items():
+            # The version most of the group shares is said once; a source names its own only when it differs.
+            common, n = Counter(s.version for s in items if s.version).most_common(1)[0] if any(s.version for s in items) else (None, 0)
+            common = common if n > 1 else None
+            out.append(f'<p class="small"><b>{_e(publisher)}</b> · {len(items)}'
+                       + (f'<br/><span class="muted">{t("Version")}: {_e(common)}</span>' if common else "") + "</p>"
+                       f'<table class="compact"><tbody>' + "".join(
+                           f"<tr><td>{_e(s.title)}" + (f" <span class='ref'>[{refs[s.source_id]}]</span>" if s.source_id in refs else "")
+                           + (f"<br/><span class='small muted'>{_e(s.version)}</span>" if s.version and s.version != common else "")
+                           + f"</td><td class='small' style='white-space:nowrap'>{_e(t(s.status))}"
+                           + (f" · {s.verified_on}" if s.verified_on else "") + "</td></tr>"
+                           for s in items) + "</tbody></table>")
     return (f'<section><h2>{t("Sources and pending items")}</h2>{"".join(out)}<p class="small muted">{_e(report.disclaimer)}'
             "</p></section>")
 
 
-def render_html(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico") -> str:
+def _source_refs(report: PermitReport) -> dict[str, int]:
+    """Annex numbers of the sources that have a link, in the report's order."""
+    return {s.source_id: i for i, s in enumerate((s for s in report.sources if s.url), start=1)}
+
+
+def _annex(report: PermitReport, site_url: str | None = None) -> str:
+    """The audit appendix: every source link (numbered as in the list) and the full trust pin, in small print."""
+    t = translator_for(report.language)
+    out = []
+    linked = [s for s in report.sources if s.url]
+    if linked:
+        out.append(f'<h3>{t("Links of the official sources")}</h3><ol class="annex-list">'
+                   + "".join(f'<li><span class="mono">{_url(s.url)}</span></li>' for s in linked) + "</ol>")
+    v = report.assessment.verification if report.assessment else None
+    if v and v.trust_pin:
+        out.append(f'<h3>{t("Trust pin")} · {_pin_fingerprint(v.trust_pin)}</h3><ul class="annex-pin">'
+                   + "".join(f"<li>{_e(k)}: {_e(val)}</li>" for k, val in sorted(v.trust_pin.items())) + "</ul>")
+    out.append(_seal(report, site_url, t))
+    return f'<section><h2>{t("Annex: links and trust pin")}</h2>{"".join(out)}</section>'
+
+
+def render_html(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico",
+                aerial: AerialFigure | None = None, concepts: list[ConceptFigure] = (), site_url: str | None = None) -> str:
     if style not in STYLES:
         raise ValueError(f"Unknown style {style!r}; expected one of {', '.join(STYLES)}.")
     t = translator_for(report.language)
@@ -532,11 +661,13 @@ def render_html(report: PermitReport, maps: LocationMaps | None = None, style: s
     return (f'<!doctype html><html lang="{report.language}"><head><meta charset="utf-8"><title>{t("HABITA AI report")}</title><meta name="author" content="HABITA AI">'
             f"<style>{FONT_FACES[style]()}\n{css}\n{CSS_STYLE[style]}</style></head><body class='{style}'>"
             f'<div class="disclaimer-running">{"<b>" + t(DEMO) + ".</b> " if report.demo else ""}{_e(report.disclaimer)}</div>'
-            f"{_cover(report)}{_glance(report, style)}{_location(maps, t)}{_planning(report)}{_profile(report)}{_concepts(report)}{_afford(report)}{_analysis(report)}"
-            f"{_sources(report)}</body></html>")
+            f"{_cover(report, site_url)}{_glance(report, style)}{_location(maps, t, aerial)}{_planning(report)}{_profile(report)}{_concepts(report, concepts)}{_afford(report)}{_analysis(report)}"
+            f"{_sources(report)}{_annex(report, site_url)}</body></html>")
 
 
-def render_premium_pdf(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico") -> bytes:
+def render_premium_pdf(report: PermitReport, maps: LocationMaps | None = None, style: str = "classico",
+                       aerial: AerialFigure | None = None, concepts: list[ConceptFigure] = (),
+                       site_url: str | None = None) -> bytes:
     from weasyprint import HTML  # imported lazily: heavy, and only this renderer needs it
 
-    return HTML(string=render_html(report, maps, style)).write_pdf()
+    return HTML(string=render_html(report, maps, style, aerial, concepts, site_url)).write_pdf()

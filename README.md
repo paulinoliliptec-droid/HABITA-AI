@@ -126,6 +126,14 @@ Maps Static and Street View Static is kept in Secret Manager. Spend is capped (a
 per-minute and per-property limits). **On the private staging** (commit `5734adc`, 2026-10-30) the PDF downloaded from
 the workspace contains the three images. If the map service is unavailable or unconfigured, the PDF says so and shows
 no substitute image.
+**Polished for the hackathon (2026-11-02):** HABITA's mark on the cover and its name on every page; official sources
+grouped by publisher, one line each, with the long links and the full trust pin in an audit annex (evidence provenance
+stays complete, AC6.3); the reasoning graph groups evidence like the web graph and fits on the "at a glance" page; the
+aerial view (DGT orthophoto with the SAM 3.1 outlines and its notice) on the location page; up to four of the
+matter's before/after concept images, with their burned-in notices (matter reports only); an integrity seal: the
+report's fingerprint (sha256 of its stored content) and the property's public link. The sample report went from 13 to
+11 pages. Still open: fonts are Latin only (TD-021), and the Google terms for imagery in downloadable PDFs need a legal
+check (TD-055).
 Code: `backend/app/services/report/`, `backend/app/integrations/maps/static_maps.py`.
 
 ### HR-005 · Visual Reasoning Graph — Live; acceptance pending

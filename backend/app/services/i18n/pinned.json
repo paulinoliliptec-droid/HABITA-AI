@@ -520,5 +520,18 @@
   "Record": "Registo",
   "Dashed line: only part of the group is cited": "Linha tracejada: só parte do grupo é citada",
   "Linked to: {blocks}": "Ligado a: {blocks}",
-  "In the selected flow": "No fluxo selecionado"
+  "In the selected flow": "No fluxo selecionado",
+  "{n} sources pinned · fingerprint {fp} · full list in the annex": "{n} fontes fixadas · impressão digital {fp} · lista completa no anexo",
+  "Other": "Outra",
+  "Version": "Versão",
+  "Links of the official sources": "Ligações das fontes oficiais",
+  "Annex: links and trust pin": "Anexo: ligações e trust pin",
+  "D. Seen from the air (DGT {year} · Meta SAM 3.1)": "D. Vista aérea (DGT {year} · Meta SAM 3.1)",
+  "{n} item(s): {ids}": "{n} item(ns): {ids}",
+  "Official texts": "Textos oficiais",
+  "Your statements": "As suas declarações",
+  "Other evidence": "Outras evidências",
+  "<b>Integrity.</b> Report fingerprint (sha256 of its stored content, without the generation time): {fp}. Downloading the report again from HABITA gives the same fingerprint while its stored results are unchanged.": "<b>Integridade.</b> Impressão digital do relatório (sha256 do conteúdo guardado, sem a hora de geração): {fp}. Descarregar de novo o relatório do HABITA dá a mesma impressão digital enquanto os resultados guardados não mudarem.",
+  "Property in HABITA: {link}": "Imóvel no HABITA: {link}",
+  "A dashed line: the section cites only some of the group's items (the analysis names which).": "Uma linha tracejada: a secção cita apenas alguns itens do grupo (a análise indica quais)."
 }

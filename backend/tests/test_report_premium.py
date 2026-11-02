@@ -86,16 +86,20 @@ def test_graph_edges_are_only_stored_relations(verified):
     cited = {(f"ev:{i}", f"sec:{s.section}") for s in a.statements for i in s.evidence_ids}
     cited |= {(f"ev:{i}", "conclusion") for i in a.conclusion_evidence_ids}
     structural = {("property", "jurisdiction"), ("jurisdiction", "authority"), ("property", "planning")}
+    members = {n["id"]: n["ids"] for c in cols for n in c if n["id"].startswith("evg:")}
     for src, dst in edges:
         assert src in nodes and dst in nodes
-        if src.startswith("ev:"):
-            assert (src, dst) in cited  # an evidence edge exists only where the report records the citation
-        elif dst.startswith("ev:"):
-            ev = next(e for e in a.evidence if f"ev:{e.evidence_id}" == dst)
-            assert {"planning": "planning_context", "authority": "authority_record",
-                    "jurisdiction": "jurisdiction_record"}[src] == ev.source_type
+        if src.startswith("evg:"):
+            # a group's edge exists only where the report records a citation by one of its members (polish 6)
+            assert any((f"ev:{i}", dst) in cited for i in members[src])
+        elif dst.startswith("evg:"):
+            kind = {"planning": "planning_context", "authority": "authority_record",
+                    "jurisdiction": "jurisdiction_record"}[src]
+            assert any(e.source_type == kind for e in a.evidence if e.evidence_id in members[dst])
         else:
             assert (src, dst) in structural
+    # every evidence item is in exactly one group, and every group says its ids
+    assert sorted(i for ids in members.values() for i in ids) == sorted(e.evidence_id for e in a.evidence)
 
 
 def test_repeated_statements_become_cross_references_that_keep_their_evidence(verified):
@@ -171,3 +175,75 @@ def test_no_authority_node_or_edge_when_the_report_names_none(verified):
     cols, edges = graph_model(report)
     assert "authority" not in {n["id"] for c in cols for n in c}
     assert not any("authority" in (src, dst) for src, dst in edges)
+
+
+def _aerial_jpeg() -> bytes:
+    buf = io.BytesIO()
+    PILImage.new("RGB", (64, 70), (90, 110, 90)).save(buf, "JPEG")
+    return buf.getvalue()
+
+
+def test_hr006_the_aerial_view_is_in_the_location_page_with_its_notice(verified):
+    """HR-006 polish 2: the image the SAM analysis saw, its year, and what it is not."""
+    from app.services.report.premium import AerialFigure, render_html
+    html = render_html(verified, None, "classico", AerialFigure(jpeg=_aerial_jpeg(), year=2018))
+    assert "D. Seen from the air (DGT 2018 · Meta SAM 3.1)" in html
+    assert "not a survey or a parcel boundary, and prove no licence" in html
+    assert html.count("data:image/jpeg;base64,") == 1
+    pt = render_html(verified.model_copy(update={"language": "pt"}), None, "classico", AerialFigure(jpeg=_aerial_jpeg(), year=2018))
+    assert "D. Vista aérea (DGT 2018 · Meta SAM 3.1)" in pt and "não provam nenhuma licença" in pt
+
+
+def test_hr006_no_aerial_view_no_figure(verified):
+    from app.services.report.premium import render_html
+    assert "Seen from the air" not in render_html(verified, None, "classico")
+
+
+def test_hr006_concept_images_beside_their_notice(verified):
+    """HR-006 polish 3: the matter's concept images (notices burned in by HABITA), captioned, after the table."""
+    from datetime import date
+
+    from app.schemas.report import ReportConcept
+    from app.services.report.premium import ConceptFigure, render_html
+    report = verified.model_copy(update={"concepts": [ReportConcept(change_label="Open-plan kitchen", created_on=date(2026, 11, 2))]})
+    html = render_html(report, None, "classico", None, [ConceptFigure(jpeg=_aerial_jpeg(), label="Open-plan kitchen")])
+    section = html[html.index("Before / after concepts"):]
+    assert section.count("data:image/jpeg;base64,") == 1 and "Open-plan kitchen</figcaption>" in section
+    assert "It is not a project, not an authorisation" in html or "not an authorisation" in html
+    # no concepts in the report: no images, whatever is passed
+    assert "class=\"concepts\"" not in render_html(verified, None, "classico", None, [ConceptFigure(_aerial_jpeg(), "x")])
+
+
+def test_hr006_the_fingerprint_follows_the_content_not_the_generation_time(verified):
+    """HR-006 polish 5: same stored results, same fingerprint; any change in content, another one."""
+    from datetime import timedelta
+
+    from app.services.report.premium import report_fingerprint
+    later = verified.model_copy(update={"generated_at": verified.generated_at + timedelta(hours=3)})
+    assert report_fingerprint(later) == report_fingerprint(verified)
+    changed = verified.model_copy(update={"disclaimer": verified.disclaimer + " "})
+    assert report_fingerprint(changed) != report_fingerprint(verified)
+
+
+def test_hr006_the_seal_links_the_public_property_page_never_a_capability(verified):
+    from app.services.report.premium import render_html, report_fingerprint
+    html = render_html(verified, None, "classico", site_url="https://habita.example/")
+    assert html.count(report_fingerprint(verified)) == 2  # on the cover and in the annex
+    assert f"https://habita.example/property/{verified.property.property_id}" in html
+    assert "token" not in html.split("Property in HABITA")[1][:300].lower()
+    assert "Property in HABITA" not in render_html(verified, None, "classico")  # no site configured: no link
+
+
+def test_hr006_a_partly_cited_group_is_drawn_dashed(verified):
+    """Codex HR-006 r1 (P2): a group line never implies that every item of the group is cited."""
+    from app.services.report.premium import graph_model, reasoning_graph
+    cols, edges = graph_model(verified)
+    a = verified.assessment
+    cited = {f"sec:{s.section}": set() for s in a.statements} | {"conclusion": set(a.conclusion_evidence_ids)}
+    for s in a.statements:
+        cited[f"sec:{s.section}"] |= set(s.evidence_ids)
+    groups = {n["id"]: n for c in cols for n in c if n["id"].startswith("evg:")}
+    expected = {(g, dst) for g, dst in edges if g in groups and not groups[g]["ids"] <= cited.get(dst, set())}
+    assert expected == {(g["id"], t) for g in groups.values() for t in g.get("partial_to", ())}
+    svg = reasoning_graph(verified)
+    assert svg.count('stroke-dasharray="3 2"') == len(expected)
