@@ -23,6 +23,7 @@ export function PrivacyContent() {
             </li>
             <li>{t("The map is displayed with the Google Maps JavaScript API.")}</li>
             <li>{t("Your permit questions are sent to Google Cloud Translation to recognise their language. When you read HABITA in Portuguese, answers and reports are also sent there to be translated; they are not stored by HABITA in translated form.")}</li>
+            <li>{t("Your permit questions, the property's data and the evidence HABITA gathers are processed by Meta's Muse Spark. If Meta's service is unavailable, the same request goes instead to Muse Spark open, run by Baseten in the United States. Your photos and plans are read only by Meta's Muse Spark.")}</li>
             <li>{t("HABITA has no accounts and does not ask for your name, email or other personal details.")}</li>
           </ul>
         </section>

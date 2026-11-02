@@ -7,12 +7,32 @@ Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MV
 below); development continues on the branch `mu9/structural-verification` and reaches `main` only by an explicit merge.
 
 ## The problem
-Before buying, renovating or extending a property, owners and professionals must work out which municipality and
-plan apply, what the plan says for that parcel, which procedure (licence, prior communication, exemption) the works
-need, and which official documents back each answer. In Portugal that means reading the municipal master plan
-(PDM), its maps and amendments, and national law (RJUE, RGEU) by hand. Generic AI assistants answer confidently and
-without sources. HABITA answers with citations to official documents and refuses to call an answer verified when
-the evidence does not support it.
+**Anyone who wants to buy, divide, convert, renovate or invest in a home cannot easily find out what they are allowed
+to do, what it will cost and whether it is legal.** The answer is scattered across municipal plans and their maps,
+national law, procedures that change with the type of works, cadastral and aerial data, market statistics and the
+property's own papers, photos and plans. Each piece lives with a different authority, in a different format and often
+in a language of its own. Professionals spend days putting it together; owners usually guess, and a wrong guess costs
+months, fines or a sale that falls through. Generic AI assistants make it worse: they answer confidently, without
+sources, and cannot tell a rule from a guess.
+
+HABITA AI brings those pieces into one place around one property, and says plainly what is verified, what is
+declared, what is only observed and what is still unknown:
+
+| Part of the problem | What HABITA does | Module |
+|---|---|---|
+| "Which rules apply here, and who decides?" | Resolves the address to its jurisdiction chain and competent authority | HR-001 |
+| "What exactly am I asking for?" | Places the request in a closed catalogue (division into units, change of use, interior works) and asks only the facts it needs | HR-002, HR-009 |
+| "Is the answer true?" | Retrieves official documents, snapshots them, and shows an answer as **verified** only when every statement is backed by an official source (MU-9) | HR-003 |
+| "Show me, on the ground" | Map with post-its, official aerial photo with outlines from Meta SAM 3.1, a clickable reasoning graph from property to conclusion | HR-004, HR-005 |
+| "I need something to keep and share" | A PDF report with its verification record, sources and integrity seal; the same report spoken aloud | HR-006, HR-007 |
+| "What do we actually know about this property?" | A profile that keeps official facts, the user's declarations and observations apart, each with its origin | HR-008 |
+| "Here are my photos and plans" | Reads them as observations (never as official facts), strips location data, says what to confirm with the authority | HR-010 |
+| "Can I afford it?" | Cost ranges, the user's own financing, official market statistics, every number computed by code | HR-011 |
+| "What could it look like?" | Before/after concepts and views from a plan, labelled as AI concepts, never as projects | HR-012 |
+
+The deep, verified coverage today is **Cascais (Portugal)**; the architecture (a jurisdiction chain, a registry of
+official sources per jurisdiction, and a verifier that refuses what those sources do not support) is built to add
+other places without changing how answers are checked.
 
 ## Architecture
 | Layer | Technology | Role |
@@ -22,7 +42,7 @@ the evidence does not support it.
 | Database | MongoDB Atlas | properties, permit matters, evidence, verifications, official-source snapshots, file readings, concepts |
 | Files | Google Cloud Storage (private bucket) | the user's photos and plans (kept without location or device data) and the generated concepts |
 | Maps | Google Maps Platform | Places autocomplete, Geocoding, Maps JavaScript (map), Maps Static and Street View Static (PDF images, see HR-006) |
-| AI | Meta Model API — **Muse Spark** (`muse-spark-1.3`) | planning, tool calls over official sources, drafting, a review that can only make a verdict stricter; reading the user's photos and plans (observations, people, plan or photo, the rooms of a plan) |
+| AI | Meta Model API — **Muse Spark** (`muse-spark-1.3`); fallback when it is unavailable: **Muse Spark open** on Baseten (`meta-models/muse-spark-open-1026`), see [open models](infrastructure/open-models/README.md) | planning, tool calls over official sources, drafting, a review that can only make a verdict stricter; reading the user's photos and plans (observations, people, plan or photo, the rooms of a plan) |
 | Images | Meta Model API — **Muse Image** (`muse-image-1.0`, edit endpoint) | before/after concepts from the user's photos and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses), always from HABITA's fixed instruction, with notices burned in (HR-012) |
 | Language | Google Cloud Translation | Portuguese reading view of answers; fixed texts in reviewed catalogs |
 | Aerial view | DGT official orthophotos (WMS, 2018) + Meta Model API — **SAM 3.1** (`sam-3.1`, masks decoded with Meta's `meta-sam-parser`) | buildings, small separate buildings and pools around the address point, measured from the image scale; observations that only add conditions to confirm with the Câmara |
@@ -251,7 +271,7 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Permit matters with Muse Spark, follow-up questions, resume (HR-002) | Done |
 | Official-source registry, snapshots, retrieval (HR-003) | Done for Cascais; other jurisdictions planned |
 | MU-9 verification, TrustPin, reviewer, final gate (HR-003) | Tested offline and on staging; whole-sentence verification live (2026-11-02), limits listed in HR-003; replica-set binding tested on a local MongoDB 8.0 replica set, Atlas run pending |
-| Open-weight fallback for the reasoning model (Modal, then Baseten) when Muse Spark is unavailable; same MU-9 verifier | Code and tests ready, off by default; not deployed (needs accounts, keys and cost approval) — `infrastructure/open-models/` |
+| Fallback for the reasoning model when Muse Spark is unavailable: Muse Spark open on Baseten (Modal prepared, off); same MU-9 verifier | Code, key and a comparative run ready (2026-11-02); not yet deployed — `infrastructure/open-models/` |
 | Zoning classification from official GIS | Planned (no validated connector; absence stated) |
 | Map with post-its (HR-004) | Done (MVP); owner browser check pending |
 | PDF report with verification record and provenance (HR-006) | Done; tested on staging |
