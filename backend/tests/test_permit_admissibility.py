@@ -276,7 +276,7 @@ async def test_the_reviewer_flag_is_enforced_by_code():
 
 @pytest.mark.parametrize("text, cites", [
     ("The Câmara Municipal de Cascais is the competent authority.", ["E9"]),
-    ("Each new unit must be autonomous with its own exit.", ["E7"]),
+    ("Only autonomous units can be the object of horizontal property.", ["E7"]),
     ("You state each floor has its own street door.", ["E8"]),
     ("Confirm the conditions with the Câmara Municipal de Cascais before you apply.", ["E9"]),
     ("Confirm with the Câmara whether the works need a licence or prior communication.", ["E1"]),
@@ -969,3 +969,12 @@ def test_the_cascais_workflow_reproduces_the_live_draft_shape():
                for r in persisted["draft"]["risks"])
     assert [e["structured"]["status"] for e in evidence if e["source_type"] == "planning_context"] == \
         ["requires_manual_confirmation"]
+
+
+
+@pytest.mark.parametrize("section", SECTIONS)
+async def test_td003_a_deontic_paraphrase_of_a_rule_no_longer_verifies(section):
+    """TD-003 final review (2026-11-02): "Only autonomous units can be …" restated as "Each new unit must be
+    autonomous …" changes the modality; without deontic analysis (TD-045) it is refused, fail-closed. Was legit."""
+    report = await verify(in_section(section, "Each new unit must be autonomous with its own exit.", ["E7"]))
+    assert report.outcome != "VERIFIED"

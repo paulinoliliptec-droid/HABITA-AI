@@ -171,3 +171,179 @@ async def test_contracted_and_fused_negations_are_grounded_too(text):
 def in_section_claim(text):
     from tests.test_permit_admissibility import in_section
     return in_section("claim", text, ["E50"])
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("Only Câmara Municipal de Cascais can handle applications.",
+     "Câmara Municipal de Cascais cannot handle applications."),
+    ("Only Câmara Municipal de Cascais can handle applications.",
+     "Câmara Municipal de Cascais can’t handle applications."),
+    ("Not only Câmara Municipal de Cascais can handle applications.",
+     "Câmara Municipal de Cascais can't handle applications."),
+    ("Apenas a Câmara Municipal de Cascais pode tratar pedidos.",
+     "A Câmara Municipal de Cascais não pode tratar pedidos."),
+    ("Câmara Municipal de Cascais handles applications, except appeals.",
+     "Câmara Municipal de Cascais never handles applications."),
+])
+async def test_td003_a_restriction_never_grounds_the_opposite_negation(record_text, text):
+    """TD-003 (Codex 2026-11-01, P1): a restrictive word in the cited record granted *any* negation in the statement,
+    so 'Only X can V' verified 'X cannot V'. A negation must now be the record's own."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("Câmara Municipal de Cascais cannot handle appeals. Câmara Municipal de Cascais can handle applications.",
+     "Câmara Municipal de Cascais cannot handle applications."),
+    ("A Câmara Municipal de Cascais não trata recursos. A Câmara Municipal de Cascais trata pedidos.",
+     "A Câmara Municipal de Cascais não trata pedidos."),
+    ("Câmara Municipal de Cascais handles applications and documents.",
+     "Câmara Municipal de Cascais handles applications without documents."),
+    ("Câmara Municipal de Cascais transfers ownership. Câmara Municipal de Cascais cannot inspect deeds.",
+     "Câmara Municipal de Cascais cannot transfer ownership."),
+    ("A Câmara Municipal de Cascais trata pedidos e documentos.",
+     "A Câmara Municipal de Cascais trata pedidos sem documentos."),
+])
+async def test_td003_r2_a_negation_is_grounded_only_by_the_sentence_that_states_it(record_text, text):
+    """TD-003 round 2 (Codex 2026-11-01, P1): a negation in an unrelated sentence of the record, or an unlisted
+    negation ('without', 'sem'), verified the opposite claim."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+async def test_td003_r2_the_records_own_negated_sentence_still_verifies():
+    """Control: a negation restated from the very sentence that states it keeps verifying."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", "Câmara Municipal de Cascais cannot handle appeals.",
+                 status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim("Câmara Municipal de Cascais cannot handle appeals."),
+                                   [*CASE_RECORDS, rec])
+    assert report.outcome == "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,title,text", [
+    ("Câmara Municipal de Cascais cannot transfer ownership, but can inspect deeds.", "Câmara Municipal de Cascais",
+     "Câmara Municipal de Cascais can transfer ownership, but cannot inspect deeds."),
+    ("Câmara Municipal de Cascais cannot transfer ownership. Câmara Municipal de Cascais can inspect deeds.",
+     "Câmara Municipal de Cascais inspect deeds", "Câmara Municipal de Cascais cannot inspect deeds."),
+    ("A Câmara Municipal de Cascais não transfere a propriedade, mas inspeciona escrituras.",
+     "Câmara Municipal de Cascais", "A Câmara Municipal de Cascais transfere a propriedade, mas não inspeciona escrituras."),
+])
+async def test_td003_r3_a_negation_cannot_move_between_clauses_or_borrow_title_words(record_text, title, text):
+    """TD-003 round 3 (Codex 2026-11-01, P1/P2): a negated sentence verifies only as a verbatim restatement."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title=title)
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+async def test_td003_r4_numbers_are_part_of_a_negated_sentence():
+    """TD-003 round 4 (Codex 2026-11-01, P1): swapping the numbers of a negated sentence reversed the prohibition."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", "Application 1 cannot be processed, but application 2 can be processed.",
+                 status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(
+        in_section_claim("Application 2 cannot be processed, but application 1 can be processed."), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("The application fee is not < 10 euros.", "The application fee is not > 10 euros."),
+    ("The application fee is not ≤ 10 euros.", "The application fee is not ≥ 10 euros."),
+])
+async def test_td003_r5_comparison_signs_are_part_of_a_negated_sentence(record_text, text):
+    """TD-003 round 5 (Codex 2026-11-02, P1): '<' and '>' were dropped from the sequence. Fixed after the last
+    review round: not re-reviewed by Codex."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("Only the owner can transfer ownership.", "The owner can only transfer ownership."),
+    ("The owner can transfer ownership.", "Only the owner can transfer ownership."),
+    ("The owner can transfer ownership.", "The owner must transfer ownership."),
+    ("O dono pode transferir a propriedade.", "O dono deve transferir a propriedade."),
+    ("The fee is more than 10 euros and less than 20 euros.", "The fee is less than 10 euros and more than 20 euros."),
+    ("The fee is 10 euros or 20 dollars.", "The fee is 10 dollars or 20 euros."),
+    ("A taxa é superior a 10 euros e inferior a 20 euros.", "A taxa é inferior a 10 euros e superior a 20 euros."),
+    ("A área mínima é 10 m2 e a área máxima é 20 m2.", "A área máxima é 10 m2 e a área mínima é 20 m2."),
+    ("The fee is not −10 euros.", "The fee is not 10 euros."),
+    ("The owner can transfer ownership.", "The owner can transfer ownership, except to the tenant."),
+])
+async def test_td003_final_operators_change_the_rule_only_verbatim(record_text, text):
+    """TD-003 final review (Codex 2026-11-02, P1): restriction placement, modality, thresholds, units and signs."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("text", [
+    "The fee is more than 10 euros and less than 20 euros.",
+    "O dono pode transferir a propriedade.",
+])
+async def test_td003_final_a_verbatim_operator_sentence_still_verifies(text):
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome == "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("record_text,text", [
+    ("The owner can transfer ownership.", "The owner has to transfer ownership."),
+    ("The owner can transfer ownership.", "The owner is to transfer ownership."),
+    ("O dono pode transferir a propriedade.", "O dono tem de transferir a propriedade."),
+    ("O dono pode transferir a propriedade.", "O dono precisa de transferir a propriedade."),
+    ("Transfer of ownership must be possible.", "Transfer of ownership may be possible."),
+    ("The fee is 10 euros.", "The fee is - 10 euros."),
+    ("The north unit is 10 m2. The south unit is 20 m2.", "The south unit is 10 m2."),
+])
+async def test_td003_final_r2_obligations_hedges_signs_and_numbers(record_text, text):
+    """TD-003 final review round 2 (Codex 2026-11-02, P1)."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "authority_record", record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("source_type,record_text,text", [
+    ("property_record", "North Street 10. South Street 20.", "South Street 10."),
+    ("authority_record", "The transfer must be allowed.", "The transfer may be possible."),
+    ("authority_record", "The owner must transfer ownership. The owner is able to sell it.",
+     "The owner is able to transfer ownership."),
+    ("authority_record", "The fee is 10 euros.", "The fee is – 10 euros."),
+])
+async def test_td003_final_r3_addresses_hedges_ability_and_dashes(source_type, record_text, text):
+    """TD-003 final review round 3 (Codex 2026-11-02, P1)."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", source_type, record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+@pytest.mark.parametrize("source_type,record_text,text", [
+    ("authority_record", "The deed is not verified.", "The deed is verified."),
+    ("authority_record", "The owner cannot transfer ownership.", "The owner transfers ownership."),
+    ("property_record", "North Street 10, Cascais. South Street 20, Porto.", "North Street 10, Porto."),
+])
+async def test_td003_final_r4_dropped_operators_and_mixed_addresses(source_type, record_text, text):
+    """TD-003 final review round 4 (Codex 2026-11-02, P1)."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", source_type, record_text, status="system_record", title="Câmara Municipal de Cascais")
+    report = await rendered_verify(in_section_claim(text), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
+
+
+async def test_td003_final_r5_two_addresses_in_one_cited_sentence():
+    """TD-003 final review round 5 (Codex 2026-11-02, P1). Fixed after the last round: not re-reviewed."""
+    from tests.test_permit_admissibility import CASE_RECORDS, record, rendered_verify
+    rec = record("E50", "property_record", "North Street 10, Cascais, South Street 20, Porto",
+                 status="system_record", title="HABITA property record")
+    report = await rendered_verify(in_section_claim("North Street 10, Porto."), [*CASE_RECORDS, rec])
+    assert report.outcome != "VERIFIED", report.issues
