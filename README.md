@@ -72,7 +72,12 @@ rules, so the workspace says so and does not draft a permit answer there. They a
   sales), NYC Department of Finance 2025 sales by borough (median price of homes), HDB resale flats over the last 12
   months for Singapore (S$/m², public housing only). Statistics of past sales, never a valuation.
 
-**Not built there yet, by design (limitations):** verified permit answers, the request catalogue and its fixed
+**Why Cascais first:** a verified permit answer needs each place's official sources ingested, checked and its law
+reviewed, and that takes more than the hackathon's nine days per jurisdiction. We chose depth in one municipality,
+Cascais, built end to end as the reference, and gave the other cities the minimum that shows the same pipeline
+working there (authority, official sources, aerial view, official prices).
+
+**Not built there yet, by design:** verified permit answers, the request catalogue and its fixed
 warnings, works costs and financing, and the PDF's aerial figure. They need each place's official sources ingested and
 checked, and its law reviewed. These cities are a proof of scale: the same jurisdiction chain, source registry,
 verifier, aerial pipeline and price snapshot extend to other legal systems. Other countries get a generic chain
