@@ -180,8 +180,11 @@ def upgrades_status(answer: str, status: str | None) -> bool:
 
 class ReportCopilot:
     def __init__(self, model, *, limiter: ResolutionLimiter | None = None, usage=None, daily_limit: int = 300,
-                 per_caller_daily: int = 30, caller_key: bytes = b"") -> None:
+                 per_caller_daily: int = 30, caller_key: bytes = b"", open_model=None) -> None:
         self._model = model
+        # Muse Spark Open (Meta open weights, served by Baseten), chosen by the reader (owner 2026-11-03). Same prompt,
+        # schema, limits and status/number guards as Muse Spark; never a fallback here, only the reader's choice.
+        self._open = open_model
         self._limiter = limiter or ResolutionLimiter(10, 5, 2)
         self._usage = usage or MemoryDailyUsage()
         self._daily, self._per_caller = daily_limit, per_caller_daily
@@ -261,16 +264,22 @@ class ReportCopilot:
             raise InvalidQuestionError(f"Ask a question of at most {MAX_QUESTION} characters.")
         return question
 
+    def has_open(self) -> bool:
+        return self._open is not None
+
     async def answer(self, report: PermitReport, question: str, history: list[dict[str, str]],
-                     lang: str) -> dict[str, Any]:
+                     lang: str, engine: str = "muse") -> dict[str, Any]:
         """One answer from the report; raises when nothing usable came back (the caller gives the counts back)."""
         question = self.check_question(question)
+        model = self._open if engine == "open" else self._model
+        if model is None:
+            raise ServiceNotConfiguredError("Muse Spark Open is not available on the server right now.")
         turns = [{"q": str(t.get("q", ""))[:MAX_QUESTION], "a": str(t.get("a", ""))[:MAX_ANSWER]}
                  for t in history[-MAX_TURNS:]]
         user = ("LANGUAGE: " + lang + "\nREPORT: " + report_context(report)
                 + "\nEARLIER TURNS: " + json.dumps(turns, ensure_ascii=False)
                 + "\nQUESTION: " + json.dumps(question, ensure_ascii=False))
-        result = await self._model.chat([{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}],
+        result = await model.chat([{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}],
                                         response_schema=SCHEMA, schema_name="report_copilot")
         try:
             parsed = json.loads(result.content or "")
@@ -291,7 +300,7 @@ class ReportCopilot:
             logger.info("report copilot: an answer failed the status/number checks; fixed reply sent")
             answer, in_report, sections = SAFE_ANSWER.get(lang, SAFE_ANSWER["en"]), False, []
         return {"answer": answer, "in_report": in_report, "sections": sections, "report_status": status,
-                "model_id": getattr(self._model, "model_id", None)}
+                "model_id": getattr(model, "model_id", None)}
 
     async def ask(self, report: PermitReport, question: str, history: list[dict[str, str]], lang: str,
                   address: str) -> dict[str, Any]:

@@ -304,7 +304,7 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Photos and plans read as observations (HR-010) | Live; acceptance pending (consent wording not legally reviewed) |
 | Costs, financing and market price (HR-011) | Live; acceptance pending |
 | Before/after concepts from the user's photos, views from a plan, and the room the user chooses to divide (HR-012) | Live; acceptance pending |
-| Report copilot, live (2026-11-03): bottom-right, questions by text or dictation (dictation sends by itself after 10 s of silence), answers spoken in the ElevenLabs voice of the reader's language (the server speaks only answers it gave, by an id valid 30 minutes; the browser's voice if that audio can't be had); only about the report the reader sees | Code, tests and real checks with Muse Spark (a zoning question answered from the report; a cost question refused; an injection asking to say VERIFIED never reached the reader); not yet deployed. Limits: an answer naming a status the report lacks, or a number it doesn't contain, is replaced by a fixed reply; free wording isn't checked word by word, so the screen shows the report's own status beside every answer and labels it an explanation, not a verification or legal advice |
+| Report copilot, live (2026-11-03): bottom-right, questions by text or dictation (dictation sends by itself after 10 s of silence), the reader chooses the model, Muse Spark (Meta Model API) or Muse Spark Open (Meta's open weights, `meta-models/muse-spark-open-1026` on Baseten; same prompt, schema, limits and status/number guards; each answer names its model), answers spoken in the ElevenLabs voice of the reader's language (the server speaks only answers it gave, by an id valid 30 minutes; the browser's voice if that audio can't be had); only about the report the reader sees | Code, tests and real checks with Muse Spark (a zoning question answered from the report; a cost question refused; an injection asking to say VERIFIED never reached the reader); not yet deployed. Limits: an answer naming a status the report lacks, or a number it doesn't contain, is replaced by a fixed reply; free wording isn't checked word by word, so the screen shows the report's own status beside every answer and labels it an explanation, not a verification or legal advice |
 | Meta terms (2026-11-03): before the demo and the workspace, visitors confirm they are 18+ and not in Meta's restricted territories (and not in India, for Muse Image) | Code and tests; not yet deployed. A notice and confirmation, not network blocking (that needs a load balancer, owner decision) |
 | Seen from the air: DGT orthophoto + SAM 3.1 (buildings, annexes, pools; conditions to confirm) | Live since 2026-11-01 (`ac5ff3d`; `8b4b8b2`: addresses that point to an area, like a square, get a clear note asking for the door number instead of a disabled button); real analysis checked on the live candidate |
 | Dictation with Muse Voice Transcribe (question and answers, PT/EN) | Live since 2026-11-01 (`b9a256b`); real transcription checked on the live candidate; owner's browser test pending |
@@ -379,6 +379,25 @@ Last full run (2026-11-02, TD-003 structural containment): backend **7514 passed
 failures** (known limitations kept as strict xfail), plus 23 replica-set and ingestion concurrency tests against a local
 MongoDB 8.0 replica set; frontend unchanged since its last run (2026-11-01: **89 passed**, lint, typecheck and build clean). Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
+
+## How it was built: one developer, three coding agents, Muse Code as reviewer
+HABITA was built in the hackathon by one developer directing coding agents: Claude Code implemented, and every
+change went through independent review rounds before it was published. **Muse Code** (Meta's coding agent, 1.4.13)
+was one of the two reviewers, alongside Codex. Its work, all during the hackathon (2026-11-01 … 2026-11-03):
+
+- **Verifier review (TD-003, the MU-9 legal verifier):** five rounds on the hotfix branch and four on the candidate
+  that went live. Muse Code read the verifier and its tests and wrote attacks: answers that change a figure, drop a
+  condition, recombine words from different cited sentences, or claim a fact the case never stated. Each finding was
+  reproduced as a failing test first, then fixed (commits `c16f8d1`, `2b4a8c2`, `db260b2`, `52dc4c2`, `1239fcf`,
+  `91bfe45`). None of its final rounds passed: the remaining findings are the residual risks this README states under
+  HR-003.
+- **Interface review (UX-B):** two rounds on the map and the demo (accessible marker button, Esc and focus handling,
+  contrast, reduced motion, the not-legal-advice note); fixed in `b59b200` and `7ac84b3`; round 2 passed.
+- **Hackathon check (2026-11-03):** read the repository against the official rules and rubric and listed the
+  compliance risks (what was built during the event, rights to every asset, not legal advice); used to prepare the
+  submission.
+
+Codex reviewed the other changes; Muse Code reviewed the parts above, where a second independent reader mattered most.
 
 ## Roadmap and technical debt
 - Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002

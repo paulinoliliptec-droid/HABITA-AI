@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { recallMatter } from "@/features/permit/capability";
-import { askCopilot, getCopilotSpeech, onReportChanged, type CopilotTurn } from "@/features/report/api";
+import { askCopilot, getCopilotSpeech, onReportChanged, type CopilotEngine, type CopilotTurn } from "@/features/report/api";
 import { DictateButton } from "@/features/voice/DictateButton";
 import { useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
@@ -29,6 +29,13 @@ const SECTION_LABEL: Record<string, string> = {
  */
 export const SEND_AFTER_SILENCE_SECONDS = 10;
 
+/** A readable name for the model id the server reports. */
+export function modelName(id: string): string {
+  if (id.includes("muse-spark-open")) return "Muse Spark Open";
+  if (id.startsWith("muse-spark")) return "Muse Spark";
+  return id;
+}
+
 export function ReportCopilot({ propertyId }: { propertyId: string }) {
   const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
@@ -40,7 +47,9 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
   const questionRef = useRef("");
   const speakRef = useRef(true);
   const [turns, setTurns] = useState<
-    (CopilotTurn & { inReport: boolean; sections: string[]; status: string | null; speechId: string | null })[]
+    (CopilotTurn & {
+      inReport: boolean; sections: string[]; status: string | null; speechId: string | null; modelId: string | null;
+    })[]
   >([]);
   // One answer is heard at a time; a newer one, a report change or "off" silences it, whichever voice is speaking.
   const audio = useRef<HTMLAudioElement | null>(null);
@@ -72,6 +81,8 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
   const [error, setError] = useState<string | null>(null);
   // Live mode (owner 2026-11-03): each answer is spoken as it arrives, like a conversation; the reader can turn it off.
   const [live, setLive] = useState(true);
+  // Which Meta model answers (owner 2026-11-03): Muse Spark, or Muse Spark Open on Meta's open weights.
+  const [engine, setEngine] = useState<CopilotEngine>("muse");
 
   useEffect(
     () => () => {
@@ -92,11 +103,11 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
       const own = recallMatter(propertyId);
       const now = own?.matterId ?? "property";
       const history = now === context ? turns.map(({ q: tq, a }) => ({ q: tq, a })) : [];
-      const out = await askCopilot(propertyId, own, lang, q, history);
+      const out = await askCopilot(propertyId, own, lang, q, history, engine);
       if (asked !== generation.current) return; // the report changed meanwhile: this answer is about the old one
       const turn = {
         q, a: out.answer, inReport: out.in_report, sections: out.sections, status: out.report_status,
-        speechId: out.speech_id ?? null,
+        speechId: out.speech_id ?? null, modelId: out.model_id ?? null,
       };
       setTurns((prev) => (now === context ? [...prev, turn] : [turn]));
       setContext(now);
@@ -174,6 +185,15 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
       <p className={styles.note}>
         {t("Talk to it by voice or text: it answers live, out loud, and only from this report. An explanation, not a verification or legal advice.")}
       </p>
+      <div className={styles.engines} role="radiogroup" aria-label={t("Model that answers")}>
+        {(["muse", "open"] as const).map((e) => (
+          <label key={e} className={engine === e ? styles.engineOn : styles.engine}>
+            <input type="radio" name="copilot-engine" value={e} checked={engine === e} disabled={busy}
+              onChange={() => setEngine(e)} />
+            {e === "muse" ? t("Muse Spark (Meta API)") : t("Muse Spark Open (open weights · Baseten)")}
+          </label>
+        ))}
+      </div>
       <label className={styles.toggle}>
         <input type="checkbox" checked={live} onChange={(e) => {
           setLive(e.target.checked);
@@ -191,6 +211,7 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
             <p className={styles.q}>{turn.q}</p>
             <p className={styles.a}>{turn.a}</p>
             <p className={styles.meta}>
+              {turn.modelId && <>{t("Answered by {model}", { model: modelName(turn.modelId) })}{" · "}</>}
               {t("Report status: {status}", { status: turn.status ? t(turn.status) : t("no question asked yet") })}
               {" · "}
               {turn.inReport
