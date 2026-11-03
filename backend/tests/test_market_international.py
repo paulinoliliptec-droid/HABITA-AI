@@ -29,22 +29,27 @@ def test_figures_come_from_the_snapshot_for_covered_cities_only():
 
 
 def test_paris_counts_single_apartment_sales_and_drops_mixed_or_absurd_ones():
-    header = "id_mutation,nature_mutation,valeur_fonciere,type_local,surface_reelle_bati"
+    header = "id_mutation,nature_mutation,valeur_fonciere,type_local,surface_reelle_bati,code_commune"
     rows = [
-        "m1,Vente,500000,Appartement,50",       # 10 000 €/m²
-        "m1,Vente,500000,Dépendance,",          # a cellar with it: still one apartment
-        "m2,Vente,900000,Appartement,60",       # 15 000 €/m²
-        "m3,Vente,800000,Appartement,40",       # two apartments in one sale: not a unit price
-        "m3,Vente,800000,Appartement,45",
-        "m4,Vente,300000,Local industriel. commercial ou assimilé,30",
-        "m5,Vente,1,Appartement,40",            # a symbolic price
-        "m6,Echange,400000,Appartement,40",     # not a sale
-        "m7,Vente,2000000,Appartement,50",      # an apartment with a plot of land: not a unit price (Codex market r1)
-        "m7,Vente,2000000,,",
+        "m1,Vente,500000,Appartement,50,75101",       # 10 000 €/m²
+        "m1,Vente,500000,Dépendance,,75101",          # a cellar with it: still one apartment
+        "m2,Vente,900000,Appartement,60,75101",       # 15 000 €/m²
+        "m3,Vente,800000,Appartement,40,75101",       # two apartments in one sale: not a unit price
+        "m3,Vente,800000,Appartement,45,75101",
+        "m4,Vente,300000,Local industriel. commercial ou assimilé,30,75101",
+        "m5,Vente,1,Appartement,40,75101",            # a symbolic price
+        "m6,Echange,400000,Appartement,40,75101",     # not a sale
+        "m7,Vente,2000000,Appartement,50,75101",      # an apartment with a plot of land: not a unit price (Codex market r1)
+        "m7,Vente,2000000,,,75101",
     ]
     csv_text = "\n".join([header, *rows])
-    out = intl.build_paris(lambda url: csv_text if url.endswith("75101.csv") else header, 2025)
-    assert out["areas"] == {"75101": {"area": "Paris 1er arrondissement", "value": 12500, "count": 2}}
+    # Codex market r2: a sale whose land parcel is filed in the 2nd arrondissement's file is still mixed.
+    second = "\n".join([header, "m8,Vente,2000000,Appartement,50,75102", "m9,Vente,2000000,,,75102"])
+    first = csv_text + "\nm9,Vente,2000000,Appartement,50,75101"
+    out = intl.build_paris(lambda url: first if url.endswith("75101.csv") else second if url.endswith("75102.csv")
+                           else header, 2025)
+    assert out["areas"] == {"75101": {"area": "Paris 1er arrondissement", "value": 12500, "count": 2},
+                            "75102": {"area": "Paris 2e arrondissement", "value": 40000, "count": 1}}
 
 
 def test_nyc_keeps_homes_above_nominal_prices():

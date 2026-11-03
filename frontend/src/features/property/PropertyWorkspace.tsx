@@ -86,7 +86,12 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
               />
               <div role="tabpanel" id="area-place" aria-labelledby="area-tab-place" hidden={area !== "place"}>
                 <JurisdictionSection jurisdiction={property.jurisdiction} propertyId={property.property_id} />
-                <AerialSection propertyId={property.property_id} precision={property.precision} />
+                {/* Keyed by the point: a refreshed property that moved starts from the server's answer again. */}
+                <AerialSection
+                  key={`${property.property_id}:${property.coordinates.lat},${property.coordinates.lng}`}
+                  propertyId={property.property_id}
+                  precision={property.precision}
+                />
                 {property.jurisdiction.coverage === "partial" && <MarketSection propertyId={property.property_id} />}
                 <LocationSection property={property} />
               </div>

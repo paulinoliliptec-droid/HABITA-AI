@@ -91,30 +91,32 @@ def _median(values: list[float]) -> int:
 
 
 def build_paris(get, year: int) -> dict:
+    # A sale (``id_mutation``) can span several arrondissements: group over all twenty files first, then check it whole
+    # (Codex market r2), and file it under the apartment's own commune code.
+    sales: dict[str, list[dict]] = {}
+    for n in range(1, 21):
+        for r in csv.DictReader(io.StringIO(get(DVF_URL.format(year=year, code=f"751{n:02d}")))):
+            if r["nature_mutation"] == "Vente":
+                sales.setdefault(r["id_mutation"], []).append(r)
+    per_code: dict[str, list[float]] = {}
+    for rs in sales.values():
+        # Every row of the sale must be the apartment or an outbuilding: a row without a local is a parcel of land,
+        # whose price would be divided by the apartment's area (Codex market r1).
+        flats = [r for r in rs if r["type_local"] == "Appartement"]
+        if len(flats) != 1 or any(r["type_local"] not in ("Appartement", "Dépendance") for r in rs):
+            continue
+        try:
+            value, area = float(flats[0]["valeur_fonciere"]), float(flats[0]["surface_reelle_bati"] or 0)
+        except ValueError:
+            continue
+        if area >= 9 and 1_000 <= value / area <= 60_000:  # obvious data errors out
+            per_code.setdefault(flats[0]["code_commune"], []).append(value / area)
     areas = {}
     for n in range(1, 21):
         code = f"751{n:02d}"
-        rows = list(csv.DictReader(io.StringIO(get(DVF_URL.format(year=year, code=code)))))
-        sales: dict[str, list[dict]] = {}
-        for r in rows:
-            if r["nature_mutation"] == "Vente":
-                sales.setdefault(r["id_mutation"], []).append(r)
-        per_m2 = []
-        for rs in sales.values():
-            # Every row of the sale must be the apartment or an outbuilding: a row without a local is a parcel of land,
-            # whose price would be divided by the apartment's area (Codex market r1).
-            flats = [r for r in rs if r["type_local"] == "Appartement"]
-            if len(flats) != 1 or any(r["type_local"] not in ("Appartement", "Dépendance") for r in rs):
-                continue
-            try:
-                value, area = float(flats[0]["valeur_fonciere"]), float(flats[0]["surface_reelle_bati"] or 0)
-            except ValueError:
-                continue
-            if area >= 9 and 1_000 <= value / area <= 60_000:  # obvious data errors out
-                per_m2.append(value / area)
-        if per_m2:
-            areas[code] = {"area": f"Paris {n}{'er' if n == 1 else 'e'} arrondissement", "value": _median(per_m2),
-                           "count": len(per_m2)}
+        if per_code.get(code):
+            areas[code] = {"area": f"Paris {n}{'er' if n == 1 else 'e'} arrondissement", "value": _median(per_code[code]),
+                           "count": len(per_code[code])}
     meta = {"label": "Median price of apartments sold", "unit": "€/m²", "period": str(year),
             "source": "DVF — Demandes de valeurs foncières (DGFiP, Etalab)", "url": DVF_PAGE,
             "note": "Sales of a single apartment; price divided by built area."}

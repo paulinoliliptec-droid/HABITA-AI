@@ -443,3 +443,44 @@ async def test_reads_hide_an_analysis_once_the_property_moved():
         assert await service.current(prop) is None and await service.current_image(prop) is None
     with pytest.raises(AerialUnavailableError):
         await service.create(moved_in_ny)
+
+
+async def test_a_concurrent_winner_made_at_another_point_is_not_returned():
+    """Codex aerial r4: the losing insert gets the winner only when the winner analysed this request's point."""
+    from types import SimpleNamespace
+
+    from app.integrations.orthophotos import NYS_SOURCE, OfficialOrthophotoClient
+    from app.services.aerial.service import AerialAnalysis, AerialUnavailableError, InMemoryAerialRepository
+
+    class NysOrtho(OfficialOrthophotoClient):
+        def __init__(self):
+            pass
+
+        async def fetch(self, lat, lng, half, source=None):
+            return Orthophoto(jpeg=JPEG, bbox=bbox_3857(lat, lng, half), metres_per_pixel=2 * half / SIZE,
+                              sha256="0" * 64, retrieved_at=datetime.now(UTC), source=NYS_SOURCE)
+
+    ny = [SimpleNamespace(type="region", id="us/new-york")]
+
+    def at(lat, lng):
+        return SimpleNamespace(property_id="prp_00000000000000ny", precision="rooftop",
+                               coordinates=SimpleNamespace(lat=lat, lng=lng),
+                               jurisdiction=SimpleNamespace(country_code="US", levels=ny))
+
+    other = await AerialAnalysis(InMemoryAerialRepository(), _Storage(), NysOrtho(), Sam()).create(at(40.7500, -73.9900))
+
+    class Racing(InMemoryAerialRepository):
+        """Empty when checked, then another request's analysis wins the insert."""
+        def __init__(self):
+            super().__init__()
+            self.calls = 0
+
+        async def get(self, property_id):
+            self.calls += 1
+            return None if self.calls == 1 else other
+
+        async def add(self, report):
+            return False
+
+    with pytest.raises(AerialUnavailableError):
+        await AerialAnalysis(Racing(), _Storage(), NysOrtho(), Sam()).create(at(40.7484, -73.9857))

@@ -167,3 +167,13 @@ def test_the_borough_comes_from_the_county_when_google_gives_no_sublocality():
         c for c in payload["results"][0]["address_components"] if "sublocality" not in c["types"]]
     j = UnitedStatesAdapter().resolve(location(payload, "en"))
     assert j.level("subdivision").name == "Brooklyn" and j.coverage == "partial"
+
+
+def test_a_neighbourhood_sublocality_never_replaces_the_borough():
+    """Codex market r2: "Williamsburg" as a sublocality of a Kings County address: the borough stays Brooklyn."""
+    payload = fixtures.brooklyn()
+    for c in payload["results"][0]["address_components"]:
+        if "sublocality" in c["types"]:
+            c["long_name"] = c["short_name"] = "Williamsburg"
+    j = UnitedStatesAdapter().resolve(location(payload, "en"))
+    assert j.level("subdivision").name == "Brooklyn"

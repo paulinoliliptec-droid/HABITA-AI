@@ -71,7 +71,8 @@ export function PropertyMap({
         // The layer stays unavailable; the map itself never fails because of it.
       });
     return () => controller.abort();
-  }, [propertyId, reportVersion]);
+    // A refreshed property can move: its stored analysis then no longer applies (Codex aerial r4), so reload.
+  }, [propertyId, reportVersion, coordinates.lat, coordinates.lng]);
 
   useEffect(() => {
     let cancelled = false;

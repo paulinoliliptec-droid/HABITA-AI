@@ -82,9 +82,9 @@ class UnitedStatesAdapter(JurisdictionAdapter):
         levels, _ = _hierarchy(location, (("administrative_area_level_1", "region", "State"),))
         city = JurisdictionLevel(type="municipality", id=child_id(levels[-1].id, "New York City"),
                                  name="New York City", label="City")
-        # Each county is one borough, so the borough is known even when Google gives no sublocality (Codex market r1).
-        borough = (location.long_name("sublocality") or location.long_name("sublocality_level_1")
-                   or NYC_COUNTIES[location.long_name("administrative_area_level_2")])
+        # Each county is exactly one borough: the county decides, never a sublocality, which may be a neighbourhood such
+        # as "Williamsburg" (Codex market r1-r2).
+        borough = NYC_COUNTIES[location.long_name("administrative_area_level_2")]
         authority = Authority(
             id=f"{city.id}:department-of-buildings",
             name="NYC Department of Buildings",

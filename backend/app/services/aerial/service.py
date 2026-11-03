@@ -12,6 +12,7 @@ import io
 import logging
 import math
 import secrets
+from types import SimpleNamespace
 from datetime import UTC, datetime
 
 from fastapi.concurrency import run_in_threadpool
@@ -359,5 +360,9 @@ class AerialAnalysis:
             winner = await self._repo.get(property_id)
             if winner is None:
                 raise StorageUnavailableError(_UNAVAILABLE)
+            if not self._matches(winner, SimpleNamespace(coordinates=SimpleNamespace(lat=lat, lng=lng))):
+                # Codex aerial r4: the other request analysed another point of a refreshed property.
+                raise AerialUnavailableError("This property's location changed after its aerial analysis, so that "
+                                             "analysis no longer applies.")
             return winner
         return report
