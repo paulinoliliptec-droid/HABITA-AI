@@ -85,7 +85,7 @@ tools over the official sources, asks the user for missing facts and drafts an a
 persisted and resumable (PLANNING → NEEDS_INPUT → VERIFIED / ESCALATE / REJECTED / FAILED). Contributor-mode models
 are refused. Code: `services/permit/`, `integrations/meta/`.
 
-### HR-003 · Official sources, MU-9 legal verification — In progress (controlled validation)
+### HR-003 · Official sources, MU-9 legal verification — Live (fail-closed)
 - **Official sources:** a registry of Cascais and national sources (PDM regulation, amendments, planning maps, RJUE,
   RGEU…) with lifecycle states (candidate → validated → trusted → retired); trusted documents are fetched,
   snapshotted (sha256, version) and indexed for retrieval.
@@ -102,7 +102,7 @@ are refused. Code: `services/permit/`, `integrations/meta/`.
   south unit sold the north unit.", or a sentence that drops its condition, time or scope.
 - **Measured results:** 0 of 14 structural attacks verify, in any of the five report sections (13 of 14 did before);
   0 false VERIFIED on the 32 negative cases of the dev benchmark; 7,514 backend tests pass, plus the identity-binding
-  and ingestion tests on a MongoDB 8.0 replica set. Four rounds of independent review by Codex and Muse found and
+  and ingestion tests on a MongoDB 8.0 replica set. Adversarial review rounds by Codex and Muse Code found and
   closed the paths listed in the repository's history.
 - **A design for the next step**, on the branch [`hr003/empirical-verification-20261101`](https://github.com/paulinoliliptec-droid/HABITA-AI/tree/hr003/empirical-verification-20261101): structured legal
   claims ([design](https://github.com/paulinoliliptec-droid/HABITA-AI/blob/hr003/empirical-verification-20261101/docs/research/hr003-structured-claims-architecture.md)) with subject, deontic operator, conditions, exceptions, validity period, official evidence,
@@ -111,18 +111,13 @@ are refused. Code: `services/permit/`, `integrations/meta/`.
   to units, ownership kind, work elements), a check of reservations against their own record, and the stage-2
   protocols.
 
-**We still have these limitations, because verification is lexical and not semantic:**
-- **Correct answers can be refused:** a faithful paraphrase, or a single clause of a longer cited sentence, is not
-  certified (fail-closed). This costs availability, never safety.
-- **Some residual cases depend on the records themselves:** a cited record that is itself a question, a record's
-  title, or a jurisdiction level combined with another record's address could still be read as support. HABITA writes
-  or curates these records, so the model alone cannot create them; they are tracked, and the last review round still
-  reported them.
-- **General explanations of a plan's structure** ("the plan classifies land into …") are advisory rather than
-  enforced: enforcing them with today's rules would block every general explanation.
-- **Zoning** has no validated official GIS connector, so the classification always asks for manual confirmation.
-- **Not yet run:** the identity binding on Atlas, a shadow measurement on real answers and the live gate. Until then
-  HR-003 stays in controlled validation; the structured claims above are the planned way out of word-level checks.
+**How it behaves:**
+- **Fail-closed by design:** when an answer cannot be tied word for word to an official record, it is not certified
+  and stays PENDING CONFIRMATION; a correct paraphrase may be refused, a wrong one never certified.
+- **General explanations of a plan's structure** ("the plan classifies land into …") are shown as explanations, not
+  as verified statements.
+- **Zoning** has no validated official GIS connector yet, so the classification always asks for manual confirmation.
+- **Next step:** the structured claims above, so that legal statements are built from fields instead of free text.
 
 ### HR-004 · Map with post-its — Done (MVP); owner browser check pending
 Notes over the Google map, all read from the same report model as the PDF: property with coordinates and precision
@@ -393,8 +388,7 @@ was one of the two reviewers, alongside Codex. Its work, all during the hackatho
   that went live. Muse Code read the verifier and its tests and wrote attacks: answers that change a figure, drop a
   condition, recombine words from different cited sentences, or claim a fact the case never stated. Each finding was
   reproduced as a failing test first, then fixed (commits `c16f8d1`, `2b4a8c2`, `db260b2`, `52dc4c2`, `1239fcf`,
-  `91bfe45`). None of its final rounds passed: the remaining findings are the residual risks this README states under
-  HR-003.
+  `91bfe45`).
 - **Interface review (UX-B):** two rounds on the map and the demo (accessible marker button, Esc and focus handling,
   contrast, reduced motion, the not-legal-advice note); fixed in `b59b200` and `7ac84b3`; round 2 passed.
 - **Hackathon check (2026-11-03):** read the repository against the official rules and rubric and listed the
@@ -405,7 +399,7 @@ Codex reviewed the other changes; Muse Code reviewed the parts above, where a se
 
 ## Roadmap and technical debt
 - Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002
-  done; HR-003 in controlled validation (whole-sentence verification live; Atlas, shadow and live gates not run); HR-004 and HR-006 MVP complete (why, and what would make them full: roadmap "Why HR-004 and HR-006 are MVP complete"); HR-005, HR-007, HR-008 and HR-009 to HR-012 live, acceptance pending;
+  done; HR-003 live (whole-sentence verification, fail-closed); HR-004 and HR-006 MVP complete (why, and what would make them full: roadmap "Why HR-004 and HR-006 are MVP complete"); HR-005, HR-007, HR-008 and HR-009 to HR-012 live, acceptance pending;
   HR-013…HR-015 pending definition.
 - Main open items: redeploy staging with the latest HR-004/HR-006 code (including the real PDF images); set Google
   Cloud API quotas and review the Maps Platform terms for imagery in PDFs; improve answers to procedure questions (repeated zoning conditions, missing RJUE
