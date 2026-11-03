@@ -107,6 +107,11 @@ class Settings(BaseSettings):
     dictation_burst: int = 5
     dictation_daily_limit: int = 500  # recordings per UTC day, across instances, 60 s at most each
     dictation_per_caller_daily: int = 30  # per caller address and UTC day
+    # The report copilot (afinamentos 2026-11-03): questions about a report, answered only from it.
+    copilot_rate_per_minute: float = 10  # per process
+    copilot_burst: int = 5
+    copilot_daily_limit: int = 300  # questions per UTC day, across instances
+    copilot_per_caller_daily: int = 30  # per caller address and UTC day
     # Seen from the air (owner 2026-11-01): DGT orthophoto + Meta SAM 3.1, one analysis per property (two SAM calls).
     meta_segmentation_model: str = "sam-3.1"
     meta_segmentation_timeout_seconds: float = 120.0

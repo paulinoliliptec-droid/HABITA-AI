@@ -11,6 +11,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Path, Query, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
+from pydantic import BaseModel, Field
 
 from app.api.permit import MatterId, Workflow, afford_report
 from app.api.planning import planning_response
@@ -182,3 +183,44 @@ async def matter_voice(matter_id: MatterId, request: Request, workflow: Workflow
 async def matter_voice_line(matter_id: MatterId, line: Line, request: Request, workflow: Workflow, version: Version,
                             lang: Lang = "en") -> Response:
     return await _voice_line(request, await _matter_report(request, matter_id, workflow, lang), lang, line, version)
+
+
+class CopilotTurn(BaseModel):
+    q: str = Field(max_length=500)
+    a: str = Field(max_length=1500)
+
+
+class CopilotRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+    history: list[CopilotTurn] = Field(default_factory=list, max_length=4)
+
+
+class CopilotAnswer(BaseModel):
+    answer: str
+    in_report: bool
+    sections: list[str]
+    model_id: str | None = None
+
+
+async def _copilot(request: Request, body: CopilotRequest, lang: str, report_for) -> CopilotAnswer:
+    """The report copilot: the rate is taken first, then the reader's own report is built and asked about."""
+    from app.api.voice import client_address
+
+    copilot = request.app.state.copilot
+    async with copilot.admit():
+        report = await report_for()
+        out = await copilot.ask(report, body.question, [t.model_dump() for t in body.history], lang,
+                                client_address(request))
+    return CopilotAnswer(**out)
+
+
+@router.post("/api/property/{property_id}/report/copilot", response_model=CopilotAnswer)
+async def property_copilot(property_id: PropertyId, body: CopilotRequest, request: Request,
+                           lang: Lang = "en") -> CopilotAnswer:
+    return await _copilot(request, body, lang, lambda: _property_report(request, property_id, lang))
+
+
+@router.post("/api/permit/matters/{matter_id}/report/copilot", response_model=CopilotAnswer)
+async def matter_copilot(matter_id: MatterId, body: CopilotRequest, request: Request, workflow: Workflow,
+                         lang: Lang = "en") -> CopilotAnswer:
+    return await _copilot(request, body, lang, lambda: _matter_report(request, matter_id, workflow, lang))

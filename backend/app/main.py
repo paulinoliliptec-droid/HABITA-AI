@@ -37,6 +37,7 @@ from app.integrations.meta.segment import MetaSegmenter
 from app.integrations.orthophotos import OfficialOrthophotoClient
 from app.services.concepts.service import Concepts, InMemoryConceptRepository, MongoConceptRepository
 from app.services.dictation import Dictation
+from app.services.report.copilot import ReportCopilot
 from app.services.aerial.service import AerialAnalysis, InMemoryAerialRepository, MongoAerialRepository
 from app.services.afford.repository import InMemoryAffordRepository, MongoAffordRepository
 from app.services.files.service import InMemoryFileRepository, MatterFiles, MongoFileRepository
@@ -274,6 +275,14 @@ def create_app(
                 usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"], "dictation")
                 if mongo is not None else MemoryDailyUsage(),
                 daily_limit=settings.dictation_daily_limit, per_caller_daily=settings.dictation_per_caller_daily,
+                caller_key=settings.meta_api_key.get_secret_value().encode() if settings.meta_api_key else b"",
+            )
+            app.state.copilot = ReportCopilot(
+                reasoning if settings.meta_api_key or permit_model is not None else None,
+                limiter=ResolutionLimiter(settings.copilot_rate_per_minute, settings.copilot_burst, 2),
+                usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"], "copilot")
+                if mongo is not None else MemoryDailyUsage(),
+                daily_limit=settings.copilot_daily_limit, per_caller_daily=settings.copilot_per_caller_daily,
                 caller_key=settings.meta_api_key.get_secret_value().encode() if settings.meta_api_key else b"",
             )
             segment_http = httpx.AsyncClient(timeout=settings.meta_segmentation_timeout_seconds,
