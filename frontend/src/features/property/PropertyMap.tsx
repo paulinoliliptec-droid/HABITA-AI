@@ -196,7 +196,7 @@ export function PropertyMap({
                 ? undefined
                 : aerial.source.provider === "DGT"
                   ? t("DGT {year} · SAM 3.1: approximate, not a parcel boundary. © DGT (CC BY 4.0)", { year: aerial.source.year ?? "" })
-                  : t("{source} · SAM 3.1: approximate, not a parcel boundary.", { source: aerial.source.provider }),
+                  : `${t("{source} · SAM 3.1: approximate, not a parcel boundary.", { source: aerial.source.provider })} ${aerial.source.attribution ?? ""}`,
               onToggle: setAerialOn,
             },
             {

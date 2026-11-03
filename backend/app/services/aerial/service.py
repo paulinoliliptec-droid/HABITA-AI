@@ -230,8 +230,12 @@ class AerialAnalysis:
             raise AerialUnavailableError("This address is too imprecise to say which buildings belong to it, so the "
                                          "aerial view isn't available for it.")
         lat, lng = prop.coordinates.lat, prop.coordinates.lng
+        jurisdiction = getattr(prop, "jurisdiction", None)
+        country = getattr(jurisdiction, "country_code", None)
+        region = next((lvl.id for lvl in getattr(jurisdiction, "levels", ()) if lvl.type == "region"), None)
         source_for = getattr(self._ortho, "source_for", None)
-        source = source_for(lat, lng) if source_for else (DGT_SOURCE if covers(lat, lng) else None)
+        source = (source_for(lat, lng, country, region) if source_for
+                  else (DGT_SOURCE if covers(lat, lng) and country in (None, "PT") else None))
         if source is None:
             raise AerialUnavailableError("The aerial view uses official orthophotos, available for mainland Portugal, "
                                          "metropolitan France and New York State.")
@@ -261,7 +265,7 @@ class AerialAnalysis:
                 raise StorageUnavailableError(_UNAVAILABLE) from None
             spent = [False]
             try:
-                return await self._make(prop.property_id, lat, lng, half, radius, spent)
+                return await self._make(prop.property_id, lat, lng, half, radius, spent, source)
             except BaseException:
                 if not spent[0]:  # nothing was paid (no SAM call): the attempt doesn't count
                     await self._give_back(taken)
@@ -275,8 +279,9 @@ class AerialAnalysis:
                 logger.warning("Aerial analysis could not give back a count")
 
     async def _make(self, property_id: str, lat: float, lng: float, half: float, radius: int,
-                    spent: list[bool]) -> AerialReport:
-        photo = await self._ortho.fetch(lat, lng, half)
+                    spent: list[bool], source=None) -> AerialReport:
+        photo = (await self._ortho.fetch(lat, lng, half, source) if getattr(self._ortho, "source_for", None)
+                 else await self._ortho.fetch(lat, lng, half))
         if photo is None:
             raise UpstreamServiceError("The official orthophoto could not be obtained for this place. Please try again "
                                        "later.")

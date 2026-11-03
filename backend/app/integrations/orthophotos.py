@@ -23,15 +23,26 @@ IGN_SOURCE = OrthoSource(
     provider="IGN", service="https://data.geopf.fr/wms-r", layer="ORTHOIMAGERY.ORTHOPHOTOS", year=None,
     edition="BD ORTHO, latest", attribution="© IGN – Géoplateforme, BD ORTHO (Licence Ouverte 2.0)",
     extent=(-5.3, 41.2, 9.7, 51.2))
+#: One layer per flight year (0 = 2025 … 3 = 2022, checked 2026-11-03); WMS draws them in order, so the oldest go first
+#: and each place shows its most recent flight (New York City: 2024).
 NYS_SOURCE = OrthoSource(
-    provider="NYS", service="https://orthos.its.ny.gov/arcgis/services/wms/Latest/MapServer/WMSServer", layer="0",
-    year=None, edition="latest", attribution="NYS Statewide Digital Orthoimagery (NYS ITS Geospatial Services)",
-    extent=(-79.9, 40.45, -71.8, 45.05))
+    provider="NYS", service="https://orthos.its.ny.gov/arcgis/services/wms/Latest/MapServer/WMSServer",
+    layer="3,2,1,0", year=None, edition="latest flight, 2022–2025",
+    attribution="NYS Statewide Digital Orthoimagery (NYS ITS Geospatial Services)", extent=(-79.9, 40.45, -71.8, 45.05))
+#: Each source serves only its own jurisdiction, read from the resolved property (Codex aerial r1: a rectangle alone
+#: would let a property just across a border through, and its square could hold imagery from the covered side).
+JURISDICTION = {"DGT": ("PT", None), "IGN": ("FR", None), "NYS": ("US", "us/new-york")}
 SOURCES = (DGT_SOURCE, IGN_SOURCE, NYS_SOURCE)
 
 
-def source_for(lat: float, lng: float) -> OrthoSource | None:
-    return next((s for s in SOURCES if s.covers(lat, lng)), None)
+def source_for(lat: float, lng: float, country_code: str | None = None,
+               region_id: str | None = None) -> OrthoSource | None:
+    """The source for a point inside its jurisdiction. Without a country, none (the gate needs the jurisdiction)."""
+    for s in SOURCES:
+        country, region = JURISDICTION[s.provider]
+        if s.covers(lat, lng) and country_code == country and (region is None or region_id == region):
+            return s
+    return None
 
 
 class OfficialOrthophotoClient:
@@ -40,11 +51,12 @@ class OfficialOrthophotoClient:
     def __init__(self, http: httpx.AsyncClient, *, timeout_seconds: float = 30.0) -> None:
         self._http, self._timeout = http, timeout_seconds
 
-    def source_for(self, lat: float, lng: float) -> OrthoSource | None:
-        return source_for(lat, lng)
+    def source_for(self, lat: float, lng: float, country_code: str | None = None,
+                   region_id: str | None = None) -> OrthoSource | None:
+        return source_for(lat, lng, country_code, region_id)
 
-    async def fetch(self, lat: float, lng: float, half_m: float) -> Orthophoto | None:
-        source = source_for(lat, lng)
+    async def fetch(self, lat: float, lng: float, half_m: float, source: OrthoSource | None = None) -> Orthophoto | None:
+        """``source`` is the one the jurisdiction gate chose; without it, nothing is fetched."""
         if source is None:
             return None
         return await fetch_wms(self._http, source, lat, lng, half_m, self._timeout)

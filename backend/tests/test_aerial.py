@@ -294,11 +294,15 @@ def test_separation_is_a_true_distance():
 def test_the_official_source_is_chosen_by_place():
     from app.integrations.orthophotos import source_for
 
-    assert source_for(38.6968, -9.4215).provider == "DGT"  # Cascais
-    assert source_for(48.8556, 2.3589).provider == "IGN"  # Paris
-    assert source_for(40.7484, -73.9857).provider == "NYS"  # Manhattan
-    assert source_for(1.2840, 103.8514) is None  # Singapore: OneMap terms not cleared
-    assert source_for(37.74, -25.67) is None  # Azores: outside the DGT mainland orthophoto
+    assert source_for(38.6968, -9.4215, "PT").provider == "DGT"  # Cascais
+    assert source_for(48.8556, 2.3589, "FR").provider == "IGN"  # Paris
+    assert source_for(40.7484, -73.9857, "US", "us/new-york").provider == "NYS"  # Manhattan
+    assert source_for(1.2840, 103.8514, "SG") is None  # Singapore: OneMap terms not cleared
+    assert source_for(37.74, -25.67, "PT") is None  # Azores: outside the DGT mainland orthophoto
+    # Codex aerial r1: the jurisdiction decides, not the rectangle: Geneva and Jersey City sit inside the boxes.
+    assert source_for(46.2044, 6.1432, "CH") is None
+    assert source_for(40.7178, -74.0431, "US", "us/new-jersey") is None
+    assert source_for(48.8556, 2.3589) is None  # no jurisdiction, no source
 
 
 class _Storage:
@@ -325,14 +329,16 @@ async def test_an_analysis_on_another_source_carries_its_attribution_and_no_cama
         def __init__(self):
             pass
 
-        async def fetch(self, lat, lng, half):
+        async def fetch(self, lat, lng, half, source=None):
+            assert source is IGN_SOURCE  # the gate's choice is what is fetched
             return Orthophoto(jpeg=JPEG, bbox=bbox_3857(lat, lng, half), metres_per_pixel=2 * half / SIZE,
                               sha256="0" * 64, retrieved_at=datetime.now(UTC), source=IGN_SOURCE)
 
     storage = _Storage()
     service = AerialAnalysis(InMemoryAerialRepository(), storage, IgnOrtho(), Sam())
     prop = SimpleNamespace(property_id="prp_000000000000paris", precision="rooftop",
-                           coordinates=SimpleNamespace(lat=48.8556, lng=2.3589))
+                           coordinates=SimpleNamespace(lat=48.8556, lng=2.3589),
+                           jurisdiction=SimpleNamespace(country_code="FR", levels=[]))
     report = await service.create(prop)
     assert report.source.provider == "IGN" and report.source.year is None
     assert "IGN" in report.source.attribution and report.source.edition == "BD ORTHO, latest"
@@ -351,7 +357,25 @@ async def test_a_place_without_an_official_source_is_refused_before_any_spend():
     sam = Sam()
     service = AerialAnalysis(InMemoryAerialRepository(), _Storage(), OfficialOrthophotoClient(httpx.AsyncClient()), sam)
     prop = SimpleNamespace(property_id="prp_0000000singapore", precision="rooftop",
-                           coordinates=SimpleNamespace(lat=1.2840, lng=103.8514))
+                           coordinates=SimpleNamespace(lat=1.2840, lng=103.8514),
+                           jurisdiction=SimpleNamespace(country_code="SG", levels=[]))
+    with pytest.raises(AerialUnavailableError):
+        await service.create(prop)
+    assert sam.prompts == []
+
+
+async def test_a_property_across_the_border_is_refused_before_any_spend():
+    """Codex aerial r1: Geneva lies inside France's rectangle, its square may show French imagery; no SAM call."""
+    from types import SimpleNamespace
+
+    from app.integrations.orthophotos import OfficialOrthophotoClient
+    from app.services.aerial.service import AerialAnalysis, AerialUnavailableError, InMemoryAerialRepository
+
+    sam = Sam()
+    service = AerialAnalysis(InMemoryAerialRepository(), _Storage(), OfficialOrthophotoClient(httpx.AsyncClient()), sam)
+    prop = SimpleNamespace(property_id="prp_000000000geneva", precision="rooftop",
+                           coordinates=SimpleNamespace(lat=46.2044, lng=6.1432),
+                           jurisdiction=SimpleNamespace(country_code="CH", levels=[]))
     with pytest.raises(AerialUnavailableError):
         await service.create(prop)
     assert sam.prompts == []
