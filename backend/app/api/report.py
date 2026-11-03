@@ -202,6 +202,8 @@ class CopilotAnswer(BaseModel):
     #: The report's own status (None: no question yet), shown beside every answer by the screen.
     report_status: str | None = None
     model_id: str | None = None
+    #: Speaks this answer with the server's voice: GET /api/report/copilot/speech/{speech_id}.
+    speech_id: str | None = None
 
 
 async def _copilot(request: Request, body: CopilotRequest, lang: str, report_for) -> CopilotAnswer:
@@ -219,7 +221,24 @@ async def _copilot(request: Request, body: CopilotRequest, lang: str, report_for
         except BaseException:
             await copilot.release(taken)
             raise
-    return CopilotAnswer(**out)
+    return CopilotAnswer(**out, speech_id=copilot.remember(out["answer"], lang))
+
+
+SpeechId = Annotated[str, Path(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")]
+
+
+@router.get("/api/report/copilot/speech/{speech_id}")
+async def copilot_speech(speech_id: SpeechId, request: Request) -> Response:
+    """An answer the copilot gave, in the ElevenLabs voice of its language; the text is never the caller's."""
+    copilot = request.app.state.copilot
+    found = copilot.spoken(speech_id)
+    if found is None:
+        raise NotFoundError("This answer can no longer be spoken. Please ask again.")
+    try:
+        audio = await copilot.speak_once(speech_id, lambda: request.app.state.speech.speak(*found))
+    except SpeechUnavailable:
+        raise ServiceNotConfiguredError("Spoken audio is not available right now.") from None
+    return Response(audio, media_type="audio/mpeg", headers={"Cache-Control": "no-store"})
 
 
 @router.post("/api/property/{property_id}/report/copilot", response_model=CopilotAnswer)

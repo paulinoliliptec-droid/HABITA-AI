@@ -73,6 +73,20 @@ export interface CopilotAnswer {
   sections: string[];
   /** The report's own status, shown beside the answer (null: no question asked yet). */
   report_status: string | null;
+  /** Speaks this answer with the server's voice (ElevenLabs); absent on older servers. */
+  speech_id?: string | null;
+}
+
+/** The ElevenLabs audio of an answer the copilot gave, by its id (the server never speaks text sent by the browser). */
+export async function getCopilotSpeech(speechId: string, signal?: AbortSignal): Promise<Blob> {
+  let response: Response;
+  try {
+    response = await fetch(`${config.apiBaseUrl}/api/report/copilot/speech/${encodeURIComponent(speechId)}`, { signal });
+  } catch {
+    throw new ApiError("network_error", "HABITA can't reach its server right now. Check your connection and try again.", 0);
+  }
+  if (!response.ok) throw await parseErrorResponse(response);
+  return response.blob();
 }
 
 /** The report copilot: a question about this report, answered only from it (afinamentos 2026-11-03). */

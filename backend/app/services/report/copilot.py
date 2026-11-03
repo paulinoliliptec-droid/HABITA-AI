@@ -13,11 +13,15 @@ call; a call that answers nothing gives its counts back (as dictation does).
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
 import logging
 import re
+import secrets
+import time
+from collections import OrderedDict
 from datetime import UTC, datetime
 from typing import Any
 
@@ -36,6 +40,8 @@ logger = logging.getLogger(__name__)
 MAX_QUESTION = 500
 MAX_TURNS = 4
 MAX_ANSWER = 1500
+SPEECH_KEEP = 500
+SPEECH_TTL_SECONDS = 30 * 60
 MAX_REPORT_CHARS = 60_000
 #: The report's sections the answer may name (its own field names, shown to the reader translated).
 SECTIONS = ("property", "planning", "assessment", "profile", "pending", "sources", "afford", "concepts")
@@ -180,6 +186,38 @@ class ReportCopilot:
         self._usage = usage or MemoryDailyUsage()
         self._daily, self._per_caller = daily_limit, per_caller_daily
         self._caller_key = caller_key or b"habita-copilot"
+        # Answers this copilot gave, kept briefly so they can be spoken by the server's voice (owner 2026-11-03): the
+        # speech endpoint takes only an id from here, never text, so no one can spend the voice on words of their own.
+        self._spoken: OrderedDict[str, tuple[str, str, float]] = OrderedDict()
+        # One synthesis per answer at a time: concurrent requests share it, so they can't multiply the spend (Codex
+        # copilot-voice r1). Once done, repeats are served from the speech client's own memory.
+        self._speaking: dict[str, asyncio.Future[bytes]] = {}
+
+    async def speak_once(self, speech_id: str, synthesise) -> bytes:
+        """synthesise() for this answer, shared by every request that arrives while it runs."""
+        running = self._speaking.get(speech_id)
+        if running is None:
+            running = asyncio.ensure_future(synthesise())
+            self._speaking[speech_id] = running
+            running.add_done_callback(lambda _: self._speaking.pop(speech_id, None))
+        return await asyncio.shield(running)
+
+    def remember(self, answer: str, lang: str, *, now: float | None = None) -> str:
+        """An unguessable id for an answer just given, valid for SPEECH_TTL_SECONDS."""
+        now = time.monotonic() if now is None else now
+        speech_id = secrets.token_urlsafe(18)
+        self._spoken[speech_id] = (answer, lang, now)
+        while len(self._spoken) > SPEECH_KEEP:
+            self._spoken.popitem(last=False)
+        return speech_id
+
+    def spoken(self, speech_id: str, *, now: float | None = None) -> tuple[str, str] | None:
+        """The answer and its language, or None when unknown or expired."""
+        now = time.monotonic() if now is None else now
+        item = self._spoken.get(speech_id)
+        if item is None or now - item[2] > SPEECH_TTL_SECONDS:
+            return None
+        return item[0], item[1]
 
     def admit(self):
         return self._limiter.admit()

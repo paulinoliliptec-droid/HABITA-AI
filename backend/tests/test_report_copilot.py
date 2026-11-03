@@ -176,3 +176,68 @@ def test_a_malformed_in_report_is_not_taken_as_true():
         pid = resolve_cascais(c)
         res = c.post(f"/api/property/{pid}/report/copilot", json={"question": "Is it?"})
     assert res.status_code == 502
+
+
+def test_an_answer_is_spoken_by_the_server_voice_only_by_its_id():
+    """Owner 2026-11-03: the copilot speaks with the ElevenLabs voice; only answers it gave can be spoken."""
+    from tests.test_report_voice import KEY, Eleven
+
+    service = Eleven()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return service(request) if request.url.host == "api.elevenlabs.io" else google_handler(request)
+
+    settings = Settings(_env_file=None, google_maps_api_key="k", mongodb_uri=None, app_env="test",
+                        allow_ephemeral_storage=True, meta_api_key="secret", elevenlabs_api_key=KEY,
+                        elevenlabs_voice_en="voice-en", elevenlabs_voice_pt="voice-pt")
+    with TestClient(create_app(settings, http_transport=httpx.MockTransport(handler),
+                               permit_model=CopilotModel())) as c:
+        pid = resolve_cascais(c)
+        body = c.post(f"/api/property/{pid}/report/copilot?lang=pt", json={"question": "Está verificado?"}).json()
+        speech_id = body["speech_id"]
+        assert speech_id and len(speech_id) >= 20
+        audio = c.get(f"/api/report/copilot/speech/{speech_id}")
+        assert audio.status_code == 200 and audio.headers["content-type"] == "audio/mpeg"
+        sent = json.loads(service.requests[-1].content)
+        assert sent["text"] == body["answer"]  # the copilot's own words, nothing the caller wrote
+        assert service.requests[-1].url.path == "/v1/text-to-speech/voice-pt"  # the answer's language
+        calls = len(service.requests)
+        assert c.get("/api/report/copilot/speech/unknown-id-123").status_code == 404
+        assert c.get("/api/report/copilot/speech/bad%20id!").status_code == 422
+        assert c.get(f"/api/report/copilot/speech/{speech_id}?text=hello").status_code == 200  # text is ignored
+        assert len(service.requests) == calls  # unknown ids cost nothing; a repeat is served from memory
+
+
+def test_spoken_answers_expire_and_are_bounded():
+    from app.services.report import copilot as module
+
+    copilot = module.ReportCopilot(None)
+    first = copilot.remember("Olá.", "pt", now=0)
+    assert copilot.spoken(first, now=10) == ("Olá.", "pt")
+    assert copilot.spoken(first, now=module.SPEECH_TTL_SECONDS + 1) is None
+    for _ in range(module.SPEECH_KEEP):
+        copilot.remember("x", "en", now=0)
+    assert copilot.spoken(first, now=1) is None  # the oldest is dropped past the bound
+
+
+def test_concurrent_requests_for_one_answer_share_one_synthesis():
+    """Codex copilot-voice r1: parallel requests for the same id can't multiply the ElevenLabs spend."""
+    import asyncio
+
+    from app.services.report.copilot import ReportCopilot
+
+    copilot = ReportCopilot(None)
+    speech_id = copilot.remember("Olá.", "pt")
+    calls = 0
+
+    async def synthesise():
+        nonlocal calls
+        calls += 1
+        await asyncio.sleep(0.01)
+        return b"mp3"
+
+    async def run():
+        return await asyncio.gather(*[copilot.speak_once(speech_id, synthesise) for _ in range(5)])
+
+    assert asyncio.run(run()) == [b"mp3"] * 5 and calls == 1
+    assert asyncio.run(copilot.speak_once(speech_id, synthesise)) == b"mp3" and calls == 2  # done: not kept here

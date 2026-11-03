@@ -28,3 +28,13 @@ describe("dictation audio", () => {
     expect(Array.from(concat([new Float32Array([1]), new Float32Array([2, 3])]))).toEqual([1, 2, 3]);
   });
 });
+
+describe("rms (copilot hands-free dictation)", () => {
+  it("tells speech from silence", async () => {
+    const { rms, SPEECH_RMS } = await import("./wav");
+    expect(rms(new Float32Array(4096))).toBe(0);
+    expect(rms(new Float32Array(4096).fill(0.002))).toBeLessThan(SPEECH_RMS);
+    expect(rms(new Float32Array(4096).fill(0.1))).toBeGreaterThan(SPEECH_RMS);
+    expect(rms(new Float32Array(0))).toBe(0);
+  });
+});
