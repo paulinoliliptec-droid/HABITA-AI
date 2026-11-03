@@ -106,20 +106,41 @@ def report_context(report: PermitReport) -> str:
     while len(text) > MAX_REPORT_CHARS and limit >= 100:
         text = dump(_clip(data, limit))
         limit //= 2
+    if len(text) > MAX_REPORT_CHARS:  # many short items: keep the core, a bounded number of each list
+        a = data.get("assessment") or {}
+        core = {"property": data.get("property"), "planning": data.get("planning"),
+                "assessment": {k: a.get(k) for k in ("status", "status_reason", "conclusion_answer",
+                                                    "conclusion_summary") if k in a} | {
+                    "conditions": (a.get("conditions") or [])[:30]},
+                "pending": (data.get("pending") or [])[:30], "note": "the report was shortened for this question"}
+        text = dump(_clip(core, 300))[:MAX_REPORT_CHARS]
+        if len(text) == MAX_REPORT_CHARS:  # last resort, still valid JSON
+            text = dump({"assessment": {"status": a.get("status")}, "note": "the report is too long to read here"})
     return text
+
+
+def numbers_outside(answer: str, report_text: str) -> list[str]:
+    """Numbers in the answer that the report doesn't contain (Codex copilot r2: an invented cost, area or date)."""
+    plain = report_text.replace(" ", "").replace("\u00a0", "")
+    out = []
+    for raw in re.findall(r"\d[\d.,\u00a0 ]*\d|\d", answer):
+        digits = re.sub(r"[^\d]", "", raw)
+        if len(digits) >= 2 and digits not in re.sub(r"[^\d]", "", plain) and raw.strip() not in plain:
+            out.append(raw.strip())
+    return out
 
 
 def report_status(report: PermitReport) -> str | None:
     return report.assessment.status if report.assessment is not None else None
 
 
-#: Status words written as the report writes them; an answer may only use the one the report has (Codex copilot r1).
-_STATUS_WORDS = ("VERIFIED", "NEEDS_INPUT", "ESCALATE", "REJECTED")
+#: Status words as the report and the matter write them; an answer may only use the report's own (Codex copilot r1-r2).
+_STATUS_WORDS = ("VERIFIED", "REJECTED", "PENDING_CONFIRMATION", "NEEDS_INPUT", "ESCALATE")
 
 
 def upgrades_status(answer: str, status: str | None) -> bool:
     """True when the answer names a status word the report doesn't have ("NOT VERIFIED" is a negation, allowed)."""
-    for word in _STATUS_WORDS:
+    for word in sorted(_STATUS_WORDS, key=len, reverse=True):
         for m in re.finditer(rf"(?<![A-Z_]){word}(?![A-Z_])", answer):
             before = answer[max(0, m.start() - 4):m.start()]
             if word == "VERIFIED" and before.upper() in ("NOT ", "NÃO "):
@@ -199,8 +220,10 @@ class ReportCopilot:
         except (ValueError, KeyError, TypeError):
             raise UpstreamServiceError("The report copilot did not answer. Please try again.") from None
         status = report_status(report)
-        # Never a status the report doesn't have, whatever the question or a record's text asked for.
-        if not answer or upgrades_status(answer, status):
+        # Never a status the report doesn't have, nor a number it doesn't contain, whatever the question or a record's
+        # text asked for (Codex copilot r1-r2). Free wording can't be checked word by word: the screen labels every
+        # answer as an explanation and shows the report's own status beside it.
+        if not answer or upgrades_status(answer, status) or numbers_outside(answer, report_context(report)):
             raise UpstreamServiceError("The report copilot did not answer. Please try again.")
         return {"answer": answer, "in_report": in_report, "sections": sections, "report_status": status,
                 "model_id": getattr(self._model, "model_id", None)}

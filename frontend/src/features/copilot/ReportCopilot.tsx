@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { recallMatter } from "@/features/permit/capability";
 import { askCopilot, onReportChanged, type CopilotTurn } from "@/features/report/api";
@@ -32,7 +32,16 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
   const [turns, setTurns] = useState<(CopilotTurn & { inReport: boolean; sections: string[]; status: string | null })[]>([]);
   // The conversation belongs to one report: a new or changed report (or question) starts it again (Codex copilot r1).
   const [context, setContext] = useState<string | null>(null);
-  useEffect(() => onReportChanged(() => setTurns([])), []);
+  // Bumped on every report change: an answer still in flight from the earlier report is dropped (Codex copilot r2).
+  const generation = useRef(0);
+  useEffect(
+    () =>
+      onReportChanged(() => {
+        generation.current += 1;
+        setTurns([]);
+      }),
+    [],
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Live mode (owner 2026-11-03): each answer is spoken as it arrives, like a conversation; the reader can turn it off.
@@ -44,10 +53,12 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
     setBusy(true);
     setError(null);
     try {
+      const asked = generation.current;
       const own = recallMatter(propertyId);
       const now = own?.matterId ?? "property";
       const history = now === context ? turns.map(({ q: tq, a }) => ({ q: tq, a })) : [];
       const out = await askCopilot(propertyId, own, lang, q, history);
+      if (asked !== generation.current) return; // the report changed meanwhile: this answer is about the old one
       const turn = { q, a: out.answer, inReport: out.in_report, sections: out.sections, status: out.report_status };
       setTurns((prev) => (now === context ? [...prev, turn] : [turn]));
       setContext(now);

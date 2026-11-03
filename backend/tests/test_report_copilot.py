@@ -137,3 +137,29 @@ def test_the_caps_are_taken_before_the_report_is_built():
         c.app.state.planning.resolve = counting
         assert c.post(f"/api/property/{pid}/report/copilot", json={"question": "Two?"}).status_code == 429
     assert built == []
+
+
+def test_numbers_and_every_status_word_are_checked_against_the_report():
+    """Codex copilot r2: PENDING_CONFIRMATION counts too; a number the report lacks (an invented cost) is refused."""
+    from app.services.report.copilot import numbers_outside, upgrades_status
+
+    assert upgrades_status("It is PENDING_CONFIRMATION.", "VERIFIED")
+    assert not upgrades_status("It is PENDING_CONFIRMATION.", "PENDING_CONFIRMATION")
+    report = '{"afford":{"likely":12500,"area":"75 m²"},"pending":["Art. 67.º"]}'
+    assert numbers_outside("The likely cost is 12 500 € for 75 m².", report) == []
+    assert numbers_outside("It will cost 40 000 €.", report) == ["40 000"]
+    assert numbers_outside("See article 67.", report) == []
+
+
+def test_a_report_with_many_short_items_stays_within_the_cap():
+    """Codex copilot r2: clipping texts isn't enough when there are thousands of short items."""
+    from pathlib import Path
+
+    from app.schemas.report import PermitReport
+    from app.services.report import copilot as cp
+
+    fixture = Path(__file__).resolve().parents[2] / "frontend/src/features/report/fixtures/verified-report.json"
+    data = json.loads(fixture.read_text())
+    data["pending"] = [f"item {i}" for i in range(20000)]
+    text = cp.report_context(PermitReport.model_validate(data))
+    assert len(text) <= cp.MAX_REPORT_CHARS and json.loads(text)
