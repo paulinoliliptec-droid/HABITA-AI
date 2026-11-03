@@ -1,5 +1,6 @@
 "use client";
 
+import { RESTRICTED_TERRITORIES } from "@/components/shell/AccessGate";
 import Link from "next/link";
 import { useI18n } from "@/i18n/useI18n";
 import styles from "./page.module.css";
@@ -45,6 +46,18 @@ export function PrivacyContent() {
             <li>{t("When you ask for the aerial view, HABITA keeps, for that property, the official orthophoto with the outlines it drew and the list of what it found.")}</li>
             <li>{t("To have a property record removed, contact the project owner.")}</li>
           </ul>
+        </section>
+
+        <section className={styles.section}>
+          <h2>{t("Who can use HABITA")}</h2>
+          <p>
+            {t("HABITA uses Meta's AI models, whose terms allow only people aged 18 or older, outside the territories Meta restricts.")}{" "}
+            {t("Restricted territories:")} {RESTRICTED_TERRITORIES.map((name) => t(name)).join(", ")}.{" "}
+            {t("Before / after images (Muse Image) are also not available in India.")}{" "}
+            <a href="https://dev.meta.ai/legal/geographic-use-policy" rel="noopener noreferrer" target="_blank">
+              {t("Meta Model API Geographic Use Policy")}
+            </a>
+          </p>
         </section>
 
         <section className={styles.section}>

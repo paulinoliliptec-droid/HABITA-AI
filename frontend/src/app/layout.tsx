@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Instrument_Sans, Source_Serif_4 } from "next/font/google";
+import { AccessGate } from "@/components/shell/AccessGate";
 import { TopBar } from "@/components/shell/TopBar";
 import "./globals.css";
 
@@ -33,6 +35,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <TopBar />
         {children}
+        <Suspense fallback={null}>
+          <AccessGate />
+        </Suspense>
       </body>
     </html>
   );

@@ -56,18 +56,20 @@ export function PropertyMap({
   const [state, setState] = useState<MapState>({ status: "loading" });
   const [mode, setMode] = useState<MapMode>("roadmap");
   // HR-004 layers: the aerial view (DGT orthophoto with HABITA's SAM outlines) placed at its own bbox.
-  const [aerial, setAerial] = useState<AerialReport | null>(null);
+  // Kept with the point it was loaded for: after a move, the old analysis is never shown (Codex aerial r5).
+  const [loaded, setLoaded] = useState<{ at: string; report: AerialReport | null }>({ at: "", report: null });
+  const here = `${propertyId}:${coordinates.lat},${coordinates.lng}`;
+  const aerial = loaded.at === here ? loaded.report : null;
   const [aerialOn, setAerialOn] = useState(false);
   const [reportVersion, setReportVersion] = useState(0);
   useEffect(() => onReportChanged(() => setReportVersion((v) => v + 1)), []);
   useEffect(() => {
     if (!propertyId) return;
-    // Nothing from the previous point stays on the map while (or if) the new answer is loading (Codex aerial r5).
-    setAerial(null);
     const controller = new AbortController();
+    const at = `${propertyId}:${coordinates.lat},${coordinates.lng}`;
     getAerial(propertyId, controller.signal)
       .then((report) => {
-        if (!controller.signal.aborted) setAerial(report);
+        if (!controller.signal.aborted) setLoaded({ at, report });
       })
       .catch(() => {
         // The layer stays unavailable; the map itself never fails because of it.
