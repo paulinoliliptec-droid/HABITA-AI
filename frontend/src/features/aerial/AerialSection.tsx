@@ -7,7 +7,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
 import { ImageViewer } from "@/features/permit/ImageViewer";
 import { reportChanged } from "@/features/report/api";
-import { AERIAL_CHECK_TEXT, type AerialObject, type AerialReport, aerialImageUrl, createAerial, getAerial } from "./api";
+import { AERIAL_CHECK_TEXT, type AerialObject, type AerialReport, aerialImageUrl, createAerial, getAerial, isDgt } from "./api";
 import styles from "./AerialSection.module.css";
 
 const KIND = {
@@ -59,7 +59,7 @@ export function AerialSection({ propertyId, precision }: { propertyId: string; p
   return (
     <Section label={t("Seen from the air")} id="aerial">
       <p className={styles.purpose}>
-        {t("HABITA looks at the official DGT orthophoto around this address with Meta SAM 3.1 and lists the buildings and pools it sees. It is an observation to confirm, not a survey, a parcel boundary or proof of a licence.")}
+        {t("HABITA looks at the official orthophoto around this address (DGT in Portugal, IGN in France, New York State's in New York) with Meta SAM 3.1 and lists the buildings and pools it sees. It is an observation to confirm, not a survey, a parcel boundary or proof of a licence.")}
       </p>
       {!report && precise && (
         <Button variant="primary" onClick={() => void analyse()} disabled={busy}>
@@ -106,16 +106,23 @@ export function AerialSection({ propertyId, precision }: { propertyId: string; p
             </p>
           ))}
           <p className={styles.hint}>
-            {t("Seen from the air on the DGT orthophoto of {year}, segmented by Meta SAM 3.1. Outlines and areas are approximate, may miss recent works, are not a survey or a parcel boundary, and prove no licence.", { year: report.source.year })}
+            {isDgt(report.source)
+              ? t("Seen from the air on the DGT orthophoto of {year}, segmented by Meta SAM 3.1. Outlines and areas are approximate, may miss recent works, are not a survey or a parcel boundary, and prove no licence.", { year: report.source.year ?? "" })
+              : t("Seen from the air on the official orthophoto ({source}), segmented by Meta SAM 3.1. Outlines and areas are approximate, may miss recent works, are not a survey or a parcel boundary, and prove no licence.", { source: report.source.provider })}
           </p>
           <p className={styles.hint}>
-            Informação geográfica cedida pela Direção-Geral do Território (CC BY 4.0) · {t("outlines added by HABITA")}
+            {isDgt(report.source) ? "Informação geográfica cedida pela Direção-Geral do Território (CC BY 4.0)" : report.source.attribution}{" "}
+            · {t("outlines added by HABITA")}
           </p>
           {large && (
             <ImageViewer
               src={aerialImageUrl(report)}
               alt={t("Aerial image with the outlines HABITA found")}
-              caption={`Informação geográfica cedida pela Direção-Geral do Território (CC BY 4.0) · Ortos ${report.source.year} · Meta SAM 3.1`}
+              caption={
+                isDgt(report.source)
+                  ? `Informação geográfica cedida pela Direção-Geral do Território (CC BY 4.0) · Ortos ${report.source.year} · Meta SAM 3.1`
+                  : `${report.source.attribution} · ${report.source.edition ?? ""} · Meta SAM 3.1`
+              }
               onClose={() => setLarge(false)}
             />
           )}

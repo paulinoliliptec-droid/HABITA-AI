@@ -30,14 +30,33 @@ export function JurisdictionSection({ jurisdiction, propertyId }: { jurisdiction
 
       {authority ? (
         <div className={styles.authority}>
-          <p className={styles.authorityLabel}>{t("Competent local authority")}</p>
+          <p className={styles.authorityLabel}>
+            {jurisdiction.coverage === "partial" ? t("Competent authority") : t("Competent local authority")}
+          </p>
           <p className={styles.authorityName}>{authority.name}</p>
           <p className={styles.authorityNote}>{t(authority.competence)}</p>
           {authority.sources.length > 0 && (
             <p className={styles.authoritySource}>
               {t("Basis:")}{" "}
-              {authority.sources.map((s) => [s.title, s.reference].filter(Boolean).join(", ")).join("; ")}
+              {authority.sources.map((s, i) => {
+                const label = [s.title, s.reference].filter(Boolean).join(", ");
+                return (
+                  <span key={label}>
+                    {i > 0 && "; "}
+                    {s.url ? (
+                      <a href={s.url} target="_blank" rel="noopener noreferrer">{label}</a>
+                    ) : (
+                      label
+                    )}
+                  </span>
+                );
+              })}
             </p>
+          )}
+          {jurisdiction.coverage === "partial" && (
+            <Notice title={t("Partial coverage")}>
+              {t("HABITA identifies this authority and its official sources, but has not verified their rules yet. Nothing here is checked against them, and no answer for this place is shown as verified.")}
+            </Notice>
           )}
         </div>
       ) : jurisdiction.coverage === "modelled" ? (
@@ -50,7 +69,7 @@ export function JurisdictionSection({ jurisdiction, propertyId }: { jurisdiction
         </Notice>
       )}
 
-      {authority && <PlanningContextBlock propertyId={propertyId} />}
+      {authority && jurisdiction.coverage === "modelled" && <PlanningContextBlock propertyId={propertyId} />}
     </Section>
   );
 }

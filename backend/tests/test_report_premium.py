@@ -21,8 +21,14 @@ from app.services.report.premium import (
     render_html,
     render_premium_pdf,
 )
+from tests.pdf_logo import is_logo
 
 FIXTURE = Path(__file__).resolve().parents[2] / "frontend" / "src" / "features" / "report" / "fixtures" / "verified-report.json"
+
+
+def _content_images(reader) -> set[str]:
+    """Images in the PDF other than HABITA's logo on the cover."""
+    return {i.name for p in reader.pages for i in p.images if not is_logo(i)}
 
 
 @pytest.fixture(scope="module")
@@ -58,7 +64,7 @@ def test_each_style_renders_every_section_with_the_reports_status(verified, styl
         assert section.upper() in text.upper(), section
     assert verified.assessment.status == "VERIFIED" and "VERIFIED" in text
     # WeasyPrint shares one resource dictionary across pages, so count distinct images, not per-page references
-    assert len({i.name for p in reader.pages for i in p.images}) == 3  # road map, satellite, Street View
+    assert len(_content_images(reader)) == 3  # road map, satellite, Street View
     assert all("not legal advice" in p.extract_text() for p in reader.pages[1:])  # footer on every content page
 
 
@@ -114,7 +120,7 @@ def test_repeated_statements_become_cross_references_that_keep_their_evidence(ve
 def test_without_maps_the_pdf_says_so_and_embeds_no_image(verified):
     pdf = render_premium_pdf(verified, LocationMaps(38.7, -9.42, "area_center", 150,
                                                     unavailable="The map service did not return an image."), "classico")
-    assert not {i.name for p in PdfReader(io.BytesIO(pdf)).pages for i in p.images}
+    assert not _content_images(PdfReader(io.BytesIO(pdf)))  # the cover's logo is the only image
     assert "Location maps unavailable" in _text(pdf)
 
 
@@ -247,3 +253,13 @@ def test_hr006_a_partly_cited_group_is_drawn_dashed(verified):
     assert expected == {(g["id"], t) for g in groups.values() for t in g.get("partial_to", ())}
     svg = reasoning_graph(verified)
     assert svg.count('stroke-dasharray="3 2"') == len(expected)
+
+
+def test_the_logo_exclusion_recognises_the_logo_only():
+    """Codex logo r1: an image of the logo's size but other pixels (a map) is still counted."""
+    from types import SimpleNamespace
+
+    from tests.pdf_logo import _MARK
+
+    assert is_logo(SimpleNamespace(image=_MARK.copy()))
+    assert not is_logo(SimpleNamespace(image=PILImage.new("RGB", _MARK.size, (90, 120, 160))))

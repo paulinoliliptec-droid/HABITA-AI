@@ -17,10 +17,12 @@ interface AddressSearchProps {
   autoFocus?: boolean;
   /** Sample addresses offered under the field (hero only). */
   examples?: readonly string[];
+  /** A second group of examples under its own label (other jurisdictions, partial coverage). */
+  otherExamples?: { label: string; items: readonly string[] };
 }
 
 /** Address combobox: suggests places as you type, resolves on submit, then opens the workspace. */
-export function AddressSearch({ variant = "hero", autoFocus = false, examples }: AddressSearchProps) {
+export function AddressSearch({ variant = "hero", autoFocus = false, examples, otherExamples }: AddressSearchProps) {
   const { t } = useI18n();
   const router = useRouter();
   const ids = { input: useId(), listbox: useId(), error: useId() };
@@ -171,6 +173,25 @@ export function AddressSearch({ variant = "hero", autoFocus = false, examples }:
         <div className={styles.examples}>
           <span className={styles.examplesLabel}>{t("Try")}</span>
           {examples.map((example) => (
+            <button
+              key={example}
+              type="button"
+              className={styles.example}
+              disabled={resolving}
+              onClick={() => {
+                setQuery(example);
+                void resolve({ address: example });
+              }}
+            >
+              {example}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {variant === "hero" && otherExamples?.items.length ? (
+        <div className={styles.examples}>
+          <span className={styles.examplesLabel}>{otherExamples.label}</span>
+          {otherExamples.items.map((example) => (
             <button
               key={example}
               type="button"

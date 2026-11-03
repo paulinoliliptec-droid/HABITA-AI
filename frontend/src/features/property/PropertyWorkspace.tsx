@@ -5,6 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Notice } from "@/components/ui/Notice";
+import { MarketSection } from "@/features/market/MarketSection";
 import { PermitSection } from "@/features/permit/PermitSection";
 import { AerialSection } from "@/features/aerial/AerialSection";
 import { MapPostIts } from "@/features/report/MapPostIts";
@@ -77,6 +78,7 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
               <PermitSection
                 propertyId={property.property_id}
                 authorityName={property.jurisdiction.local_authority?.name ?? null}
+                coverage={property.jurisdiction.coverage}
                 area={area}
                 onGo={go}
                 onFilesCount={setFilesCount}
@@ -84,7 +86,13 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
               />
               <div role="tabpanel" id="area-place" aria-labelledby="area-tab-place" hidden={area !== "place"}>
                 <JurisdictionSection jurisdiction={property.jurisdiction} propertyId={property.property_id} />
-                <AerialSection propertyId={property.property_id} precision={property.precision} />
+                {/* Keyed by the point: a refreshed property that moved starts from the server's answer again. */}
+                <AerialSection
+                  key={`${property.property_id}:${property.coordinates.lat},${property.coordinates.lng}`}
+                  propertyId={property.property_id}
+                  precision={property.precision}
+                />
+                {property.jurisdiction.coverage === "partial" && <MarketSection propertyId={property.property_id} />}
                 <LocationSection property={property} />
               </div>
             </>

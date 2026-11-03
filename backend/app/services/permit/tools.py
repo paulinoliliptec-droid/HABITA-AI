@@ -187,16 +187,20 @@ class PermitTools:
         if authority is None:
             return {"evidence_id": None, "authority": None, "note": "No competent authority is modelled for this location."}
         basis = "; ".join(" ".join(filter(None, (s.title, s.reference))) for s in authority.sources)
+        modelled = prop.jurisdiction.coverage == "modelled"
         evidence = await self._record(
             source_type="authority_record",
             source_title=authority.name,
             source_reference=basis or authority.id,
             jurisdiction_id=authority.jurisdiction_id,
             authority_id=authority.id,
-            claim_supported="Competent authority for building permits at the property",
+            # Outside modelled jurisdictions the role is the authority's own stated competence (Singapore's URA grants
+            # planning permission, not building permits), recorded with low confidence: its rules are not verified.
+            claim_supported="Competent authority for building permits at the property" if modelled
+            else "Authority named for this place (partial coverage, rules not verified); role as stated in its competence",
             excerpt=f"{authority.name}: {authority.competence}",
             structured=authority.model_dump(),
-            confidence="high",
+            confidence="high" if modelled else "low",
             verification_status="system_record",
             dedupe_key=f"authority:{authority.id}",
         )

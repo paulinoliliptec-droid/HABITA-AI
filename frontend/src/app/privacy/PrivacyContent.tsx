@@ -23,6 +23,9 @@ export function PrivacyContent() {
             </li>
             <li>{t("The map is displayed with the Google Maps JavaScript API.")}</li>
             <li>{t("Your permit questions are sent to Google Cloud Translation to recognise their language. When you read HABITA in Portuguese, answers and reports are also sent there to be translated; they are not stored by HABITA in translated form.")}</li>
+            <li>{t("Your permit questions, the property's data and the evidence HABITA gathers are processed by Meta's Muse Spark. If Meta's service is unavailable and HABITA's backup is switched on, the same request goes to Muse Spark open, run by Baseten in the United States.")}</li>
+            <li>{t("Photos and plans you add are kept by HABITA in a private Google Cloud Storage bucket, without location or device data. The only AI models that receive them are Meta's: Muse Spark reads them and, when you ask for a before / after concept or a view from a plan, Muse Image draws it. When you dictate, the recording goes to Meta's Muse Voice Transcribe and is not kept. For the aerial view, an official orthophoto around the address (DGT in Portugal, IGN in France, New York State's in New York) is sent to Meta's SAM 3.1.")}</li>
+            <li>{t("When you listen to a report, its text is sent to ElevenLabs to generate the audio.")}</li>
             <li>{t("HABITA has no accounts and does not ask for your name, email or other personal details.")}</li>
           </ul>
         </section>
@@ -39,6 +42,7 @@ export function PrivacyContent() {
             <li>
               {t("Property links are not private: anyone with a property link can open it. Don't enter an address you wouldn't want shared.")}
             </li>
+            <li>{t("When you ask for the aerial view, HABITA keeps, for that property, the official orthophoto with the outlines it drew and the list of what it found.")}</li>
             <li>{t("To have a property record removed, contact the project owner.")}</li>
           </ul>
         </section>

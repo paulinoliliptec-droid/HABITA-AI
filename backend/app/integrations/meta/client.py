@@ -23,7 +23,7 @@ from typing import Any
 
 import httpx
 
-from app.core.errors import ServiceNotConfiguredError, UpstreamServiceError
+from app.core.errors import ServiceNotConfiguredError, UpstreamServiceError, UpstreamUnavailableError
 from app.services.permit.model import ChatResult, ToolCall
 
 logger = logging.getLogger(__name__)
@@ -41,6 +41,8 @@ class MetaChatModel:
         base_url: str,
         model_id: str,
         reasoning_effort: str | None = None,
+        attempts: int = _MAX_ATTEMPTS,
+        deadline_seconds: float | None = None,
     ) -> None:
         if model_id.endswith("-contributor"):
             raise ValueError("Contributor-mode Meta models may train on user data and are not allowed.")
@@ -49,6 +51,11 @@ class MetaChatModel:
         self._url = base_url.rstrip("/") + "/chat/completions"
         self.model_id = model_id
         self._reasoning_effort = reasoning_effort
+        self._attempts = max(1, attempts)
+        # httpx timeouts bound each read, not the whole call: a server that trickles bytes could hold an attempt open
+        # far longer. Each attempt therefore gets a total deadline, by default the client's read timeout, so the
+        # worst case of the whole chain (README of infrastructure/open-models) is a real bound.
+        self._deadline = deadline_seconds if deadline_seconds is not None else http.timeout.read
 
     async def chat(
         self,
@@ -78,12 +85,17 @@ class MetaChatModel:
 
     async def _post(self, body: dict[str, Any]) -> dict[str, Any]:
         headers = {"Authorization": f"Bearer {self._api_key}", "Content-Type": "application/json"}
-        for attempt in range(1, _MAX_ATTEMPTS + 1):
+        # A refusal (4xx) or a broken body is an answer, not an outage: it never triggers the open-weight fallback.
+        answered = False
+        for attempt in range(1, self._attempts + 1):
             started = time.monotonic()
             try:
-                response = await self._http.post(self._url, json=body, headers=headers)
+                async with asyncio.timeout(self._deadline):
+                    response = await self._http.post(self._url, json=body, headers=headers)
             except httpx.TransportError as exc:
                 logger.warning("Meta API request failed: %s (attempt %d)", type(exc).__name__, attempt)
+            except TimeoutError:
+                logger.warning("Meta API call passed its %s s deadline (attempt %d)", self._deadline, attempt)
             else:
                 elapsed_ms = round((time.monotonic() - started) * 1000)
                 if response.status_code == 200:
@@ -91,6 +103,7 @@ class MetaChatModel:
                         payload = response.json()
                     except ValueError:
                         logger.warning("Meta API returned a non-JSON body")
+                        answered = True
                         break
                     usage = payload.get("usage") or {}
                     logger.info(
@@ -101,10 +114,11 @@ class MetaChatModel:
                 # Status only: error bodies are not logged (they may echo request content).
                 logger.warning("Meta API HTTP %d after %d ms (attempt %d)", response.status_code, elapsed_ms, attempt)
                 if response.status_code < 500 and response.status_code != 429:
+                    answered = True
                     break
-            if attempt < _MAX_ATTEMPTS:
+            if attempt < self._attempts:
                 await asyncio.sleep(0.5 * attempt)
-        raise UpstreamServiceError(_UNAVAILABLE)
+        raise UpstreamServiceError(_UNAVAILABLE) if answered else UpstreamUnavailableError(_UNAVAILABLE)
 
 
 def _parse(payload: dict[str, Any]) -> ChatResult:

@@ -179,3 +179,38 @@ def test_planning_item_is_settled_only_by_an_authoritative_determination(determi
     else:
         text = next(c["text"] for c in conditions if c["item_key"] == "planning_constraints")
         assert text.endswith("Check against the official documents: Planta de Ordenamento 01-02.")
+
+
+@pytest.mark.parametrize(("coverage", "confidence", "building_permits"),
+                         [("modelled", "high", True), ("partial", "low", False)])
+async def test_an_authority_outside_modelled_places_is_recorded_in_its_own_role(coverage, confidence, building_permits):
+    """Codex landing r4: Singapore's URA grants planning permission, not building permits; the record must not say so."""
+    from types import SimpleNamespace
+
+    from app.schemas.property import AuthorityOut
+    from app.services.permit.sources.base import SourceRegistry
+    from app.services.permit.tools import PermitTools
+
+    authority = AuthorityOut(id="sg/singapore:ura", name="Urban Redevelopment Authority (URA)",
+                             kind="national_planning_authority", jurisdiction_id="sg/singapore",
+                             competence="Planning permission for development under the Master Plan.", sources=[])
+    prop = SimpleNamespace(jurisdiction=SimpleNamespace(local_authority=authority, coverage=coverage))
+
+    class Repo:
+        async def add_evidence(self, evidence):
+            return evidence.model_copy(update={"evidence_id": "E1"})
+
+    tools = PermitTools(matter=matter(), repository=Repo(), properties=None, sources=SourceRegistry([]))  # type: ignore[arg-type]
+    tools._property = prop  # type: ignore[attr-defined]
+    recorded = []
+    original = tools._record
+
+    async def spy(**fields):
+        evidence = await original(**fields)
+        recorded.append(evidence)
+        return evidence
+
+    tools._record = spy  # type: ignore[method-assign]
+    await tools.execute("get_competent_authority", {})
+    assert recorded[0].confidence == confidence
+    assert ("building permits" in recorded[0].claim_supported) is building_permits

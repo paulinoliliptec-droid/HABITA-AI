@@ -348,10 +348,11 @@ def _status(report: PermitReport) -> tuple[str, str, str]:
     return t(label), cls, t(reason)
 
 
-#: HABITA's mark, the same as the web app's icon (HR-006 polish 4: the identity on the cover).
-MARK = ('<svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="HABITA AI">'
-        '<rect width="32" height="32" rx="6" fill="#1b1d1c"/><path d="M10 8.5v15M22 8.5v15M10 16h12" stroke="#f6f5f1" '
-        'stroke-width="2.25" stroke-linecap="square" fill="none"/><circle cx="16" cy="23.5" r="1.75" fill="#7fa898"/></svg>')
+#: HABITA's mark, the same as the web app's icon (HR-006 polish 4: the identity on the cover); since 2026-11-03 the
+#: owner's logo (Drive LOGOTIPO-HABITA-AI.png), cropped to its symbol, embedded so the PDF needs no network.
+_MARK_PNG = base64.b64encode((Path(__file__).parent / "assets" / "habita-mark.png").read_bytes()).decode()
+MARK = f'<img class="mark" src="data:image/png;base64,{_MARK_PNG}" alt="HABITA AI">'
+
 
 
 def _cover(report: PermitReport, site_url: str | None = None) -> str:

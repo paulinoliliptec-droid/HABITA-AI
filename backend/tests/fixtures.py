@@ -136,3 +136,91 @@ def cascais_premise(
         components=components,
         location_type=location_type,
     )
+
+
+# Partial coverage (afinamentos 2026-11-02): components as Google returned them for these addresses on 2026-11-02.
+def new_york() -> dict:
+    return geocode_payload(
+        place_id="ChIJnew-york-350-5th",
+        formatted_address="350 5th Ave, New York, NY 10118, USA",
+        lat=40.7484,
+        lng=-73.9857,
+        components=[
+            _component("350", "350", "street_number"),
+            _component("5th Avenue", "5th Ave", "route"),
+            _component("Manhattan", "Manhattan", "political", "sublocality", "sublocality_level_1"),
+            _component("New York", "New York", "locality", "political"),
+            _component("New York County", "New York County", "administrative_area_level_2", "political"),
+            _component("New York", "NY", "administrative_area_level_1", "political"),
+            _component("United States", "US", "country", "political"),
+        ],
+    )
+
+
+def paris() -> dict:
+    return geocode_payload(
+        place_id="ChIJparis-10-rivoli",
+        formatted_address="10 Rue de Rivoli, 75004 Paris, France",
+        lat=48.8556,
+        lng=2.3589,
+        location_type="GEOMETRIC_CENTER",
+        components=[
+            _component("10", "10", "street_number"),
+            _component("Rue de Rivoli", "Rue de Rivoli", "route"),
+            _component("Paris", "Paris", "locality", "political"),
+            _component("Paris", "Paris", "administrative_area_level_2", "political"),
+            _component("Île-de-France", "IDF", "administrative_area_level_1", "political"),
+            _component("France", "FR", "country", "political"),
+        ],
+    )
+
+
+def lyon() -> dict:
+    return geocode_payload(
+        place_id="ChIJlyon",
+        formatted_address="1 Place Bellecour, 69002 Lyon, France",
+        lat=45.7578,
+        lng=4.8320,
+        components=[
+            _component("Lyon", "Lyon", "locality", "political"),
+            _component("Rhône", "Rhône", "administrative_area_level_2", "political"),
+            _component("Auvergne-Rhône-Alpes", "ARA", "administrative_area_level_1", "political"),
+            _component("France", "FR", "country", "political"),
+        ],
+    )
+
+
+def singapore() -> dict:
+    return geocode_payload(
+        place_id="ChIJsingapore-1-raffles",
+        formatted_address="1 Raffles Pl, Singapore 048616",
+        lat=1.2840,
+        lng=103.8514,
+        location_type="GEOMETRIC_CENTER",
+        components=[
+            _component("1", "1", "street_number"),
+            _component("Raffles Place", "Raffles Pl", "route"),
+            _component("Downtown Core", "Downtown Core", "neighborhood", "political"),
+            _component("Singapore", "Singapore", "locality", "political"),
+            _component("Singapore", "SG", "country", "political"),
+        ],
+    )
+
+
+def brooklyn() -> dict:
+    """Google's documented shape for a Brooklyn address: the borough as a sublocality, no locality."""
+    return geocode_payload(
+        place_id="ChIJbrooklyn-277-bedford",
+        formatted_address="277 Bedford Ave, Brooklyn, NY 11211, USA",
+        lat=40.7142,
+        lng=-73.9614,
+        components=[
+            _component("277", "277", "street_number"),
+            _component("Bedford Avenue", "Bedford Ave", "route"),
+            _component("Williamsburg", "Williamsburg", "neighborhood", "political"),
+            _component("Brooklyn", "Brooklyn", "political", "sublocality", "sublocality_level_1"),
+            _component("Kings County", "Kings County", "administrative_area_level_2", "political"),
+            _component("New York", "NY", "administrative_area_level_1", "political"),
+            _component("United States", "US", "country", "political"),
+        ],
+    )

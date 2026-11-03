@@ -22,6 +22,7 @@ Configuration comes from the repo-root `.env` (git-ignored) or the process envir
 | `BACKEND_CORS_ORIGINS` | Browser access | Defaults to `http://localhost:3000` |
 | `META_API_KEY` | Permit Intelligence (Muse Spark) | `/api/permit/*/continue` returns `503 service_not_configured`; `/api/permit/status` reports `available: false` |
 | `META_TEXT_MODEL` | Reasoning model | Defaults to `muse-spark-1.3` (contributor variants are refused) |
+| `MODAL_MODEL_*`, `BASETEN_MODEL_*` | Fallbacks when Muse Spark is unavailable (Modal if set, then Baseten: Muse Spark open) | No fallback: an outage of the Meta API stops the request as before |
 
 ## Test
 

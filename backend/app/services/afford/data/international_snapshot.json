@@ -1,0 +1,169 @@
+{
+ "retrieved_on": "2026-11-03",
+ "paris": {
+  "meta": {
+   "label": "Median price of apartments sold",
+   "unit": "€/m²",
+   "period": "2025",
+   "source": "DVF — Demandes de valeurs foncières (DGFiP, Etalab)",
+   "url": "https://www.data.gouv.fr/fr/datasets/demandes-de-valeurs-foncieres-geolocalisees/",
+   "note": "Sales of a single apartment; price divided by built area."
+  },
+  "areas": {
+   "75101": {
+    "area": "Paris 1er arrondissement",
+    "value": 12099,
+    "count": 258
+   },
+   "75102": {
+    "area": "Paris 2e arrondissement",
+    "value": 11153,
+    "count": 366
+   },
+   "75103": {
+    "area": "Paris 3e arrondissement",
+    "value": 12000,
+    "count": 696
+   },
+   "75104": {
+    "area": "Paris 4e arrondissement",
+    "value": 12842,
+    "count": 544
+   },
+   "75105": {
+    "area": "Paris 5e arrondissement",
+    "value": 11798,
+    "count": 855
+   },
+   "75106": {
+    "area": "Paris 6e arrondissement",
+    "value": 14217,
+    "count": 732
+   },
+   "75107": {
+    "area": "Paris 7e arrondissement",
+    "value": 14051,
+    "count": 899
+   },
+   "75108": {
+    "area": "Paris 8e arrondissement",
+    "value": 12082,
+    "count": 635
+   },
+   "75109": {
+    "area": "Paris 9e arrondissement",
+    "value": 10872,
+    "count": 1089
+   },
+   "75110": {
+    "area": "Paris 10e arrondissement",
+    "value": 9329,
+    "count": 1410
+   },
+   "75111": {
+    "area": "Paris 11e arrondissement",
+    "value": 9943,
+    "count": 2343
+   },
+   "75112": {
+    "area": "Paris 12e arrondissement",
+    "value": 9045,
+    "count": 1582
+   },
+   "75113": {
+    "area": "Paris 13e arrondissement",
+    "value": 8642,
+    "count": 1449
+   },
+   "75114": {
+    "area": "Paris 14e arrondissement",
+    "value": 9444,
+    "count": 1507
+   },
+   "75115": {
+    "area": "Paris 15e arrondissement",
+    "value": 9488,
+    "count": 3023
+   },
+   "75116": {
+    "area": "Paris 16e arrondissement",
+    "value": 10932,
+    "count": 2346
+   },
+   "75117": {
+    "area": "Paris 17e arrondissement",
+    "value": 10087,
+    "count": 2450
+   },
+   "75118": {
+    "area": "Paris 18e arrondissement",
+    "value": 8857,
+    "count": 2969
+   },
+   "75119": {
+    "area": "Paris 19e arrondissement",
+    "value": 8043,
+    "count": 1489
+   },
+   "75120": {
+    "area": "Paris 20e arrondissement",
+    "value": 8352,
+    "count": 1956
+   }
+  }
+ },
+ "nyc": {
+  "meta": {
+   "label": "Median sale price of homes",
+   "unit": "US$",
+   "period": "2025",
+   "source": "NYC Department of Finance — annualized sales (NYC Open Data)",
+   "url": "https://data.cityofnewyork.us/d/w2pb-icbu",
+   "note": "One to three family dwellings, co-ops and condos; sales above $10,000."
+  },
+  "areas": {
+   "Manhattan": {
+    "area": "Manhattan",
+    "value": 1199000,
+    "count": 13322
+   },
+   "Bronx": {
+    "area": "Bronx",
+    "value": 635000,
+    "count": 3432
+   },
+   "Brooklyn": {
+    "area": "Brooklyn",
+    "value": 995000,
+    "count": 11217
+   },
+   "Queens": {
+    "area": "Queens",
+    "value": 720000,
+    "count": 14250
+   },
+   "Staten Island": {
+    "area": "Staten Island",
+    "value": 715000,
+    "count": 4110
+   }
+  }
+ },
+ "singapore": {
+  "meta": {
+   "label": "Median resale price of public housing (HDB) flats",
+   "unit": "S$/m²",
+   "period": "2025-11 to 2026-10",
+   "source": "Housing & Development Board — resale flat prices (data.gov.sg)",
+   "url": "https://data.gov.sg/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view",
+   "note": "Singapore-wide; public housing only, private homes not included."
+  },
+  "areas": {
+   "Singapore": {
+    "area": "Singapore",
+    "value": 6478,
+    "count": 25490
+   }
+  }
+ }
+}

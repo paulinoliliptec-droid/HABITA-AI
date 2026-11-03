@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 import { msg, type Lang } from "@/i18n/core";
 import { setLanguage, useI18n } from "@/i18n/useI18n";
+import brandMark from "./brand-mark.png";
 import styles from "./TopBar.module.css";
 
 // The live demo: address search and every property workspace (UX-REFINE-001 §4).
@@ -19,6 +20,9 @@ export function TopBar() {
   return (
     <header className={styles.topbar}>
       <Link href="/" className={styles.identity} aria-label={t("HABITA AI, home")}>
+        {/* The owner's logo (2026-11-03): its symbol as an image, the name as text so it stays sharp at any size. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className={styles.mark} src={brandMark.src} alt="" width={28} height={28} />
         <span className={styles.wordmark}>
           HABITA<span className={styles.ai}>AI</span>
         </span>

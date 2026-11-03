@@ -62,6 +62,8 @@ export function PropertyMap({
   useEffect(() => onReportChanged(() => setReportVersion((v) => v + 1)), []);
   useEffect(() => {
     if (!propertyId) return;
+    // Nothing from the previous point stays on the map while (or if) the new answer is loading (Codex aerial r5).
+    setAerial(null);
     const controller = new AbortController();
     getAerial(propertyId, controller.signal)
       .then((report) => {
@@ -71,7 +73,8 @@ export function PropertyMap({
         // The layer stays unavailable; the map itself never fails because of it.
       });
     return () => controller.abort();
-  }, [propertyId, reportVersion]);
+    // A refreshed property can move: its stored analysis then no longer applies (Codex aerial r4), so reload.
+  }, [propertyId, reportVersion, coordinates.lat, coordinates.lng]);
 
   useEffect(() => {
     let cancelled = false;
@@ -179,18 +182,24 @@ export function PropertyMap({
           overlays={[
             {
               id: "aerial",
-              label: aerial
-                ? t("Aerial view (DGT {year} · SAM 3.1)", { year: aerial.source.year })
-                : t("Aerial view (DGT · SAM 3.1)"),
+              label: !aerial
+                ? t("Aerial view (official orthophoto · SAM 3.1)")
+                : aerial.source.provider === "DGT"
+                  ? t("Aerial view (DGT {year} · SAM 3.1)", { year: aerial.source.year ?? "" })
+                  : t("Aerial view ({source} · SAM 3.1)", { source: aerial.source.provider }),
               on: aerialOn && Boolean(aerial?.source.bbox),
               available: Boolean(aerial?.source.bbox),
               hint: t("Run the aerial analysis in the Place area first."),
-              note: aerial
-                ? t("Aerial view: DGT orthophoto of {year}, outlines by Meta SAM 3.1. Approximate observations, not a survey or a parcel boundary, and no proof of a licence. Informação geográfica cedida pela DGT (CC BY 4.0).", { year: aerial.source.year })
-                : undefined,
-              shortNote: aerial
-                ? t("DGT {year} · SAM 3.1: approximate, not a parcel boundary. © DGT (CC BY 4.0)", { year: aerial.source.year })
-                : undefined,
+              note: !aerial
+                ? undefined
+                : aerial.source.provider === "DGT"
+                  ? t("Aerial view: DGT orthophoto of {year}, outlines by Meta SAM 3.1. Approximate observations, not a survey or a parcel boundary, and no proof of a licence. Informação geográfica cedida pela DGT (CC BY 4.0).", { year: aerial.source.year ?? "" })
+                  : `${t("Aerial view: official orthophoto, outlines by Meta SAM 3.1. Approximate observations, not a survey or a parcel boundary, and no proof of a licence.")} ${aerial.source.attribution ?? ""}`,
+              shortNote: !aerial
+                ? undefined
+                : aerial.source.provider === "DGT"
+                  ? t("DGT {year} · SAM 3.1: approximate, not a parcel boundary. © DGT (CC BY 4.0)", { year: aerial.source.year ?? "" })
+                  : `${t("{source} · SAM 3.1: approximate, not a parcel boundary.", { source: aerial.source.provider })} ${aerial.source.attribution ?? ""}`,
               onToggle: setAerialOn,
             },
             {

@@ -16,9 +16,12 @@ export interface AerialReport {
   created_at: string;
   /** bbox: EPSG:3857 metres (minx, miny, maxx, maxy) of the orthophoto, used to place it on the map (HR-004). */
   source: {
-    provider: "DGT";
+    provider: "DGT" | "IGN" | "NYS";
     layer: string;
-    year: number;
+    /** null for a mosaic of the latest flights (IGN, NYS). */
+    year: number | null;
+    edition?: string | null;
+    attribution?: string;
     metres_per_pixel: number;
     retrieved_at: string;
     bbox?: [number, number, number, number];
@@ -59,4 +62,9 @@ export function createAerial(propertyId: string): Promise<AerialReport> {
 
 export function aerialImageUrl(report: AerialReport): string {
   return `${config.apiBaseUrl}${path(report.property_id)}/image?v=${report.aerial_id}`;
+}
+
+/** DGT keeps its reviewed Portuguese wording; IGN and NYS (2026-11-03) show their own attribution as the licence asks. */
+export function isDgt(source: AerialReport["source"]): boolean {
+  return source.provider === "DGT";
 }

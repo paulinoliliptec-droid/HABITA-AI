@@ -28,12 +28,13 @@ from app.db.staging import confinement_problem
 from app.integrations.maps.geocoding import GeocodingClient
 from app.integrations.maps.static_maps import MemoryDailyUsage, MongoDailyUsage, StaticMapClient
 from app.integrations.meta.client import MetaChatModel
+from app.integrations.meta.fallback import FallbackChatModel, fallbacks_within_budget
 from app.integrations.speech.client import ElevenLabsClient
 from app.integrations.translate.client import GoogleTranslateClient
 from app.integrations.meta.image import MetaImageEditor
 from app.integrations.meta.transcribe import MetaTranscriber
 from app.integrations.meta.segment import MetaSegmenter
-from app.integrations.dgt.orthophoto import DgtOrthophotoClient
+from app.integrations.orthophotos import OfficialOrthophotoClient
 from app.services.concepts.service import Concepts, InMemoryConceptRepository, MongoConceptRepository
 from app.services.dictation import Dictation
 from app.services.aerial.service import AerialAnalysis, InMemoryAerialRepository, MongoAerialRepository
@@ -210,13 +211,31 @@ def create_app(
                 ),
             )
             meta_http = httpx.AsyncClient(timeout=settings.meta_timeout_seconds, transport=meta_transport)
-            reasoning = permit_model or MetaChatModel(
+            muse = permit_model or MetaChatModel(
                 meta_http,
                 api_key=settings.meta_api_key.get_secret_value() if settings.meta_api_key else None,
                 base_url=settings.meta_api_base_url,
                 model_id=settings.meta_text_model,
                 reasoning_effort=settings.meta_reasoning_effort,
             )
+            fallback_http = httpx.AsyncClient(timeout=settings.fallback_timeout_seconds, transport=meta_transport)
+            fallbacks = [] if permit_model is not None else [
+                MetaChatModel(fallback_http, api_key=key.get_secret_value(), base_url=url, model_id=model_id,
+                              attempts=1)
+                for url, key, model_id in (
+                    (settings.modal_model_base_url, settings.modal_model_api_key, settings.modal_model_id),
+                    (settings.baseten_model_base_url, settings.baseten_model_api_key, settings.baseten_model_id),
+                )
+                if url and key and model_id
+            ]
+            fallbacks = fallbacks_within_budget(fallbacks, settings.meta_timeout_seconds,
+                                                settings.fallback_timeout_seconds)
+            # Afinamentos: the open-weight protection layer (Modal, then Baseten), only when Muse Spark is down, and
+            # only for the permit workflow. Reading the user's photos and plans stays on Muse Spark: it needs vision,
+            # and those private files go only where the files notice says.
+            reasoning = FallbackChatModel(muse, *fallbacks) if fallbacks else muse
+            if fallbacks:
+                logger.info("reasoning fallbacks enabled: %s", ", ".join(m.model_id for m in fallbacks))
             if settings.user_files_bucket:
                 file_storage = GcsFileStorage(meta_http, settings.user_files_bucket)
             elif settings.allow_ephemeral_storage:
@@ -226,7 +245,7 @@ def create_app(
                 file_storage = UnconfiguredFileStorage()
             app.state.afford_repo = afford_repo
             app.state.matter_files = MatterFiles(
-                file_repo, file_storage, reasoning,
+                file_repo, file_storage, muse,
                 limiter=ResolutionLimiter(settings.file_read_rate_per_minute, settings.file_read_burst,
                                           settings.file_read_max_concurrency),
                 usage=MongoDailyUsage(mongo[settings.mongodb_db_name]["usage_counters"], "file-reads")
@@ -263,7 +282,7 @@ def create_app(
                 MongoAerialRepository(mongo, settings.mongodb_db_name) if mongo is not None
                 else InMemoryAerialRepository(),
                 file_storage,
-                aerial_orthophotos or DgtOrthophotoClient(http),
+                aerial_orthophotos or OfficialOrthophotoClient(http),
                 aerial_segmenter or MetaSegmenter(
                     segment_http, api_key=settings.meta_api_key.get_secret_value() if settings.meta_api_key else None,
                     base_url=settings.meta_api_base_url, model_id=settings.meta_segmentation_model),
@@ -296,6 +315,7 @@ def create_app(
                 if ingestion is not None:
                     ingestion.cancel()
                 await meta_http.aclose()
+                await fallback_http.aclose()
                 await transcribe_http.aclose()
                 await segment_http.aclose()
                 if mongo is not None:

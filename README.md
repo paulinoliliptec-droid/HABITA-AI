@@ -7,22 +7,42 @@ Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MV
 below); development continues on the branch `mu9/structural-verification` and reaches `main` only by an explicit merge.
 
 ## The problem
-Before buying, renovating or extending a property, owners and professionals must work out which municipality and
-plan apply, what the plan says for that parcel, which procedure (licence, prior communication, exemption) the works
-need, and which official documents back each answer. In Portugal that means reading the municipal master plan
-(PDM), its maps and amendments, and national law (RJUE, RGEU) by hand. Generic AI assistants answer confidently and
-without sources. HABITA answers with citations to official documents and refuses to call an answer verified when
-the evidence does not support it.
+**Anyone who wants to buy, divide, convert, renovate or invest in a home cannot easily find out what they are allowed
+to do, what it will cost and whether it is legal.** The answer is scattered across municipal plans and their maps,
+national law, procedures that change with the type of works, cadastral and aerial data, market statistics and the
+property's own papers, photos and plans. Each piece lives with a different authority, in a different format and often
+in a language of its own. Professionals spend days putting it together; owners usually guess, and a wrong guess costs
+months, fines or a sale that falls through. Generic AI assistants make it worse: they answer confidently, without
+sources, and cannot tell a rule from a guess.
+
+HABITA AI brings those pieces into one place around one property, and says plainly what is verified, what is
+declared, what is only observed and what is still unknown:
+
+| Part of the problem | What HABITA does | Module |
+|---|---|---|
+| "Which rules apply here, and who decides?" | Resolves the address to its jurisdiction chain and competent authority | HR-001 |
+| "What exactly am I asking for?" | Places the request in a closed catalogue (division into units, change of use, interior works) and asks only the facts it needs | HR-002, HR-009 |
+| "Is the answer true?" | Retrieves official documents and snapshots them; MU-9 checks each statement against its cited records (official text, or records HABITA builds from them) and refuses to call an answer **verified** when they do not support it — limits listed under HR-003 | HR-003 |
+| "Show me, on the ground" | Map with post-its, official aerial photo with outlines from Meta SAM 3.1, a clickable reasoning graph from property to conclusion | HR-004, HR-005 |
+| "I need something to keep and share" | A PDF report with its verification record, sources and integrity seal; the same report spoken aloud | HR-006, HR-007 |
+| "What do we actually know about this property?" | A profile that keeps official facts, the user's declarations and observations apart, each with its origin | HR-008 |
+| "Here are my photos and plans" | Reads them as observations (never as official facts), strips location data, says what to confirm with the authority | HR-010 |
+| "Can I afford it?" | Cost ranges, the user's own financing, official market statistics, every number computed by code | HR-011 |
+| "What could it look like?" | Before/after concepts and views from a plan, labelled as AI concepts, never as projects | HR-012 |
+
+The deep, verified coverage today is **Cascais (Portugal)**; the architecture (a jurisdiction chain, a registry of
+official sources per jurisdiction, and a verifier that refuses what those sources do not support) is built to add
+other places without changing how answers are checked.
 
 ## Architecture
 | Layer | Technology | Role |
 |---|---|---|
-| Web app | Next.js (App Router) + React + TypeScript | landing page for the jury (`/`: how it works, Meta models used, limits, GitHub), live demo with the guided Cascais scenario (`/demo`), property workspace in areas (Question, Photos & plans, Before / after, Costs, Place; one at a time, linkable as `#costs`), map with post-its and report bar, permit questions, PDF download |
+| Web app | Next.js (App Router) + React + TypeScript | landing page for the jury (`/`: a photo of Cascais, a large "Try the live demo" button with a note for the jury, how it works, Meta models used, limits, GitHub), live demo with the guided Cascais scenario (`/demo`, starting at Rua Frederico Arouca 30, which reaches every feature including the aerial view; New York, Paris and Singapore as partial-coverage examples), property workspace in areas (Question, Photos & plans, Before / after, Costs, Place; one at a time, linkable as `#costs`), map with post-its and report bar, permit questions, PDF download |
 | API | Python FastAPI | property resolution, jurisdiction, official sources, permit workflow, verifier, reports |
 | Database | MongoDB Atlas | properties, permit matters, evidence, verifications, official-source snapshots, file readings, concepts |
 | Files | Google Cloud Storage (private bucket) | the user's photos and plans (kept without location or device data) and the generated concepts |
 | Maps | Google Maps Platform | Places autocomplete, Geocoding, Maps JavaScript (map), Maps Static and Street View Static (PDF images, see HR-006) |
-| AI | Meta Model API — **Muse Spark** (`muse-spark-1.3`) | planning, tool calls over official sources, drafting, a review that can only make a verdict stricter; reading the user's photos and plans (observations, people, plan or photo, the rooms of a plan) |
+| AI | Meta Model API — **Muse Spark** (`muse-spark-1.3`); fallback when it is unavailable: **Muse Spark open** on Baseten (`meta-models/muse-spark-open-1026`), see [open models](infrastructure/open-models/README.md) | planning, tool calls over official sources, drafting, a review that can only make a verdict stricter; reading the user's photos and plans (observations, people, plan or photo, the rooms of a plan) |
 | Images | Meta Model API — **Muse Image** (`muse-image-1.0`, edit endpoint) | before/after concepts from the user's photos and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses), always from HABITA's fixed instruction, with notices burned in (HR-012) |
 | Language | Google Cloud Translation | Portuguese reading view of answers; fixed texts in reviewed catalogs |
 | Aerial view | DGT official orthophotos (WMS, 2018) + Meta Model API — **SAM 3.1** (`sam-3.1`, masks decoded with Meta's `meta-sam-parser`) | buildings, small separate buildings and pools around the address point, measured from the image scale; observations that only add conditions to confirm with the Câmara |
@@ -38,7 +58,25 @@ Status words: **Done** = implemented and tested, including on real services wher
 
 ### HR-001 · Location and jurisdiction discovery — Done
 Address search with Google Places autocomplete, Google geocoding, a jurisdiction chain (country → district →
-municipality → parish) and the competent authority. Portugal is modelled; other countries get a generic chain.
+municipality → parish) and the competent authority. Portugal is modelled. **New York City, Paris and Singapore have
+partial coverage** (2026-11-02): HABITA names the authority that decides (building permits: NYC Department of
+Buildings, Maire de Paris under the PLU or, in the safeguarded sectors, a PSMV; in Singapore, planning permission from
+the URA, with building plans approved by the BCA) and the official sources to consult, each linked or cited; it has not verified their
+rules, so the workspace says so and does not draft a permit answer there. They also get, from official open data:
+- **the aerial view** (Meta SAM 3.1) on the official orthophoto: IGN Géoplateforme BD ORTHO for Paris (Licence Ouverte
+  2.0) and the NYS Statewide Digital Orthoimagery for New York City; the source is chosen by the property's
+  jurisdiction and its attribution is burned into the image. **Singapore has none**: the OneMap terms restrict storing
+  and modifying the imagery, so it waits for the Singapore Land Authority's confirmation;
+- **official market prices**, medians HABITA computes from real sales (snapshot of 2026-11-03,
+  `python -m app.services.afford.international`): DVF 2025 for each Paris arrondissement (€/m² of single-apartment
+  sales), NYC Department of Finance 2025 sales by borough (median price of homes), HDB resale flats over the last 12
+  months for Singapore (S$/m², public housing only). Statistics of past sales, never a valuation.
+
+**Not built there yet, by design (limitations):** verified permit answers, the request catalogue and its fixed
+warnings, works costs and financing, and the PDF's aerial figure. They need each place's official sources ingested and
+checked, and its law reviewed. These cities are a proof of scale: the same jurisdiction chain, source registry,
+verifier, aerial pipeline and price snapshot extend to other legal systems. Other countries get a generic chain
+without an authority.
 Code: `backend/app/services/property_location.py`, `services/jurisdiction/`, `frontend/src/features/property/`.
 
 ### HR-002 · Permit Intelligence — Done
@@ -251,6 +289,7 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Permit matters with Muse Spark, follow-up questions, resume (HR-002) | Done |
 | Official-source registry, snapshots, retrieval (HR-003) | Done for Cascais; other jurisdictions planned |
 | MU-9 verification, TrustPin, reviewer, final gate (HR-003) | Tested offline and on staging; whole-sentence verification live (2026-11-02), limits listed in HR-003; replica-set binding tested on a local MongoDB 8.0 replica set, Atlas run pending |
+| Fallback for the reasoning model when Muse Spark is unavailable: Muse Spark open on Baseten (Modal prepared, off); same MU-9 verifier | Code, key and a comparative run ready (2026-11-02); not yet deployed — `infrastructure/open-models/` |
 | Zoning classification from official GIS | Planned (no validated connector; absence stated) |
 | Map with post-its (HR-004) | Done (MVP); owner browser check pending |
 | PDF report with verification record and provenance (HR-006) | Done; tested on staging |

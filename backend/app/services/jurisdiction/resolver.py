@@ -1,3 +1,4 @@
+from app.services.jurisdiction.adapters.cities import FranceAdapter, SingaporeAdapter, UnitedStatesAdapter
 from app.services.jurisdiction.adapters.generic import GenericAdapter
 from app.services.jurisdiction.adapters.portugal import PortugalAdapter
 from app.services.jurisdiction.base import JurisdictionAdapter
@@ -11,7 +12,13 @@ class JurisdictionResolver:
         adapters: dict[str, JurisdictionAdapter] | None = None,
         fallback: JurisdictionAdapter | None = None,
     ) -> None:
-        self._adapters = adapters if adapters is not None else {"PT": PortugalAdapter()}
+        self._adapters = adapters if adapters is not None else {
+            "PT": PortugalAdapter(),
+            # Partial coverage (afinamentos): one city each, authority and official sources named, rules not verified.
+            "US": UnitedStatesAdapter(),
+            "FR": FranceAdapter(),
+            "SG": SingaporeAdapter(),
+        }
         self._fallback = fallback or GenericAdapter()
 
     def adapter_for(self, country_code: str | None) -> JurisdictionAdapter:

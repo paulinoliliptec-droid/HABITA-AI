@@ -14,7 +14,8 @@ PropertyId = Annotated[str, Path(pattern=r"^prp_[0-9a-f]{16}$")]
 
 @router.get("/{property_id}/aerial", response_model=AerialReport)
 async def get_aerial(property_id: PropertyId, request: Request) -> AerialReport:
-    report = await request.app.state.aerial.get(property_id)
+    prop = await request.app.state.property_service.get(property_id)
+    report = await request.app.state.aerial.current(prop) if prop is not None else None
     if report is None:
         raise NotFoundError("No aerial analysis has been made for this property yet.")
     return report
@@ -31,7 +32,8 @@ async def create_aerial(property_id: PropertyId, request: Request) -> AerialRepo
 
 @router.get("/{property_id}/aerial/image")
 async def aerial_image(property_id: PropertyId, request: Request) -> Response:
-    data = await request.app.state.aerial.image(property_id)
+    prop = await request.app.state.property_service.get(property_id)
+    data = await request.app.state.aerial.current_image(prop) if prop is not None else None
     if data is None:
         raise NotFoundError("No aerial analysis has been made for this property yet.")
     return Response(data, media_type="image/jpeg", headers={

@@ -77,6 +77,11 @@ class UpstreamServiceError(AppError):
     code = "upstream_error"
 
 
+class UpstreamUnavailableError(UpstreamServiceError):
+    """The upstream did not answer at all (timeouts, transport errors, 5xx, 429 after retries), as opposed to an
+    answer it refused or got wrong. Only this one lets the reasoning model fall back to an open-weight model."""
+
+
 def _error_body(code: str, message: str, **extra: object) -> dict:
     return {"error": {"code": code, "message": message, **extra}}
 

@@ -25,10 +25,14 @@ AERIAL_ATTRIBUTION = "Informação geográfica cedida pela Direção-Geral do Te
 
 
 class AerialSource(BaseModel):
-    provider: Literal["DGT"] = "DGT"
+    provider: Literal["DGT", "IGN", "NYS"] = "DGT"
     service: str
     layer: str
-    year: int
+    #: None for a mosaic of the latest flights (IGN, NYS).
+    year: int | None
+    edition: str | None = None
+    #: The source's attribution (defaults to DGT's, for analyses stored before 2026-11-03).
+    attribution: str = AERIAL_ATTRIBUTION
     crs: Literal["EPSG:3857"] = "EPSG:3857"
     bbox: tuple[float, float, float, float]
     width: int

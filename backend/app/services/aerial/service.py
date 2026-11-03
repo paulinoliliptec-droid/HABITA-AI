@@ -12,6 +12,7 @@ import io
 import logging
 import math
 import secrets
+from types import SimpleNamespace
 from datetime import UTC, datetime
 
 from fastapi.concurrency import run_in_threadpool
@@ -27,7 +28,7 @@ from app.core.errors import (
     UpstreamServiceError,
 )
 from app.core.rate_limit import ResolutionLimiter
-from app.integrations.dgt.orthophoto import LAYER, SERVICE, SIZE, YEAR, Orthophoto, covers
+from app.integrations.dgt.orthophoto import DGT_SOURCE, SIZE, Orthophoto, bbox_3857, covers
 from app.integrations.maps.static_maps import MemoryDailyUsage
 from app.integrations.meta.segment import Segment
 from app.schemas.aerial import AerialObject, AerialReport, AerialSource
@@ -182,10 +183,9 @@ def overlay(photo: Orthophoto, kept: list[tuple[Segment, AerialObject]], radius_
     font = ImageFont.truetype(FONT, 18)
     band = Image.new("RGB", (SIZE, SIZE + BAND), (20, 20, 20))
     band.paste(out, (0, 0))
-    # CC BY 4.0 (dados.gov.pt, "Ortofotos 25 cm - Portugal Continental - 2018"): attribution, and the change stated.
+    # Each source's licence asks for its attribution (DGT CC BY 4.0, IGN Licence Ouverte 2.0), and the change stated.
     pen = ImageDraw.Draw(band)
-    pen.text((10, SIZE + 6), f"Informação geográfica cedida pela Direção-Geral do Território (CC BY 4.0) · Ortos {YEAR}",
-             font=font, fill=(255, 255, 255))
+    pen.text((10, SIZE + 6), f"{photo.source.attribution} · {photo.source.edition}", font=font, fill=(255, 255, 255))
     pen.text((10, SIZE + 30), "Outlines added by HABITA with Meta SAM 3.1: approximate, not a survey or a parcel boundary",
              font=font, fill=(255, 255, 255))
     buf = io.BytesIO()
@@ -221,18 +221,54 @@ class AerialAnalysis:
         report = await self._repo.get(property_id)
         return await self._storage.get(_key(property_id, report.aerial_id)) if report else None
 
+    def _source(self, prop):
+        """The official source for the property where it is now, or None (the jurisdiction gate)."""
+        lat, lng = prop.coordinates.lat, prop.coordinates.lng
+        jurisdiction = getattr(prop, "jurisdiction", None)
+        country = getattr(jurisdiction, "country_code", None)
+        region = next((lvl.id for lvl in getattr(jurisdiction, "levels", ()) if lvl.type == "region"), None)
+        source_for = getattr(self._ortho, "source_for", None)
+        return (source_for(lat, lng, country, region) if source_for
+                else (DGT_SOURCE if covers(lat, lng) and country in (None, "PT") else None))
+
+    @staticmethod
+    def _matches(report: AerialReport, prop) -> bool:
+        """The analysis was made around the property's current point (Codex aerial r3: a refreshed property may have
+        moved; its old image then describes another place)."""
+        x0, y0, x1, y1 = bbox_3857(prop.coordinates.lat, prop.coordinates.lng, 1.0)
+        bx0, by0, bx1, by1 = report.source.bbox
+        # The stored bbox was computed from the same coordinates: anything beyond float noise is another point.
+        return abs((x0 + x1) / 2 - (bx0 + bx1) / 2) < 0.01 and abs((y0 + y1) / 2 - (by0 + by1) / 2) < 0.01
+
+    async def current(self, prop) -> AerialReport | None:
+        """The stored analysis, only while the property is still where it was made and inside a source."""
+        report = await self._repo.get(prop.property_id)
+        if report is None or self._source(prop) is None or not self._matches(report, prop):
+            return None
+        return report
+
+    async def current_image(self, prop) -> bytes | None:
+        report = await self.current(prop)
+        return await self._storage.get(_key(prop.property_id, report.aerial_id)) if report else None
+
     async def create(self, prop) -> AerialReport:
-        """``prop`` is a resolved property. Every refusal comes before any spend."""
-        existing = await self._repo.get(prop.property_id)
-        if existing is not None:
-            return existing
+        """``prop`` is a resolved property. Every refusal comes before any spend, and the location gate before a stored
+        analysis is returned (Codex aerial r2: a refreshed property may have moved out of every source)."""
         framing = FRAMING.get(prop.precision)
         if framing is None:
             raise AerialUnavailableError("This address is too imprecise to say which buildings belong to it, so the "
                                          "aerial view isn't available for it.")
         lat, lng = prop.coordinates.lat, prop.coordinates.lng
-        if not covers(lat, lng):
-            raise AerialUnavailableError("The aerial view uses the DGT orthophotos, which cover mainland Portugal only.")
+        source = self._source(prop)
+        if source is None:
+            raise AerialUnavailableError("The aerial view uses official orthophotos, available for mainland Portugal, "
+                                         "metropolitan France and New York State.")
+        existing = await self._repo.get(prop.property_id)
+        if existing is not None:
+            if not self._matches(existing, prop):
+                raise AerialUnavailableError("This property's location changed after its aerial analysis, so that "
+                                             "analysis no longer applies.")
+            return existing
         if not self._sam.configured():
             raise ServiceNotConfiguredError("The aerial analysis is not configured on the server (META_API_KEY).")
         half, radius = framing
@@ -259,7 +295,7 @@ class AerialAnalysis:
                 raise StorageUnavailableError(_UNAVAILABLE) from None
             spent = [False]
             try:
-                return await self._make(prop.property_id, lat, lng, half, radius, spent)
+                return await self._make(prop.property_id, lat, lng, half, radius, spent, source)
             except BaseException:
                 if not spent[0]:  # nothing was paid (no SAM call): the attempt doesn't count
                     await self._give_back(taken)
@@ -273,10 +309,12 @@ class AerialAnalysis:
                 logger.warning("Aerial analysis could not give back a count")
 
     async def _make(self, property_id: str, lat: float, lng: float, half: float, radius: int,
-                    spent: list[bool]) -> AerialReport:
-        photo = await self._ortho.fetch(lat, lng, half)
+                    spent: list[bool], source=None) -> AerialReport:
+        photo = (await self._ortho.fetch(lat, lng, half, source) if getattr(self._ortho, "source_for", None)
+                 else await self._ortho.fetch(lat, lng, half))
         if photo is None:
-            raise UpstreamServiceError("The DGT orthophoto could not be obtained for this place. Please try again later.")
+            raise UpstreamServiceError("The official orthophoto could not be obtained for this place. Please try again "
+                                       "later.")
         reach = radius / photo.metres_per_pixel + 1
         c = SIZE / 2
 
@@ -297,13 +335,17 @@ class AerialAnalysis:
                                             near_buildings if p == "building" else near) for p in PROMPTS}
         objects, image = await run_in_threadpool(analyse, photo, found, radius)
         checks = []
-        if any(o.kind == "small_building" for o in objects):
-            checks.append("aerial_small_building")
-        if any(o.kind == "pool" for o in objects):
-            checks.append("aerial_pool")
+        # The checks' fixed sentences point to the Câmara Municipal: only where HABITA models the authority (Portugal).
+        if photo.source.provider == "DGT":
+            if any(o.kind == "small_building" for o in objects):
+                checks.append("aerial_small_building")
+            if any(o.kind == "pool" for o in objects):
+                checks.append("aerial_pool")
         report = AerialReport(
             aerial_id=f"ae_{secrets.token_hex(8)}", property_id=property_id, created_at=datetime.now(UTC),
-            source=AerialSource(service=SERVICE, layer=LAYER, year=YEAR, bbox=photo.bbox, width=SIZE, height=SIZE,
+            source=AerialSource(provider=photo.source.provider, service=photo.source.service, layer=photo.source.layer,
+                                year=photo.source.year, edition=photo.source.edition,
+                                attribution=photo.source.attribution, bbox=photo.bbox, width=SIZE, height=SIZE,
                                 metres_per_pixel=round(photo.metres_per_pixel, 4), sha256=photo.sha256,
                                 retrieved_at=photo.retrieved_at),
             model_id=self._sam.model_id, prompts=list(PROMPTS), radius_m=radius, objects=objects, checks=checks)
@@ -319,5 +361,9 @@ class AerialAnalysis:
             winner = await self._repo.get(property_id)
             if winner is None:
                 raise StorageUnavailableError(_UNAVAILABLE)
+            if not self._matches(winner, SimpleNamespace(coordinates=SimpleNamespace(lat=lat, lng=lng))):
+                # Codex aerial r4: the other request analysed another point of a refreshed property.
+                raise AerialUnavailableError("This property's location changed after its aerial analysis, so that "
+                                             "analysis no longer applies.")
             return winner
         return report

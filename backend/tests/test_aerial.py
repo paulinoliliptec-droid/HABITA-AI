@@ -288,3 +288,199 @@ def test_separation_is_a_true_distance():
     mpp = 0.117  # 1 m is about 8.5 pixels
     assert _touches(square(106, 100, 1), grid, mpp)  # 6 px straight: 0.7 m
     assert not _touches(square(107, 107, 1), grid, mpp)  # 7 px diagonally: about 1.16 m
+
+
+# Afinamentos 2026-11-03: official orthophotos beyond Portugal (IGN for France, NYS for New York State).
+def test_the_official_source_is_chosen_by_place():
+    from app.integrations.orthophotos import source_for
+
+    assert source_for(38.6968, -9.4215, "PT").provider == "DGT"  # Cascais
+    assert source_for(48.8556, 2.3589, "FR").provider == "IGN"  # Paris
+    assert source_for(40.7484, -73.9857, "US", "us/new-york").provider == "NYS"  # Manhattan
+    assert source_for(1.2840, 103.8514, "SG") is None  # Singapore: OneMap terms not cleared
+    assert source_for(37.74, -25.67, "PT") is None  # Azores: outside the DGT mainland orthophoto
+    # Codex aerial r1: the jurisdiction decides, not the rectangle: Geneva and Jersey City sit inside the boxes.
+    assert source_for(46.2044, 6.1432, "CH") is None
+    assert source_for(40.7178, -74.0431, "US", "us/new-jersey") is None
+    assert source_for(48.8556, 2.3589) is None  # no jurisdiction, no source
+
+
+class _Storage:
+    def __init__(self):
+        self.items = {}
+
+    async def put(self, key, data, content_type):
+        self.items[key] = data
+
+    async def get(self, key):
+        return self.items.get(key)
+
+    async def delete(self, key):
+        self.items.pop(key, None)
+
+
+async def test_an_analysis_on_another_source_carries_its_attribution_and_no_camara_checks():
+    from types import SimpleNamespace
+
+    from app.integrations.orthophotos import IGN_SOURCE, OfficialOrthophotoClient
+    from app.services.aerial.service import AerialAnalysis, InMemoryAerialRepository
+
+    class IgnOrtho(OfficialOrthophotoClient):
+        def __init__(self):
+            pass
+
+        async def fetch(self, lat, lng, half, source=None):
+            assert source is IGN_SOURCE  # the gate's choice is what is fetched
+            return Orthophoto(jpeg=JPEG, bbox=bbox_3857(lat, lng, half), metres_per_pixel=2 * half / SIZE,
+                              sha256="0" * 64, retrieved_at=datetime.now(UTC), source=IGN_SOURCE)
+
+    storage = _Storage()
+    service = AerialAnalysis(InMemoryAerialRepository(), storage, IgnOrtho(), Sam())
+    prop = SimpleNamespace(property_id="prp_000000000000paris", precision="rooftop",
+                           coordinates=SimpleNamespace(lat=48.8556, lng=2.3589),
+                           jurisdiction=SimpleNamespace(country_code="FR", levels=[]))
+    report = await service.create(prop)
+    assert report.source.provider == "IGN" and report.source.year is None
+    assert "IGN" in report.source.attribution and report.source.edition == "BD ORTHO, latest"
+    # The fixed check sentences name the Câmara Municipal: never outside Portugal.
+    assert report.checks == [] and {o.kind for o in report.objects} >= {"small_building", "pool"}
+    with Image.open(io.BytesIO(next(iter(storage.items.values())))) as img:
+        assert img.size == (SIZE, SIZE + 56)
+
+
+async def test_a_place_without_an_official_source_is_refused_before_any_spend():
+    from types import SimpleNamespace
+
+    from app.integrations.orthophotos import OfficialOrthophotoClient
+    from app.services.aerial.service import AerialAnalysis, AerialUnavailableError, InMemoryAerialRepository
+
+    sam = Sam()
+    service = AerialAnalysis(InMemoryAerialRepository(), _Storage(), OfficialOrthophotoClient(httpx.AsyncClient()), sam)
+    prop = SimpleNamespace(property_id="prp_0000000singapore", precision="rooftop",
+                           coordinates=SimpleNamespace(lat=1.2840, lng=103.8514),
+                           jurisdiction=SimpleNamespace(country_code="SG", levels=[]))
+    with pytest.raises(AerialUnavailableError):
+        await service.create(prop)
+    assert sam.prompts == []
+
+
+async def test_a_property_across_the_border_is_refused_before_any_spend():
+    """Codex aerial r1: Geneva lies inside France's rectangle, its square may show French imagery; no SAM call."""
+    from types import SimpleNamespace
+
+    from app.integrations.orthophotos import OfficialOrthophotoClient
+    from app.services.aerial.service import AerialAnalysis, AerialUnavailableError, InMemoryAerialRepository
+
+    sam = Sam()
+    service = AerialAnalysis(InMemoryAerialRepository(), _Storage(), OfficialOrthophotoClient(httpx.AsyncClient()), sam)
+    prop = SimpleNamespace(property_id="prp_000000000geneva", precision="rooftop",
+                           coordinates=SimpleNamespace(lat=46.2044, lng=6.1432),
+                           jurisdiction=SimpleNamespace(country_code="CH", levels=[]))
+    with pytest.raises(AerialUnavailableError):
+        await service.create(prop)
+    assert sam.prompts == []
+
+
+async def test_a_stored_analysis_is_not_returned_once_the_property_left_every_source():
+    """Codex aerial r2: a refreshed property moved from New York to New Jersey is refused, not served its old image."""
+    from types import SimpleNamespace
+
+    from app.integrations.orthophotos import NYS_SOURCE, OfficialOrthophotoClient
+    from app.services.aerial.service import AerialAnalysis, AerialUnavailableError, InMemoryAerialRepository
+
+    class NysOrtho(OfficialOrthophotoClient):
+        def __init__(self):
+            pass
+
+        async def fetch(self, lat, lng, half, source=None):
+            return Orthophoto(jpeg=JPEG, bbox=bbox_3857(lat, lng, half), metres_per_pixel=2 * half / SIZE,
+                              sha256="0" * 64, retrieved_at=datetime.now(UTC), source=NYS_SOURCE)
+
+    service = AerialAnalysis(InMemoryAerialRepository(), _Storage(), NysOrtho(), Sam())
+    region = [SimpleNamespace(type="region", id="us/new-york")]
+    ny = SimpleNamespace(property_id="prp_00000000000000ny", precision="rooftop",
+                         coordinates=SimpleNamespace(lat=40.7484, lng=-73.9857),
+                         jurisdiction=SimpleNamespace(country_code="US", levels=region))
+    first = await service.create(ny)
+    assert first.source.provider == "NYS"
+    moved = SimpleNamespace(property_id=ny.property_id, precision="rooftop",
+                            coordinates=SimpleNamespace(lat=40.7178, lng=-74.0431),
+                            jurisdiction=SimpleNamespace(country_code="US",
+                                                         levels=[SimpleNamespace(type="region", id="us/new-jersey")]))
+    with pytest.raises(AerialUnavailableError):
+        await service.create(moved)
+
+
+async def test_reads_hide_an_analysis_once_the_property_moved():
+    """Codex aerial r3: GET, the image and the reports read through the same gate as POST."""
+    from types import SimpleNamespace
+
+    from app.integrations.orthophotos import NYS_SOURCE, OfficialOrthophotoClient
+    from app.services.aerial.service import AerialAnalysis, AerialUnavailableError, InMemoryAerialRepository
+
+    class NysOrtho(OfficialOrthophotoClient):
+        def __init__(self):
+            pass
+
+        async def fetch(self, lat, lng, half, source=None):
+            return Orthophoto(jpeg=JPEG, bbox=bbox_3857(lat, lng, half), metres_per_pixel=2 * half / SIZE,
+                              sha256="0" * 64, retrieved_at=datetime.now(UTC), source=NYS_SOURCE)
+
+    service = AerialAnalysis(InMemoryAerialRepository(), _Storage(), NysOrtho(), Sam())
+    ny = [SimpleNamespace(type="region", id="us/new-york")]
+
+    def at(lat, lng, levels=ny):
+        return SimpleNamespace(property_id="prp_00000000000000ny", precision="rooftop",
+                               coordinates=SimpleNamespace(lat=lat, lng=lng),
+                               jurisdiction=SimpleNamespace(country_code="US", levels=levels))
+
+    here = at(40.7484, -73.9857)
+    await service.create(here)
+    assert await service.current(here) is not None and await service.current_image(here)
+    moved_in_ny = at(40.7500, -73.9900)  # still New York, another point: the old image describes another place
+    to_nj = at(40.7178, -74.0431, [SimpleNamespace(type="region", id="us/new-jersey")])
+    for prop in (moved_in_ny, to_nj):
+        assert await service.current(prop) is None and await service.current_image(prop) is None
+    with pytest.raises(AerialUnavailableError):
+        await service.create(moved_in_ny)
+
+
+async def test_a_concurrent_winner_made_at_another_point_is_not_returned():
+    """Codex aerial r4: the losing insert gets the winner only when the winner analysed this request's point."""
+    from types import SimpleNamespace
+
+    from app.integrations.orthophotos import NYS_SOURCE, OfficialOrthophotoClient
+    from app.services.aerial.service import AerialAnalysis, AerialUnavailableError, InMemoryAerialRepository
+
+    class NysOrtho(OfficialOrthophotoClient):
+        def __init__(self):
+            pass
+
+        async def fetch(self, lat, lng, half, source=None):
+            return Orthophoto(jpeg=JPEG, bbox=bbox_3857(lat, lng, half), metres_per_pixel=2 * half / SIZE,
+                              sha256="0" * 64, retrieved_at=datetime.now(UTC), source=NYS_SOURCE)
+
+    ny = [SimpleNamespace(type="region", id="us/new-york")]
+
+    def at(lat, lng):
+        return SimpleNamespace(property_id="prp_00000000000000ny", precision="rooftop",
+                               coordinates=SimpleNamespace(lat=lat, lng=lng),
+                               jurisdiction=SimpleNamespace(country_code="US", levels=ny))
+
+    other = await AerialAnalysis(InMemoryAerialRepository(), _Storage(), NysOrtho(), Sam()).create(at(40.7500, -73.9900))
+
+    class Racing(InMemoryAerialRepository):
+        """Empty when checked, then another request's analysis wins the insert."""
+        def __init__(self):
+            super().__init__()
+            self.calls = 0
+
+        async def get(self, property_id):
+            self.calls += 1
+            return None if self.calls == 1 else other
+
+        async def add(self, report):
+            return False
+
+    with pytest.raises(AerialUnavailableError):
+        await AerialAnalysis(Racing(), _Storage(), NysOrtho(), Sam()).create(at(40.7484, -73.9857))
