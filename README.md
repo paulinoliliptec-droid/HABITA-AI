@@ -316,7 +316,9 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated again on 2026-11-03 (owner-authorised) to commit
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — frontend updated on 2026-11-03 (owner-authorised) to commit
+`8f8a345` (revision `00078`: the live copilot button and panel moved to the bottom-right corner; warmed 15×200, then
+30×200 live; rollback revision `00076`; backend unchanged). Before that, updated on 2026-11-03 to commit
 `3d30d65`: backend revision `00073` and frontend revision `00076` add the Meta terms confirmation (18+, restricted
 territories, India for Muse Image) before the demo and the workspace, and the live report copilot (bottom-right); checked
 on the candidates (health 3×200, fallback enabled, a real copilot answer from a Cascais report, the confirmation on
