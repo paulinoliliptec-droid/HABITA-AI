@@ -11,7 +11,7 @@ import styles from "./demo.module.css";
 // number, so Google returns a precise point); Praça 5 de Outubro geocodes as a square's centre.
 const EXAMPLES = ["Rua Frederico Arouca 30, Cascais", "Praça 5 de Outubro, Cascais"] as const;
 // Partial coverage (afinamentos 2026-11-02): authority and official sources named, rules not verified.
-const OTHER_EXAMPLES = ["350 5th Ave, New York", "10 Rue de Rivoli, Paris", "1 Raffles Place, Singapore"] as const;
+const OTHER_EXAMPLES = ["350 5th Ave, New York", "5 Rue de Turenne, Paris", "1 Raffles Place, Singapore"] as const;
 
 /** The guided Cascais path (UX-REFINE-001 §4): what to try, in order. Nothing runs until the visitor acts. */
 const GUIDE = [
