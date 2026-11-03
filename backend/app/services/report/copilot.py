@@ -84,6 +84,10 @@ class InvalidQuestionError(AppError):
     code = "validation_error"
 
 
+SHORTENED = ("This report was shortened to fit: if the question is about something not shown here, say the report is "
+             "too long to answer that here and point to the full report on screen, not that it is absent.")
+
+
 def _clip(value, limit: int):
     if isinstance(value, str):
         return value if len(value) <= limit else value[:limit] + "…"
@@ -111,6 +115,10 @@ def report_context(report: PermitReport) -> str:
         if isinstance(holder, dict):
             holder.pop(drop[-1], None)
         text = dump(data)
+    if len(text) < len(dump(report.model_dump(mode="json", exclude_none=True))):
+        # Something was left out: the model must not read that as absent (Codex copilot r5).
+        data["note"] = SHORTENED
+        text = dump(data)
     limit = 2000
     while len(text) > MAX_REPORT_CHARS and limit >= 100:
         text = dump(_clip(data, limit))
@@ -121,10 +129,7 @@ def report_context(report: PermitReport) -> str:
                 "assessment": {k: a.get(k) for k in ("status", "status_reason", "conclusion_answer",
                                                     "conclusion_summary") if k in a} | {
                     "conditions": (a.get("conditions") or [])[:30]},
-                "pending": (data.get("pending") or [])[:30],
-                "note": "This report was shortened to fit: if the question is about something not shown here, say the "
-                        "report is too long to answer that here and point to the full report on screen, not that it is "
-                        "absent."}
+                "pending": (data.get("pending") or [])[:30], "note": SHORTENED}
         text = dump(_clip(core, 300))[:MAX_REPORT_CHARS]
         if len(text) == MAX_REPORT_CHARS:  # last resort, still valid JSON
             text = dump({"assessment": {"status": a.get("status")}, "note": "the report is too long to read here"})

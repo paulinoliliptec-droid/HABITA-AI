@@ -29,6 +29,7 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
   const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
+  const [busy, setBusy] = useState(false);
   const [turns, setTurns] = useState<(CopilotTurn & { inReport: boolean; sections: string[]; status: string | null })[]>([]);
   // The conversation belongs to one report: a new or changed report (or question) starts it again (Codex copilot r1).
   const [context, setContext] = useState<string | null>(null);
@@ -39,12 +40,12 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
       onReportChanged(() => {
         generation.current += 1;
         setTurns([]);
+        setBusy(false); // a question about the old report no longer blocks one about the new (Codex copilot r5)
         // Nothing about the old report keeps being read aloud (Codex copilot r3).
         if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
       }),
     [],
   );
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Live mode (owner 2026-11-03): each answer is spoken as it arrives, like a conversation; the reader can turn it off.
   const [live, setLive] = useState(true);
