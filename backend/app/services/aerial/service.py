@@ -27,7 +27,7 @@ from app.core.errors import (
     UpstreamServiceError,
 )
 from app.core.rate_limit import ResolutionLimiter
-from app.integrations.dgt.orthophoto import DGT_SOURCE, SIZE, Orthophoto, covers
+from app.integrations.dgt.orthophoto import DGT_SOURCE, SIZE, Orthophoto, bbox_3857, covers
 from app.integrations.maps.static_maps import MemoryDailyUsage
 from app.integrations.meta.segment import Segment
 from app.schemas.aerial import AerialObject, AerialReport, AerialSource
@@ -220,6 +220,35 @@ class AerialAnalysis:
         report = await self._repo.get(property_id)
         return await self._storage.get(_key(property_id, report.aerial_id)) if report else None
 
+    def _source(self, prop):
+        """The official source for the property where it is now, or None (the jurisdiction gate)."""
+        lat, lng = prop.coordinates.lat, prop.coordinates.lng
+        jurisdiction = getattr(prop, "jurisdiction", None)
+        country = getattr(jurisdiction, "country_code", None)
+        region = next((lvl.id for lvl in getattr(jurisdiction, "levels", ()) if lvl.type == "region"), None)
+        source_for = getattr(self._ortho, "source_for", None)
+        return (source_for(lat, lng, country, region) if source_for
+                else (DGT_SOURCE if covers(lat, lng) and country in (None, "PT") else None))
+
+    @staticmethod
+    def _matches(report: AerialReport, prop) -> bool:
+        """The analysis was made around the property's current point (Codex aerial r3: a refreshed property may have
+        moved; its old image then describes another place)."""
+        x0, y0, x1, y1 = bbox_3857(prop.coordinates.lat, prop.coordinates.lng, 1.0)
+        bx0, by0, bx1, by1 = report.source.bbox
+        return abs((x0 + x1) / 2 - (bx0 + bx1) / 2) < 1.0 and abs((y0 + y1) / 2 - (by0 + by1) / 2) < 1.0
+
+    async def current(self, prop) -> AerialReport | None:
+        """The stored analysis, only while the property is still where it was made and inside a source."""
+        report = await self._repo.get(prop.property_id)
+        if report is None or self._source(prop) is None or not self._matches(report, prop):
+            return None
+        return report
+
+    async def current_image(self, prop) -> bytes | None:
+        report = await self.current(prop)
+        return await self._storage.get(_key(prop.property_id, report.aerial_id)) if report else None
+
     async def create(self, prop) -> AerialReport:
         """``prop`` is a resolved property. Every refusal comes before any spend, and the location gate before a stored
         analysis is returned (Codex aerial r2: a refreshed property may have moved out of every source)."""
@@ -228,17 +257,15 @@ class AerialAnalysis:
             raise AerialUnavailableError("This address is too imprecise to say which buildings belong to it, so the "
                                          "aerial view isn't available for it.")
         lat, lng = prop.coordinates.lat, prop.coordinates.lng
-        jurisdiction = getattr(prop, "jurisdiction", None)
-        country = getattr(jurisdiction, "country_code", None)
-        region = next((lvl.id for lvl in getattr(jurisdiction, "levels", ()) if lvl.type == "region"), None)
-        source_for = getattr(self._ortho, "source_for", None)
-        source = (source_for(lat, lng, country, region) if source_for
-                  else (DGT_SOURCE if covers(lat, lng) and country in (None, "PT") else None))
+        source = self._source(prop)
         if source is None:
             raise AerialUnavailableError("The aerial view uses official orthophotos, available for mainland Portugal, "
                                          "metropolitan France and New York State.")
         existing = await self._repo.get(prop.property_id)
         if existing is not None:
+            if not self._matches(existing, prop):
+                raise AerialUnavailableError("This property's location changed after its aerial analysis, so that "
+                                             "analysis no longer applies.")
             return existing
         if not self._sam.configured():
             raise ServiceNotConfiguredError("The aerial analysis is not configured on the server (META_API_KEY).")

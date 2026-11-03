@@ -409,3 +409,37 @@ async def test_a_stored_analysis_is_not_returned_once_the_property_left_every_so
                                                          levels=[SimpleNamespace(type="region", id="us/new-jersey")]))
     with pytest.raises(AerialUnavailableError):
         await service.create(moved)
+
+
+async def test_reads_hide_an_analysis_once_the_property_moved():
+    """Codex aerial r3: GET, the image and the reports read through the same gate as POST."""
+    from types import SimpleNamespace
+
+    from app.integrations.orthophotos import NYS_SOURCE, OfficialOrthophotoClient
+    from app.services.aerial.service import AerialAnalysis, AerialUnavailableError, InMemoryAerialRepository
+
+    class NysOrtho(OfficialOrthophotoClient):
+        def __init__(self):
+            pass
+
+        async def fetch(self, lat, lng, half, source=None):
+            return Orthophoto(jpeg=JPEG, bbox=bbox_3857(lat, lng, half), metres_per_pixel=2 * half / SIZE,
+                              sha256="0" * 64, retrieved_at=datetime.now(UTC), source=NYS_SOURCE)
+
+    service = AerialAnalysis(InMemoryAerialRepository(), _Storage(), NysOrtho(), Sam())
+    ny = [SimpleNamespace(type="region", id="us/new-york")]
+
+    def at(lat, lng, levels=ny):
+        return SimpleNamespace(property_id="prp_00000000000000ny", precision="rooftop",
+                               coordinates=SimpleNamespace(lat=lat, lng=lng),
+                               jurisdiction=SimpleNamespace(country_code="US", levels=levels))
+
+    here = at(40.7484, -73.9857)
+    await service.create(here)
+    assert await service.current(here) is not None and await service.current_image(here)
+    moved_in_ny = at(40.7500, -73.9900)  # still New York, another point: the old image describes another place
+    to_nj = at(40.7178, -74.0431, [SimpleNamespace(type="region", id="us/new-jersey")])
+    for prop in (moved_in_ny, to_nj):
+        assert await service.current(prop) is None and await service.current_image(prop) is None
+    with pytest.raises(AerialUnavailableError):
+        await service.create(moved_in_ny)

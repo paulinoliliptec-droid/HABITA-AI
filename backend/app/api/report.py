@@ -39,7 +39,7 @@ async def _property_report(request: Request, property_id: str, lang: str, matter
     planning = await planning_response(request.app.state, prop)
     report = build_report(prop, planning.planning_context, planning.sources, matter, evidence, verification,
                           files=list(files), afford=afford, concepts=list(concepts),
-                          aerial=await request.app.state.aerial.get(property_id))
+                          aerial=await request.app.state.aerial.current(prop))
     return await localize_report(report, lang, request.app.state.translator)
 
 
@@ -56,8 +56,9 @@ async def _matter_report(request: Request, matter_id: str, workflow, lang: str) 
 async def _aerial_figure(request: Request, property_id: str) -> AerialFigure | None:
     """HR-006 polish 2: the property's aerial view, if one was made; never a reason for the PDF to fail."""
     try:
-        aerial = await request.app.state.aerial.get(property_id)
-        jpeg = await request.app.state.aerial.image(property_id) if aerial is not None else None
+        prop = await request.app.state.property_service.get(property_id)
+        aerial = await request.app.state.aerial.current(prop) if prop is not None else None
+        jpeg = await request.app.state.aerial.current_image(prop) if aerial is not None else None
     except Exception:  # noqa: BLE001 - storage or service trouble only drops the figure
         log.exception("aerial view unavailable for the PDF")
         return None
