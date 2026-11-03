@@ -34,7 +34,7 @@ from app.integrations.translate.client import GoogleTranslateClient
 from app.integrations.meta.image import MetaImageEditor
 from app.integrations.meta.transcribe import MetaTranscriber
 from app.integrations.meta.segment import MetaSegmenter
-from app.integrations.dgt.orthophoto import DgtOrthophotoClient
+from app.integrations.orthophotos import OfficialOrthophotoClient
 from app.services.concepts.service import Concepts, InMemoryConceptRepository, MongoConceptRepository
 from app.services.dictation import Dictation
 from app.services.aerial.service import AerialAnalysis, InMemoryAerialRepository, MongoAerialRepository
@@ -282,7 +282,7 @@ def create_app(
                 MongoAerialRepository(mongo, settings.mongodb_db_name) if mongo is not None
                 else InMemoryAerialRepository(),
                 file_storage,
-                aerial_orthophotos or DgtOrthophotoClient(http),
+                aerial_orthophotos or OfficialOrthophotoClient(http),
                 aerial_segmenter or MetaSegmenter(
                     segment_http, api_key=settings.meta_api_key.get_secret_value() if settings.meta_api_key else None,
                     base_url=settings.meta_api_base_url, model_id=settings.meta_segmentation_model),

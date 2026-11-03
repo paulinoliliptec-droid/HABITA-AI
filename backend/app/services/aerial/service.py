@@ -27,7 +27,7 @@ from app.core.errors import (
     UpstreamServiceError,
 )
 from app.core.rate_limit import ResolutionLimiter
-from app.integrations.dgt.orthophoto import LAYER, SERVICE, SIZE, YEAR, Orthophoto, covers
+from app.integrations.dgt.orthophoto import DGT_SOURCE, SIZE, Orthophoto, covers
 from app.integrations.maps.static_maps import MemoryDailyUsage
 from app.integrations.meta.segment import Segment
 from app.schemas.aerial import AerialObject, AerialReport, AerialSource
@@ -182,10 +182,9 @@ def overlay(photo: Orthophoto, kept: list[tuple[Segment, AerialObject]], radius_
     font = ImageFont.truetype(FONT, 18)
     band = Image.new("RGB", (SIZE, SIZE + BAND), (20, 20, 20))
     band.paste(out, (0, 0))
-    # CC BY 4.0 (dados.gov.pt, "Ortofotos 25 cm - Portugal Continental - 2018"): attribution, and the change stated.
+    # Each source's licence asks for its attribution (DGT CC BY 4.0, IGN Licence Ouverte 2.0), and the change stated.
     pen = ImageDraw.Draw(band)
-    pen.text((10, SIZE + 6), f"Informação geográfica cedida pela Direção-Geral do Território (CC BY 4.0) · Ortos {YEAR}",
-             font=font, fill=(255, 255, 255))
+    pen.text((10, SIZE + 6), f"{photo.source.attribution} · {photo.source.edition}", font=font, fill=(255, 255, 255))
     pen.text((10, SIZE + 30), "Outlines added by HABITA with Meta SAM 3.1: approximate, not a survey or a parcel boundary",
              font=font, fill=(255, 255, 255))
     buf = io.BytesIO()
@@ -231,8 +230,11 @@ class AerialAnalysis:
             raise AerialUnavailableError("This address is too imprecise to say which buildings belong to it, so the "
                                          "aerial view isn't available for it.")
         lat, lng = prop.coordinates.lat, prop.coordinates.lng
-        if not covers(lat, lng):
-            raise AerialUnavailableError("The aerial view uses the DGT orthophotos, which cover mainland Portugal only.")
+        source_for = getattr(self._ortho, "source_for", None)
+        source = source_for(lat, lng) if source_for else (DGT_SOURCE if covers(lat, lng) else None)
+        if source is None:
+            raise AerialUnavailableError("The aerial view uses official orthophotos, available for mainland Portugal, "
+                                         "metropolitan France and New York State.")
         if not self._sam.configured():
             raise ServiceNotConfiguredError("The aerial analysis is not configured on the server (META_API_KEY).")
         half, radius = framing
@@ -276,7 +278,8 @@ class AerialAnalysis:
                     spent: list[bool]) -> AerialReport:
         photo = await self._ortho.fetch(lat, lng, half)
         if photo is None:
-            raise UpstreamServiceError("The DGT orthophoto could not be obtained for this place. Please try again later.")
+            raise UpstreamServiceError("The official orthophoto could not be obtained for this place. Please try again "
+                                       "later.")
         reach = radius / photo.metres_per_pixel + 1
         c = SIZE / 2
 
@@ -297,13 +300,17 @@ class AerialAnalysis:
                                             near_buildings if p == "building" else near) for p in PROMPTS}
         objects, image = await run_in_threadpool(analyse, photo, found, radius)
         checks = []
-        if any(o.kind == "small_building" for o in objects):
-            checks.append("aerial_small_building")
-        if any(o.kind == "pool" for o in objects):
-            checks.append("aerial_pool")
+        # The checks' fixed sentences point to the Câmara Municipal: only where HABITA models the authority (Portugal).
+        if photo.source.provider == "DGT":
+            if any(o.kind == "small_building" for o in objects):
+                checks.append("aerial_small_building")
+            if any(o.kind == "pool" for o in objects):
+                checks.append("aerial_pool")
         report = AerialReport(
             aerial_id=f"ae_{secrets.token_hex(8)}", property_id=property_id, created_at=datetime.now(UTC),
-            source=AerialSource(service=SERVICE, layer=LAYER, year=YEAR, bbox=photo.bbox, width=SIZE, height=SIZE,
+            source=AerialSource(provider=photo.source.provider, service=photo.source.service, layer=photo.source.layer,
+                                year=photo.source.year, edition=photo.source.edition,
+                                attribution=photo.source.attribution, bbox=photo.bbox, width=SIZE, height=SIZE,
                                 metres_per_pixel=round(photo.metres_per_pixel, 4), sha256=photo.sha256,
                                 retrieved_at=photo.retrieved_at),
             model_id=self._sam.model_id, prompts=list(PROMPTS), radius_m=radius, objects=objects, checks=checks)

@@ -61,7 +61,11 @@ async def _aerial_figure(request: Request, property_id: str) -> AerialFigure | N
     except Exception:  # noqa: BLE001 - storage or service trouble only drops the figure
         log.exception("aerial view unavailable for the PDF")
         return None
-    return AerialFigure(jpeg=jpeg, year=aerial.source.year) if aerial is not None and jpeg else None
+    # The PDF's aerial figure and its notice are written for the DGT orthophoto; other sources (IGN, NYS, 2026-11-03)
+    # are shown on screen and on the map only.
+    if aerial is None or not jpeg or aerial.source.provider != "DGT" or aerial.source.year is None:
+        return None
+    return AerialFigure(jpeg=jpeg, year=aerial.source.year)
 
 
 #: At most this many concept images in a PDF, each reduced to this width (the PDF stays light).

@@ -25,12 +25,39 @@ _R = 6378137.0
 
 
 @dataclass(frozen=True)
+class OrthoSource:
+    """An official orthophoto service (afinamentos 2026-11-03: DGT, plus IGN for France and NYS for New York State)."""
+
+    provider: str
+    service: str
+    layer: str
+    #: The capture year when the service has one; ``None`` for a mosaic of the latest flights.
+    year: int | None
+    #: What the image is, for display ("Ortos 2018", "BD ORTHO, latest").
+    edition: str
+    #: Burned into the image and shown beside it, as the licence asks.
+    attribution: str
+    #: (west, south, east, north), degrees.
+    extent: tuple[float, float, float, float]
+
+    def covers(self, lat: float, lng: float) -> bool:
+        w, s, e, n = self.extent
+        return w <= lng <= e and s <= lat <= n
+
+
+DGT_SOURCE = OrthoSource(
+    provider="DGT", service=SERVICE, layer=LAYER, year=YEAR, edition=f"Ortos {YEAR}",
+    attribution="Informação geográfica cedida pela Direção-Geral do Território (CC BY 4.0)", extent=EXTENT)
+
+
+@dataclass(frozen=True)
 class Orthophoto:
     jpeg: bytes
     bbox: tuple[float, float, float, float]
     metres_per_pixel: float
     sha256: str
     retrieved_at: datetime
+    source: OrthoSource = DGT_SOURCE
 
 
 def covers(lat: float, lng: float) -> bool:
@@ -54,27 +81,34 @@ class DgtOrthophotoClient:
         """The orthophoto around the point, or None outside the mainland, on failure, or when the answer is blank."""
         if not covers(lat, lng):
             return None
-        bbox = bbox_3857(lat, lng, half_m)
-        params = {"service": "WMS", "version": "1.3.0", "request": "GetMap", "layers": LAYER, "styles": "",
-                  "crs": "EPSG:3857", "bbox": ",".join(f"{v:.2f}" for v in bbox), "width": str(SIZE),
-                  "height": str(SIZE), "format": "image/jpeg"}
-        try:
-            r = await self._http.get(SERVICE, params=params, timeout=self._timeout)
-        except httpx.HTTPError as exc:
-            logger.warning("DGT orthophoto request failed: %s", type(exc).__name__)
-            return None
-        data = r.content
-        if r.status_code != 200 or not data.startswith(b"\xff\xd8") or len(data) > MAX_BYTES:
-            logger.warning("DGT orthophoto unusable: status=%d bytes=%d", r.status_code, len(data))
-            return None
-        try:
-            with Image.open(io.BytesIO(data)) as img:
-                if img.size != (SIZE, SIZE):
-                    return None
-                # A blank answer (no coverage) is one flat colour.
-                if max(ImageStat.Stat(img.convert("L")).stddev) < 4:
-                    return None
-        except OSError:
-            return None
-        return Orthophoto(jpeg=data, bbox=bbox, metres_per_pixel=2 * half_m / SIZE,
-                          sha256=hashlib.sha256(data).hexdigest(), retrieved_at=datetime.now(UTC))
+        return await fetch_wms(self._http, DGT_SOURCE, lat, lng, half_m, self._timeout)
+
+
+async def fetch_wms(http: httpx.AsyncClient, source: OrthoSource, lat: float, lng: float, half_m: float,
+                    timeout: float) -> Orthophoto | None:
+    """One WMS 1.3.0 GetMap of a square around the point (EPSG:3857, SIZE x SIZE JPEG), checked: a JPEG of the asked
+    size, not too large, not one flat colour (a blank answer means no coverage)."""
+    bbox = bbox_3857(lat, lng, half_m)
+    params = {"service": "WMS", "version": "1.3.0", "request": "GetMap", "layers": source.layer, "styles": "",
+              "crs": "EPSG:3857", "bbox": ",".join(f"{v:.2f}" for v in bbox), "width": str(SIZE),
+              "height": str(SIZE), "format": "image/jpeg"}
+    try:
+        r = await http.get(source.service, params=params, timeout=timeout)
+    except httpx.HTTPError as exc:
+        logger.warning("%s orthophoto request failed: %s", source.provider, type(exc).__name__)
+        return None
+    data = r.content
+    if r.status_code != 200 or not data.startswith(b"\xff\xd8") or len(data) > MAX_BYTES:
+        logger.warning("%s orthophoto unusable: status=%d bytes=%d", source.provider, r.status_code, len(data))
+        return None
+    try:
+        with Image.open(io.BytesIO(data)) as img:
+            if img.size != (SIZE, SIZE):
+                return None
+            # A blank answer (no coverage) is one flat colour.
+            if max(ImageStat.Stat(img.convert("L")).stddev) < 4:
+                return None
+    except OSError:
+        return None
+    return Orthophoto(jpeg=data, bbox=bbox, metres_per_pixel=2 * half_m / SIZE,
+                      sha256=hashlib.sha256(data).hexdigest(), retrieved_at=datetime.now(UTC), source=source)

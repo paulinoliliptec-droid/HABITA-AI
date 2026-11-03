@@ -288,3 +288,70 @@ def test_separation_is_a_true_distance():
     mpp = 0.117  # 1 m is about 8.5 pixels
     assert _touches(square(106, 100, 1), grid, mpp)  # 6 px straight: 0.7 m
     assert not _touches(square(107, 107, 1), grid, mpp)  # 7 px diagonally: about 1.16 m
+
+
+# Afinamentos 2026-11-03: official orthophotos beyond Portugal (IGN for France, NYS for New York State).
+def test_the_official_source_is_chosen_by_place():
+    from app.integrations.orthophotos import source_for
+
+    assert source_for(38.6968, -9.4215).provider == "DGT"  # Cascais
+    assert source_for(48.8556, 2.3589).provider == "IGN"  # Paris
+    assert source_for(40.7484, -73.9857).provider == "NYS"  # Manhattan
+    assert source_for(1.2840, 103.8514) is None  # Singapore: OneMap terms not cleared
+    assert source_for(37.74, -25.67) is None  # Azores: outside the DGT mainland orthophoto
+
+
+class _Storage:
+    def __init__(self):
+        self.items = {}
+
+    async def put(self, key, data, content_type):
+        self.items[key] = data
+
+    async def get(self, key):
+        return self.items.get(key)
+
+    async def delete(self, key):
+        self.items.pop(key, None)
+
+
+async def test_an_analysis_on_another_source_carries_its_attribution_and_no_camara_checks():
+    from types import SimpleNamespace
+
+    from app.integrations.orthophotos import IGN_SOURCE, OfficialOrthophotoClient
+    from app.services.aerial.service import AerialAnalysis, InMemoryAerialRepository
+
+    class IgnOrtho(OfficialOrthophotoClient):
+        def __init__(self):
+            pass
+
+        async def fetch(self, lat, lng, half):
+            return Orthophoto(jpeg=JPEG, bbox=bbox_3857(lat, lng, half), metres_per_pixel=2 * half / SIZE,
+                              sha256="0" * 64, retrieved_at=datetime.now(UTC), source=IGN_SOURCE)
+
+    storage = _Storage()
+    service = AerialAnalysis(InMemoryAerialRepository(), storage, IgnOrtho(), Sam())
+    prop = SimpleNamespace(property_id="prp_000000000000paris", precision="rooftop",
+                           coordinates=SimpleNamespace(lat=48.8556, lng=2.3589))
+    report = await service.create(prop)
+    assert report.source.provider == "IGN" and report.source.year is None
+    assert "IGN" in report.source.attribution and report.source.edition == "BD ORTHO, latest"
+    # The fixed check sentences name the Câmara Municipal: never outside Portugal.
+    assert report.checks == [] and {o.kind for o in report.objects} >= {"small_building", "pool"}
+    with Image.open(io.BytesIO(next(iter(storage.items.values())))) as img:
+        assert img.size == (SIZE, SIZE + 56)
+
+
+async def test_a_place_without_an_official_source_is_refused_before_any_spend():
+    from types import SimpleNamespace
+
+    from app.integrations.orthophotos import OfficialOrthophotoClient
+    from app.services.aerial.service import AerialAnalysis, AerialUnavailableError, InMemoryAerialRepository
+
+    sam = Sam()
+    service = AerialAnalysis(InMemoryAerialRepository(), _Storage(), OfficialOrthophotoClient(httpx.AsyncClient()), sam)
+    prop = SimpleNamespace(property_id="prp_0000000singapore", precision="rooftop",
+                           coordinates=SimpleNamespace(lat=1.2840, lng=103.8514))
+    with pytest.raises(AerialUnavailableError):
+        await service.create(prop)
+    assert sam.prompts == []
