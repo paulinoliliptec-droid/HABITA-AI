@@ -316,7 +316,11 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — frontend updated on 2026-11-03 (owner-authorised) to commit
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-11-03 (owner-authorised) to commit `878f82d`:
+backend revision `00075` and frontend revision `00080` speak the copilot's answers in the ElevenLabs voice and send a
+dictated question by itself after 10 s of silence; checked on the candidates (health 3×200, a real copilot answer in
+PT from Rua Frederico Arouca 30 and its ElevenLabs audio, the frontend warmed 15×200, then 30×200 live). Rollback:
+backend `00073`, frontend `00078`. Before that, frontend updated on 2026-11-03 to commit
 `8f8a345` (revision `00078`: the live copilot button and panel moved to the bottom-right corner; warmed 15×200, then
 30×200 live; rollback revision `00076`; backend unchanged). Before that, updated on 2026-11-03 to commit
 `3d30d65`: backend revision `00073` and frontend revision `00076` add the Meta terms confirmation (18+, restricted
