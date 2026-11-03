@@ -237,7 +237,8 @@ class AerialAnalysis:
         moved; its old image then describes another place)."""
         x0, y0, x1, y1 = bbox_3857(prop.coordinates.lat, prop.coordinates.lng, 1.0)
         bx0, by0, bx1, by1 = report.source.bbox
-        return abs((x0 + x1) / 2 - (bx0 + bx1) / 2) < 1.0 and abs((y0 + y1) / 2 - (by0 + by1) / 2) < 1.0
+        # The stored bbox was computed from the same coordinates: anything beyond float noise is another point.
+        return abs((x0 + x1) / 2 - (bx0 + bx1) / 2) < 0.01 and abs((y0 + y1) / 2 - (by0 + by1) / 2) < 0.01
 
     async def current(self, prop) -> AerialReport | None:
         """The stored analysis, only while the property is still where it was made and inside a source."""

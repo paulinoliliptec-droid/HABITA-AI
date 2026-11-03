@@ -56,9 +56,10 @@ def test_nyc_keeps_homes_above_nominal_prices():
     rows = [{"sale_price": "1000000", "building_class_category": "13 CONDOS - ELEVATOR APARTMENTS"},
             {"sale_price": "2000000", "building_class_category": "01 ONE FAMILY DWELLINGS"},
             {"sale_price": "0", "building_class_category": "10 COOPS - ELEVATOR APARTMENTS"},
-            {"sale_price": "9000000", "building_class_category": "21 OFFICE BUILDINGS"}]
+            {"sale_price": "9000000", "building_class_category": "21 OFFICE BUILDINGS"},
+            {"sale_price": "625000", "building_class_category": "04 TAX CLASS 1 CONDOS"}]  # Codex market r3
     out = intl.build_nyc(lambda url, params: rows if "borough='1'" in params["$where"] else [], 2025)
-    assert out["areas"] == {"Manhattan": {"area": "Manhattan", "value": 1500000, "count": 2}}
+    assert out["areas"] == {"Manhattan": {"area": "Manhattan", "value": 1000000, "count": 3}}
 
 
 def test_singapore_is_per_square_metre_over_the_months_asked():

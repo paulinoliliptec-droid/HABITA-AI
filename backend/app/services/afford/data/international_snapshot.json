@@ -124,28 +124,28 @@
   "areas": {
    "Manhattan": {
     "area": "Manhattan",
-    "value": 1198000,
-    "count": 13315
+    "value": 1199000,
+    "count": 13322
    },
    "Bronx": {
     "area": "Bronx",
-    "value": 643000,
-    "count": 3359
+    "value": 635000,
+    "count": 3432
    },
    "Brooklyn": {
     "area": "Brooklyn",
-    "value": 998000,
-    "count": 10825
+    "value": 995000,
+    "count": 11217
    },
    "Queens": {
     "area": "Queens",
     "value": 720000,
-    "count": 14036
+    "count": 14250
    },
    "Staten Island": {
     "area": "Staten Island",
-    "value": 730000,
-    "count": 3805
+    "value": 715000,
+    "count": 4110
    }
   }
  },

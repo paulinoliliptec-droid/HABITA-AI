@@ -36,7 +36,9 @@ HDB_API = "https://data.gov.sg/api/action/datastore_search"
 HDB_RESOURCE = "d_8b84c4ee58e3cfc0ece0d773c8ca6abc"
 HDB_PAGE = "https://data.gov.sg/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view"
 NYC_BOROUGHS = {"1": "Manhattan", "2": "Bronx", "3": "Brooklyn", "4": "Queens", "5": "Staten Island"}
-NYC_HOMES = ("01 ", "02 ", "03 ", "09 ", "10 ", "12 ", "13 ", "15 ", "17 ")
+#: One to three family dwellings, tax class 1 condos, co-ops and condos (category 16, condos with a commercial unit,
+#: mixes uses and is left out).
+NYC_HOMES = ("01 ", "02 ", "03 ", "04 ", "09 ", "10 ", "12 ", "13 ", "15 ", "17 ")
 
 
 # ── Lookup (offline) ─────────────────────────────────────────────────────────────────────────────────────────────

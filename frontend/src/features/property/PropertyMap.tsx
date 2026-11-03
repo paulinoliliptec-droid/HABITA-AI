@@ -62,6 +62,8 @@ export function PropertyMap({
   useEffect(() => onReportChanged(() => setReportVersion((v) => v + 1)), []);
   useEffect(() => {
     if (!propertyId) return;
+    // Nothing from the previous point stays on the map while (or if) the new answer is loading (Codex aerial r5).
+    setAerial(null);
     const controller = new AbortController();
     getAerial(propertyId, controller.signal)
       .then((report) => {
