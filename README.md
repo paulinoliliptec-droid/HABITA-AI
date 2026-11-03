@@ -316,7 +316,11 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-11-03 (owner-authorised) to commit `878f82d`:
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-11-03 (owner-authorised) to commit `f88957d`:
+backend revision `00077` and frontend revision `00082` let the reader run the copilot on Muse Spark Open (Meta's open
+weights on Baseten); checked on the candidates (health 3×200, a real copilot answer in PT from
+`meta-models/muse-spark-open-1026` in 9 s, the frontend warmed 15×200, then 30×200 live). Rollback: backend `00075`,
+frontend `00080`. Before that, updated on 2026-11-03 to commit `878f82d`:
 backend revision `00075` and frontend revision `00080` speak the copilot's answers in the ElevenLabs voice and send a
 dictated question by itself after 10 s of silence; checked on the candidates (health 3×200, a real copilot answer in
 PT from Rua Frederico Arouca 30 and its ElevenLabs audio, the frontend warmed 15×200, then 30×200 live). Rollback:
