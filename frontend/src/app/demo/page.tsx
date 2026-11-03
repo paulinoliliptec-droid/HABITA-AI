@@ -44,7 +44,7 @@ export default function DemoPage() {
             {t("Every property begins with its place.")}
           </h1>
           <p className={styles.lead}>
-            {t("Enter an address, or start the guided Cascais scenario. No account is needed, and nothing is charged or generated until you ask for it.")}
+            {t("Cascais is where HABITA is most complete, so test there: Rua Frederico Arouca 30 is the reference address, but you can enter any other. No account is needed, and nothing is charged or generated until you ask for it.")}
           </p>
           <div className={styles.search}>
             <AddressSearch

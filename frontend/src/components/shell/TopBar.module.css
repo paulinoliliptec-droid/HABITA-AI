@@ -21,24 +21,34 @@
   border-radius: var(--radius-sm);
 }
 
+.mark {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-right: calc(var(--space-2) - var(--space-4));
+}
+
+/* The logo's wordmark: a bold sans "HABITA" in deep navy, "AI" in the symbol's blue-to-green. */
 .wordmark {
   display: inline-flex;
-  align-items: flex-start;
-  gap: 0.2em;
-  font-family: var(--font-serif);
+  align-items: baseline;
+  gap: 0.3em;
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
-  font-weight: var(--weight-semibold);
-  letter-spacing: 0.06em;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   line-height: 1;
+  color: #0d1b33;
 }
 
 .ai {
   font-family: var(--font-sans);
-  font-size: 0.5em;
-  font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-label);
-  color: var(--color-accent);
-  transform: translateY(-0.05em);
+  font-size: 1em;
+  font-weight: 800;
+  background: linear-gradient(90deg, #1f5fbf, #19b38a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .divider {

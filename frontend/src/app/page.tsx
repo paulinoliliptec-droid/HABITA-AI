@@ -80,7 +80,7 @@ export default function LandingPage() {
                   <Icon name="arrowRight" size={20} />
                 </ButtonLink>
                 <p className={styles.juryNote}>
-                  {t("Start with Rua Frederico Arouca 30, Cascais: from the address to an answer checked against official sources, with the map, the aerial view, the reasoning graph, the PDF and the voice. No account is needed, and nothing is charged or generated until you ask for it.")}
+                  {t("Test in Cascais, where HABITA is most complete. Rua Frederico Arouca 30 is the reference address, but any Cascais address works: from the address to an answer checked against official sources, with the map, the aerial view, the reasoning graph, the PDF and the voice. No account is needed, and nothing is charged or generated until you ask for it.")}
                 </p>
               </div>
               <div className={styles.actions}>
