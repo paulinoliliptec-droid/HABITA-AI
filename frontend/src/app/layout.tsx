@@ -34,9 +34,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${sans.variable} ${serif.variable}`}>
       <body>
         <TopBar />
-        {children}
         <Suspense fallback={null}>
-          <AccessGate />
+          <AccessGate>{children}</AccessGate>
         </Suspense>
       </body>
     </html>

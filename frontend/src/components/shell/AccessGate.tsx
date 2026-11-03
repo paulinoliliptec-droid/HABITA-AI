@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useSyncExternalStore } from "react";
+import { type ReactNode, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/Button";
 import { useI18n } from "@/i18n/useI18n";
 import styles from "./AccessGate.module.css";
@@ -30,18 +30,20 @@ function subscribe(onChange: () => void): () => void {
 
 /**
  * Meta's terms for the models HABITA uses (afinamentos 2026-11-03): end users must be 18 or older and HABITA may not
- * knowingly admit users in Meta's restricted territories (and Muse Image, for the concepts, not in India). Before the
- * demo and the workspace, the visitor confirms both; the answer is kept in this browser only. Blocking by network
+ * knowingly admit users in Meta's restricted territories (and Muse Image, for the concepts, not in India). The demo and
+ * the workspace are not rendered at all until the visitor confirms (Codex terms r1: nothing loads before), so the
+ * confirmation is the page itself, not a window over it. The answer is kept in this browser only. Blocking by network
  * address would need a load balancer (owner decision); this is the notice and confirmation.
  */
-export function AccessGate() {
+export function AccessGate({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const pathname = usePathname();
-  // Stored in this browser; nothing on the server render (the server snapshot says "accepted").
-  const stored = useSyncExternalStore(subscribe, readStored, () => true);
+  // Stored in this browser. The server renders the confirmation for gated pages (snapshot "not accepted"), so a page
+  // behind it never renders, or fetches, before the browser's answer is read.
+  const stored = useSyncExternalStore(subscribe, readStored, () => false);
   const [justAccepted, setJustAccepted] = useState(false);
   const gated = pathname.startsWith("/demo") || pathname.startsWith("/property");
-  if (stored || justAccepted || !gated) return null;
+  if (stored || justAccepted || !gated) return <>{children}</>;
 
   function accept() {
     try {
@@ -53,23 +55,23 @@ export function AccessGate() {
   }
 
   return (
-    <div className={styles.backdrop}>
-      <div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="access-title">
-        <h2 id="access-title" className={styles.title}>
+    <main className={styles.page}>
+      <section className={styles.dialog} aria-labelledby="access-title">
+        <h1 id="access-title" className={styles.title}>
           {t("Before you start")}
-        </h2>
+        </h1>
         <p>{t("HABITA uses Meta's AI models, whose terms allow only people aged 18 or older, outside the territories Meta restricts.")}</p>
         <p className={styles.small}>
           {t("Restricted territories:")} {RESTRICTED_TERRITORIES.map((name) => t(name)).join(", ")}.{" "}
           {t("Before / after images (Muse Image) are also not available in India.")}
         </p>
         <div className={styles.actions}>
-          <Button variant="primary" onClick={accept}>
-            {t("I am 18 or older and not in any of these territories")}
+          <Button variant="primary" onClick={accept} autoFocus className={styles.confirm}>
+            {t("I am 18 or older, not in any of these territories, and not in India")}
           </Button>
           <Link href="/privacy">{t("Privacy & terms")}</Link>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

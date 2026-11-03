@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { msg } from "@/i18n/core";
 import { useI18n } from "@/i18n/useI18n";
@@ -132,7 +132,8 @@ export function PropertyMap({
   }, [mode]);
 
   const aerialBbox = aerial?.source.bbox;
-  useEffect(() => {
+  // A layout effect: after a move, the old overlay is removed before the new point is painted (Codex terms r1).
+  useLayoutEffect(() => {
     const map = mapRef.current;
     if (!map || state.status !== "ready" || !aerialOn || !aerial || !aerialBbox) return;
     // The served image is the photo plus an attribution band below it: measure it, then hang the band below the
