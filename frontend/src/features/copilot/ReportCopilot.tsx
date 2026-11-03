@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { recallMatter } from "@/features/permit/capability";
-import { askCopilot, type CopilotTurn } from "@/features/report/api";
+import { askCopilot, onReportChanged, type CopilotTurn } from "@/features/report/api";
 import { DictateButton } from "@/features/voice/DictateButton";
 import { useI18n } from "@/i18n/useI18n";
 import { ApiError } from "@/lib/api";
@@ -29,7 +29,10 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
   const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
-  const [turns, setTurns] = useState<(CopilotTurn & { inReport: boolean; sections: string[] })[]>([]);
+  const [turns, setTurns] = useState<(CopilotTurn & { inReport: boolean; sections: string[]; status: string | null })[]>([]);
+  // The conversation belongs to one report: a new or changed report (or question) starts it again (Codex copilot r1).
+  const [context, setContext] = useState<string | null>(null);
+  useEffect(() => onReportChanged(() => setTurns([])), []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Live mode (owner 2026-11-03): each answer is spoken as it arrives, like a conversation; the reader can turn it off.
@@ -41,9 +44,13 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
     setBusy(true);
     setError(null);
     try {
-      const out = await askCopilot(propertyId, recallMatter(propertyId), lang, q,
-        turns.map(({ q: tq, a }) => ({ q: tq, a })));
-      setTurns((prev) => [...prev, { q, a: out.answer, inReport: out.in_report, sections: out.sections }]);
+      const own = recallMatter(propertyId);
+      const now = own?.matterId ?? "property";
+      const history = now === context ? turns.map(({ q: tq, a }) => ({ q: tq, a })) : [];
+      const out = await askCopilot(propertyId, own, lang, q, history);
+      const turn = { q, a: out.answer, inReport: out.in_report, sections: out.sections, status: out.report_status };
+      setTurns((prev) => (now === context ? [...prev, turn] : [turn]));
+      setContext(now);
       setQuestion("");
       if (live) speak(out.answer);
     } catch (err) {
@@ -101,6 +108,8 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
             <p className={styles.q}>{turn.q}</p>
             <p className={styles.a}>{turn.a}</p>
             <p className={styles.meta}>
+              {t("Report status: {status}", { status: turn.status ? t(turn.status) : t("no question asked yet") })}
+              {" · "}
               {turn.inReport
                 ? turn.sections.length > 0 && `${t("From the report:")} ${turn.sections.map((s) => t(SECTION_LABEL[s] ?? s)).join(", ")}`
                 : t("Not in the report")}

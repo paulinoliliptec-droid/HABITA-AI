@@ -17,6 +17,7 @@ import hashlib
 import hmac
 import json
 import logging
+import re
 from datetime import UTC, datetime
 from typing import Any
 
@@ -74,14 +75,58 @@ class InvalidQuestionError(AppError):
     code = "validation_error"
 
 
+def _clip(value, limit: int):
+    if isinstance(value, str):
+        return value if len(value) <= limit else value[:limit] + "…"
+    if isinstance(value, list):
+        return [_clip(v, limit) for v in value]
+    if isinstance(value, dict):
+        return {k: _clip(v, limit) for k, v in value.items()}
+    return value
+
+
 def report_context(report: PermitReport) -> str:
-    """The report as the model reads it: the same fields the reader sees, nothing else (no images)."""
+    """The report as the model reads it: the same fields the reader sees, nothing else (no images), always valid JSON.
+    A long report sheds whole parts in this order, the assessment's status, conditions and pending items last, then
+    clips long texts (Codex copilot r1: never a report cut in the middle)."""
     data = report.model_dump(mode="json", exclude_none=True)
-    text = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    if len(text) > MAX_REPORT_CHARS:  # the long tail (source lists) goes first; the assessment always stays
-        data.pop("sources", None)
-        text = json.dumps(data, ensure_ascii=False, separators=(",", ":"))[:MAX_REPORT_CHARS]
+    dump = lambda d: json.dumps(d, ensure_ascii=False, separators=(",", ":"))  # noqa: E731
+    text = dump(data)
+    for drop in (("sources",), ("concepts",), ("afford",), ("profile",), ("assessment", "evidence"),
+                 ("assessment", "statements"), ("assessment", "verification")):
+        if len(text) <= MAX_REPORT_CHARS:
+            break
+        holder = data
+        for key in drop[:-1]:
+            holder = holder.get(key) or {}
+        if isinstance(holder, dict):
+            holder.pop(drop[-1], None)
+        text = dump(data)
+    limit = 2000
+    while len(text) > MAX_REPORT_CHARS and limit >= 100:
+        text = dump(_clip(data, limit))
+        limit //= 2
     return text
+
+
+def report_status(report: PermitReport) -> str | None:
+    return report.assessment.status if report.assessment is not None else None
+
+
+#: Status words written as the report writes them; an answer may only use the one the report has (Codex copilot r1).
+_STATUS_WORDS = ("VERIFIED", "NEEDS_INPUT", "ESCALATE", "REJECTED")
+
+
+def upgrades_status(answer: str, status: str | None) -> bool:
+    """True when the answer names a status word the report doesn't have ("NOT VERIFIED" is a negation, allowed)."""
+    for word in _STATUS_WORDS:
+        for m in re.finditer(rf"(?<![A-Z_]){word}(?![A-Z_])", answer):
+            before = answer[max(0, m.start() - 4):m.start()]
+            if word == "VERIFIED" and before.upper() in ("NOT ", "NÃO "):
+                continue
+            if word != status:
+                return True
+    return False
 
 
 class ReportCopilot:
@@ -100,15 +145,10 @@ class ReportCopilot:
         """A day-scoped keyed hash of the caller's address: counted per caller, never stored as an address."""
         return hmac.new(self._caller_key, f"{day}|{address}".encode(), hashlib.sha256).hexdigest()[:24]
 
-    async def ask(self, report: PermitReport, question: str, history: list[dict[str, str]], lang: str,
-                  address: str) -> dict[str, Any]:
-        question = " ".join(question.split())
-        if not question or len(question) > MAX_QUESTION:
-            raise InvalidQuestionError(f"Ask a question of at most {MAX_QUESTION} characters.")
+    async def reserve(self, address: str) -> list[str]:
+        """The caller's and the day's counts, taken before anything paid (the report's translation included)."""
         if self._model is None:
             raise ServiceNotConfiguredError("The report copilot is not configured on the server.")
-        turns = [{"q": str(t.get("q", ""))[:MAX_QUESTION], "a": str(t.get("a", ""))[:MAX_ANSWER]}
-                 for t in history[-MAX_TURNS:]]
         day = datetime.now(UTC).date().isoformat()
         mine = f"{day}:caller:{self.caller(address, day)}"
         taken: list[str] = []
@@ -128,27 +168,53 @@ class ReportCopilot:
         except BaseException:  # cancelled while counting: what was taken goes back
             await self._give_back(taken)
             raise
+        return taken
+
+    async def release(self, taken: list[str]) -> None:
+        await self._give_back(taken)
+
+    @staticmethod
+    def check_question(question: str) -> str:
+        question = " ".join(question.split())
+        if not question or len(question) > MAX_QUESTION:
+            raise InvalidQuestionError(f"Ask a question of at most {MAX_QUESTION} characters.")
+        return question
+
+    async def answer(self, report: PermitReport, question: str, history: list[dict[str, str]],
+                     lang: str) -> dict[str, Any]:
+        """One answer from the report; raises when nothing usable came back (the caller gives the counts back)."""
+        question = self.check_question(question)
+        turns = [{"q": str(t.get("q", ""))[:MAX_QUESTION], "a": str(t.get("a", ""))[:MAX_ANSWER]}
+                 for t in history[-MAX_TURNS:]]
         user = ("LANGUAGE: " + lang + "\nREPORT: " + report_context(report)
                 + "\nEARLIER TURNS: " + json.dumps(turns, ensure_ascii=False)
                 + "\nQUESTION: " + json.dumps(question, ensure_ascii=False))
+        result = await self._model.chat([{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}],
+                                        response_schema=SCHEMA, schema_name="report_copilot")
         try:
-            result = await self._model.chat([{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}],
-                                            response_schema=SCHEMA, schema_name="report_copilot")
             parsed = json.loads(result.content or "")
             answer = " ".join(str(parsed["answer"]).split())[:MAX_ANSWER]
             sections = [s for s in parsed.get("sections", []) if s in SECTIONS]
             in_report = bool(parsed["in_report"])
         except (ValueError, KeyError, TypeError):
-            await self._give_back(taken)
             raise UpstreamServiceError("The report copilot did not answer. Please try again.") from None
-        except BaseException:
-            await self._give_back(taken)
-            raise
-        if not answer:
-            await self._give_back(taken)
+        status = report_status(report)
+        # Never a status the report doesn't have, whatever the question or a record's text asked for.
+        if not answer or upgrades_status(answer, status):
             raise UpstreamServiceError("The report copilot did not answer. Please try again.")
-        return {"answer": answer, "in_report": in_report, "sections": sections,
+        return {"answer": answer, "in_report": in_report, "sections": sections, "report_status": status,
                 "model_id": getattr(self._model, "model_id", None)}
+
+    async def ask(self, report: PermitReport, question: str, history: list[dict[str, str]], lang: str,
+                  address: str) -> dict[str, Any]:
+        """reserve → answer → (on failure) release, for callers that already hold the report."""
+        self.check_question(question)
+        taken = await self.reserve(address)
+        try:
+            return await self.answer(report, question, history, lang)
+        except BaseException:
+            await self.release(taken)
+            raise
 
     async def _give_back(self, keys: list[str]) -> None:
         for key in keys:

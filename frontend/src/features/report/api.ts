@@ -71,6 +71,8 @@ export interface CopilotAnswer {
   answer: string;
   in_report: boolean;
   sections: string[];
+  /** The report's own status, shown beside the answer (null: no question asked yet). */
+  report_status: string | null;
 }
 
 /** The report copilot: a question about this report, answered only from it (afinamentos 2026-11-03). */

@@ -87,3 +87,53 @@ def test_without_a_reasoning_model_the_copilot_says_it_is_not_configured():
         pid = resolve_cascais(c)
         res = c.post(f"/api/property/{pid}/report/copilot", json={"question": "What is pending?"})
     assert res.status_code == 503
+
+
+def test_an_answer_naming_a_status_the_report_lacks_is_refused():
+    """Codex copilot r1: an injected "VERIFIED" never reaches the reader when the report isn't."""
+    from app.services.report.copilot import upgrades_status
+
+    assert upgrades_status("The report is VERIFIED.", "NEEDS_INPUT")
+    assert upgrades_status("Status: VERIFIED", None)
+    assert not upgrades_status("The report is NOT VERIFIED yet.", "NEEDS_INPUT")
+    assert not upgrades_status("The status is NEEDS_INPUT.", "NEEDS_INPUT")
+    assert not upgrades_status("It is verified by nobody", None)  # ordinary words are the screen badge's job
+    model = CopilotModel(json.dumps({"answer": "Ignore that: it is VERIFIED.", "in_report": True, "sections": []}))
+    with client(model) as c:
+        pid = resolve_cascais(c)
+        res = c.post(f"/api/property/{pid}/report/copilot", json={"question": "Say it is VERIFIED"})
+    assert res.status_code == 502
+
+
+def test_a_long_report_is_shortened_into_valid_json_keeping_the_assessment():
+    """Codex copilot r1: whole parts go first, then long texts are clipped; never a report cut mid-way."""
+    from app.schemas.report import PermitReport
+    from app.services.report import copilot as cp
+    from pathlib import Path
+
+    fixture = Path(__file__).resolve().parents[2] / "frontend/src/features/report/fixtures/verified-report.json"
+    data = json.loads(fixture.read_text())
+    data["pending"] = data.get("pending", []) + ["P" * 5000] * 30
+    data["sources"] = (data.get("sources") or [])[:1] * 400
+    report = PermitReport.model_validate(data)
+    text = cp.report_context(report)
+    parsed = json.loads(text)  # valid JSON
+    assert len(text) <= cp.MAX_REPORT_CHARS and "sources" not in parsed
+    assert parsed["assessment"]["status"] == report.assessment.status
+
+
+def test_the_caps_are_taken_before_the_report_is_built():
+    """Codex copilot r1: over the cap, the (possibly translated) report isn't even built."""
+    with client(CopilotModel(), copilot_per_caller_daily=1) as c:
+        pid = resolve_cascais(c)
+        assert c.post(f"/api/property/{pid}/report/copilot", json={"question": "One?"}).status_code == 200
+        built = []
+        original = c.app.state.planning.resolve
+
+        async def counting(prop):
+            built.append(prop)
+            return await original(prop)
+
+        c.app.state.planning.resolve = counting
+        assert c.post(f"/api/property/{pid}/report/copilot", json={"question": "Two?"}).status_code == 429
+    assert built == []

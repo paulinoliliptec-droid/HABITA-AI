@@ -812,5 +812,7 @@
   "Speak the answers": "Ler as respostas em voz alta",
   "Talk to it by voice or text: it answers live, out loud, and only from this report. An explanation, not a verification or legal advice.": "Fale por voz ou escreva: responde ao vivo, em voz alta, e só a partir deste relatório. Uma explicação, não uma verificação nem aconselhamento jurídico.",
   "For example: why isn't the zoning verified? What is still pending?": "Por exemplo: porque é que o zonamento não está verificado? O que ainda está pendente?",
-  "The report copilot did not answer. Please try again.": "O copiloto do relatório não respondeu. Tente novamente."
+  "The report copilot did not answer. Please try again.": "O copiloto do relatório não respondeu. Tente novamente.",
+  "Report status: {status}": "Estado do relatório: {status}",
+  "no question asked yet": "ainda sem pergunta"
 }

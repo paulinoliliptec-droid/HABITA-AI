@@ -199,6 +199,8 @@ class CopilotAnswer(BaseModel):
     answer: str
     in_report: bool
     sections: list[str]
+    #: The report's own status (None: no question yet), shown beside every answer by the screen.
+    report_status: str | None = None
     model_id: str | None = None
 
 
@@ -207,10 +209,16 @@ async def _copilot(request: Request, body: CopilotRequest, lang: str, report_for
     from app.api.voice import client_address
 
     copilot = request.app.state.copilot
+    copilot.check_question(body.question)
     async with copilot.admit():
-        report = await report_for()
-        out = await copilot.ask(report, body.question, [t.model_dump() for t in body.history], lang,
-                                client_address(request))
+        # The counts come first: building the report may translate it (a paid call) (Codex copilot r1).
+        taken = await copilot.reserve(client_address(request))
+        try:
+            report = await report_for()
+            out = await copilot.answer(report, body.question, [t.model_dump() for t in body.history], lang)
+        except BaseException:
+            await copilot.release(taken)
+            raise
     return CopilotAnswer(**out)
 
 
