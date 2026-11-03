@@ -158,3 +158,12 @@ def test_a_brooklyn_address_without_a_locality_is_still_new_york_city():
     assert j.coverage == "partial" and j.id == "us/new-york/new-york-city"
     assert j.level("subdivision").name == "Brooklyn"
     assert j.local_authority.name == "NYC Department of Buildings"
+
+
+def test_the_borough_comes_from_the_county_when_google_gives_no_sublocality():
+    """Codex market r1: a Brooklyn address with Kings County but no sublocality still gets its borough."""
+    payload = fixtures.brooklyn()
+    payload["results"][0]["address_components"] = [
+        c for c in payload["results"][0]["address_components"] if "sublocality" not in c["types"]]
+    j = UnitedStatesAdapter().resolve(location(payload, "en"))
+    assert j.level("subdivision").name == "Brooklyn" and j.coverage == "partial"

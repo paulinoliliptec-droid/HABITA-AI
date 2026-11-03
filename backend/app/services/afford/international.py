@@ -3,7 +3,8 @@
 Each figure is a median computed by HABITA from an official open dataset of real transactions, never a model's number:
 
 - Paris: DVF (Demandes de valeurs foncières, DGFiP, published by Etalab), sales of 2025 by arrondissement. A sale
-  counts when it is one apartment (with or without outbuildings); price per m² = sale value / built area.
+  counts when it is one apartment, with or without outbuildings, and nothing else (no land parcel, no other local);
+  price per m² = sale value / built area.
 - New York City: NYC Department of Finance annualized sales (NYC Open Data ``w2pb-icbu``), sales of 2025 by borough,
   homes only (one to three family dwellings, co-ops, condos), above $10,000 (nominal transfers excluded). The dataset
   has no reliable area for apartments, so the figure is the median sale price.
@@ -100,9 +101,10 @@ def build_paris(get, year: int) -> dict:
                 sales.setdefault(r["id_mutation"], []).append(r)
         per_m2 = []
         for rs in sales.values():
-            locals_ = [r for r in rs if r["type_local"]]
-            flats = [r for r in locals_ if r["type_local"] == "Appartement"]
-            if len(flats) != 1 or any(r["type_local"] not in ("Appartement", "Dépendance") for r in locals_):
+            # Every row of the sale must be the apartment or an outbuilding: a row without a local is a parcel of land,
+            # whose price would be divided by the apartment's area (Codex market r1).
+            flats = [r for r in rs if r["type_local"] == "Appartement"]
+            if len(flats) != 1 or any(r["type_local"] not in ("Appartement", "Dépendance") for r in rs):
                 continue
             try:
                 value, area = float(flats[0]["valeur_fonciere"]), float(flats[0]["surface_reelle_bati"] or 0)

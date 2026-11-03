@@ -39,6 +39,8 @@ def test_paris_counts_single_apartment_sales_and_drops_mixed_or_absurd_ones():
         "m4,Vente,300000,Local industriel. commercial ou assimilé,30",
         "m5,Vente,1,Appartement,40",            # a symbolic price
         "m6,Echange,400000,Appartement,40",     # not a sale
+        "m7,Vente,2000000,Appartement,50",      # an apartment with a plot of land: not a unit price (Codex market r1)
+        "m7,Vente,2000000,,",
     ]
     csv_text = "\n".join([header, *rows])
     out = intl.build_paris(lambda url: csv_text if url.endswith("75101.csv") else header, 2025)

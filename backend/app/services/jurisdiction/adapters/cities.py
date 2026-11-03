@@ -64,7 +64,8 @@ def _partial(location: GeocodedLocation, levels: list[JurisdictionLevel], munici
 
 #: New York City is exactly these five counties (one per borough); Google may give a borough's address no locality
 #: ("Brooklyn" as a sublocality only), so the county decides, not the locality.
-NYC_COUNTIES = {"New York County", "Kings County", "Queens County", "Bronx County", "Richmond County"}
+NYC_COUNTIES = {"New York County": "Manhattan", "Kings County": "Brooklyn", "Queens County": "Queens",
+                "Bronx County": "Bronx", "Richmond County": "Staten Island"}
 
 
 class UnitedStatesAdapter(JurisdictionAdapter):
@@ -81,7 +82,9 @@ class UnitedStatesAdapter(JurisdictionAdapter):
         levels, _ = _hierarchy(location, (("administrative_area_level_1", "region", "State"),))
         city = JurisdictionLevel(type="municipality", id=child_id(levels[-1].id, "New York City"),
                                  name="New York City", label="City")
-        borough = location.long_name("sublocality") or location.long_name("sublocality_level_1")
+        # Each county is one borough, so the borough is known even when Google gives no sublocality (Codex market r1).
+        borough = (location.long_name("sublocality") or location.long_name("sublocality_level_1")
+                   or NYC_COUNTIES[location.long_name("administrative_area_level_2")])
         authority = Authority(
             id=f"{city.id}:department-of-buildings",
             name="NYC Department of Buildings",

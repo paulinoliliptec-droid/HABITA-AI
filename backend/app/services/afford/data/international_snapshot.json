@@ -32,8 +32,8 @@
    },
    "75105": {
     "area": "Paris 5e arrondissement",
-    "value": 11798,
-    "count": 857
+    "value": 11797,
+    "count": 856
    },
    "75106": {
     "area": "Paris 6e arrondissement",
@@ -83,12 +83,12 @@
    "75115": {
     "area": "Paris 15e arrondissement",
     "value": 9488,
-    "count": 3027
+    "count": 3024
    },
    "75116": {
     "area": "Paris 16e arrondissement",
-    "value": 10933,
-    "count": 2347
+    "value": 10932,
+    "count": 2346
    },
    "75117": {
     "area": "Paris 17e arrondissement",
@@ -98,7 +98,7 @@
    "75118": {
     "area": "Paris 18e arrondissement",
     "value": 8857,
-    "count": 2971
+    "count": 2970
    },
    "75119": {
     "area": "Paris 19e arrondissement",
