@@ -33,8 +33,10 @@ follows HABITA's citation rules less closely: it labels a case fact as a general
 plan rules in its own words instead of quoting the official text, so MU-9 refuses those drafts. **In this run (three
 questions, one run each) it was twice as fast and produced no false VERIFIED, but no VERIFIED answer either:** during a
 Meta outage HABITA would keep answering, in this sample as "not verified". A larger run is needed before stronger
-claims. It is not a replacement for the primary model today; prompt tuning for it is on the afinamentos list. Cost of the run:
-about 100k Baseten tokens from the hackathon credits.
+claims. It is not a replacement for the primary model today. Cost of the run:
+about 100k Baseten tokens from the hackathon credits. A second run on 2026-11-03, with a reminder sent to this model
+only (case facts are not general explanations; quote plan rules verbatim), gave the same result: 0 of 3 VERIFIED and
+no false VERIFIED. The reminder was not kept; better results need deeper model-specific work, after the hackathon.
 
 ## Limits
 - **Timing**: every attempt has a total deadline (not only httpx's per-read timeouts): `META_TIMEOUT_SECONDS` (90 s)

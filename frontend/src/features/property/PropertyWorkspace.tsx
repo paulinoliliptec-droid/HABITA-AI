@@ -5,6 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Notice } from "@/components/ui/Notice";
+import { ReportCopilot } from "@/features/copilot/ReportCopilot";
 import { MarketSection } from "@/features/market/MarketSection";
 import { PermitSection } from "@/features/permit/PermitSection";
 import { AerialSection } from "@/features/aerial/AerialSection";
@@ -112,6 +113,7 @@ export function PropertyWorkspace({ propertyId }: { propertyId: string }) {
 
       <div className={styles.mapArea}>
         {property && <MapPostIts propertyId={property.property_id} />}
+        {property && <ReportCopilot propertyId={property.property_id} />}
         {property ? (
           <div className={styles.mapCanvas}>
             <PropertyMap

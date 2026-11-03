@@ -61,3 +61,33 @@ export function onReportChanged(listener: () => void): () => void {
 export function reportChanged(): void {
   listeners.forEach((listener) => listener());
 }
+
+export interface CopilotTurn {
+  q: string;
+  a: string;
+}
+
+export interface CopilotAnswer {
+  answer: string;
+  in_report: boolean;
+  sections: string[];
+  /** The report's own status, shown beside the answer (null: no question asked yet). */
+  report_status: string | null;
+}
+
+/** The report copilot: a question about this report, answered only from it (afinamentos 2026-11-03). */
+export function askCopilot(
+  propertyId: string,
+  own: MatterCapability | null,
+  lang: Lang,
+  question: string,
+  history: CopilotTurn[],
+): Promise<CopilotAnswer> {
+  const { path, init } = reportPath(propertyId, own);
+  return apiRequest<CopilotAnswer>(`${path}/copilot?lang=${lang}`, {
+    ...init,
+    method: "POST",
+    headers: { ...(init.headers as Record<string, string> | undefined), "Content-Type": "application/json" },
+    body: JSON.stringify({ question, history: history.slice(-4) }),
+  });
+}
