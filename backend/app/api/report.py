@@ -193,6 +193,8 @@ class CopilotTurn(BaseModel):
 class CopilotRequest(BaseModel):
     question: str = Field(min_length=1, max_length=500)
     history: list[CopilotTurn] = Field(default_factory=list, max_length=4)
+    #: "muse": Muse Spark (Meta Model API); "open": Muse Spark Open (Meta open weights on Baseten).
+    engine: Literal["muse", "open"] = "muse"
 
 
 class CopilotAnswer(BaseModel):
@@ -217,7 +219,8 @@ async def _copilot(request: Request, body: CopilotRequest, lang: str, report_for
         taken = await copilot.reserve(client_address(request))
         try:
             report = await report_for()
-            out = await copilot.answer(report, body.question, [t.model_dump() for t in body.history], lang)
+            out = await copilot.answer(report, body.question, [t.model_dump() for t in body.history], lang,
+                                       body.engine)
         except BaseException:
             await copilot.release(taken)
             raise

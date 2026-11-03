@@ -241,3 +241,33 @@ def test_concurrent_requests_for_one_answer_share_one_synthesis():
 
     assert asyncio.run(run()) == [b"mp3"] * 5 and calls == 1
     assert asyncio.run(copilot.speak_once(speech_id, synthesise)) == b"mp3" and calls == 2  # done: not kept here
+
+
+def test_the_reader_can_choose_muse_spark_open():
+    """Owner 2026-11-03: the copilot can run on Meta's open weights (Muse Spark Open on Baseten), same rules."""
+    muse, open_model = CopilotModel(), CopilotModel(json.dumps(
+        {"answer": "O relatório diz que o zonamento não está verificado.", "in_report": True, "sections": ["planning"]}))
+    open_model.model_id = "meta-models/muse-spark-open-1026"
+    settings = Settings(_env_file=None, google_maps_api_key="k", mongodb_uri=None, app_env="test",
+                        allow_ephemeral_storage=True, meta_api_key="secret")
+    with TestClient(create_app(settings, http_transport=httpx.MockTransport(google_handler), permit_model=muse,
+                               copilot_open_model=open_model)) as c:
+        pid = resolve_cascais(c)
+        res = c.post(f"/api/property/{pid}/report/copilot?lang=pt", json={"question": "Está verificado?", "engine": "open"})
+        assert res.status_code == 200, res.text
+        assert res.json()["model_id"] == "meta-models/muse-spark-open-1026"
+        assert len(open_model.calls) == 1 and not muse.calls
+        system, _ = open_model.calls[0]
+        assert "Use ONLY the REPORT" in system["content"]  # the same rules as Muse Spark
+        assert c.post(f"/api/property/{pid}/report/copilot", json={"question": "ok", "engine": "x"}).status_code == 422
+        assert c.post(f"/api/property/{pid}/report/copilot", json={"question": "ok"}).json()["model_id"] == "muse-spark-1.3"
+
+
+def test_open_weights_not_configured_is_refused_and_costs_no_count():
+    model = CopilotModel()
+    with client(model, copilot_per_caller_daily=1) as c:
+        pid = resolve_cascais(c)
+        res = c.post(f"/api/property/{pid}/report/copilot", json={"question": "ok", "engine": "open"})
+        assert res.status_code == 503 and "Muse Spark Open" in res.json()["error"]["message"]
+        assert not model.calls
+        assert c.post(f"/api/property/{pid}/report/copilot", json={"question": "ok"}).status_code == 200  # count given back

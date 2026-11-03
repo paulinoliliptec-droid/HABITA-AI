@@ -119,6 +119,7 @@ def create_app(
     dictation_transcriber=None,
     aerial_segmenter=None,
     aerial_orthophotos=None,
+    copilot_open_model: ReasoningModel | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
 
@@ -284,6 +285,12 @@ def create_app(
                 if mongo is not None else MemoryDailyUsage(),
                 daily_limit=settings.copilot_daily_limit, per_caller_daily=settings.copilot_per_caller_daily,
                 caller_key=settings.meta_api_key.get_secret_value().encode() if settings.meta_api_key else b"",
+                open_model=copilot_open_model or (
+                    MetaChatModel(fallback_http, api_key=settings.baseten_model_api_key.get_secret_value(),
+                                  base_url=settings.baseten_model_base_url, model_id=settings.baseten_model_id,
+                                  attempts=1)
+                    if permit_model is None and settings.baseten_model_base_url and settings.baseten_model_api_key
+                    and settings.baseten_model_id else None),
             )
             segment_http = httpx.AsyncClient(timeout=settings.meta_segmentation_timeout_seconds,
                                              transport=meta_transport)

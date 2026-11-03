@@ -67,12 +67,17 @@ export interface CopilotTurn {
   a: string;
 }
 
+/** "muse": Muse Spark (Meta Model API); "open": Muse Spark Open, Meta's open weights served by Baseten. */
+export type CopilotEngine = "muse" | "open";
+
 export interface CopilotAnswer {
   answer: string;
   in_report: boolean;
   sections: string[];
   /** The report's own status, shown beside the answer (null: no question asked yet). */
   report_status: string | null;
+  /** The model that wrote this answer. */
+  model_id?: string | null;
   /** Speaks this answer with the server's voice (ElevenLabs); absent on older servers. */
   speech_id?: string | null;
 }
@@ -96,12 +101,13 @@ export function askCopilot(
   lang: Lang,
   question: string,
   history: CopilotTurn[],
+  engine: CopilotEngine = "muse",
 ): Promise<CopilotAnswer> {
   const { path, init } = reportPath(propertyId, own);
   return apiRequest<CopilotAnswer>(`${path}/copilot?lang=${lang}`, {
     ...init,
     method: "POST",
     headers: { ...(init.headers as Record<string, string> | undefined), "Content-Type": "application/json" },
-    body: JSON.stringify({ question, history: history.slice(-4) }),
+    body: JSON.stringify({ question, history: history.slice(-4), engine }),
   });
 }

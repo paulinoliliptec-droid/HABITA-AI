@@ -814,5 +814,11 @@
   "For example: why isn't the zoning verified? What is still pending?": "Por exemplo: porque é que o zonamento não está verificado? O que ainda está pendente?",
   "The report copilot did not answer. Please try again.": "O copiloto do relatório não respondeu. Tente novamente.",
   "Report status: {status}": "Estado do relatório: {status}",
-  "no question asked yet": "ainda sem pergunta"
+  "no question asked yet": "ainda sem pergunta",
+  "Model that answers": "Modelo que responde",
+  "Muse Spark (Meta API)": "Muse Spark (API Meta)",
+  "Muse Spark Open (open weights · Baseten)": "Muse Spark Open (pesos abertos · Baseten)",
+  "Answered by {model}": "Respondido por {model}",
+  "If you choose Muse Spark Open in the report copilot, your question and the report go to Muse Spark open, run by Baseten in the United States.": "Se escolher o Muse Spark Open no copiloto do relatório, a sua pergunta e o relatório vão para o Muse Spark open, executado pela Baseten nos Estados Unidos.",
+  "Muse Spark Open is not available on the server right now.": "O Muse Spark Open não está disponível no servidor neste momento."
 }
