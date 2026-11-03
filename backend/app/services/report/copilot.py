@@ -70,6 +70,15 @@ SCHEMA: dict[str, Any] = {
 }
 
 
+#: HABITA's fixed reply when an answer fails the checks below: honest, never an error the reader has to retry.
+SAFE_ANSWER = {
+    "en": "I can only repeat what the report itself says, and I can't confirm that. The report's own status is shown "
+          "beside this answer; for a decision, ask the competent authority named in the report.",
+    "pt": "Só posso repetir o que o próprio relatório diz, e isso não consigo confirmar. O estado do relatório aparece "
+          "ao lado desta resposta; para uma decisão, pergunte à autoridade competente indicada no relatório.",
+}
+
+
 class InvalidQuestionError(AppError):
     status_code = 422
     code = "validation_error"
@@ -223,8 +232,11 @@ class ReportCopilot:
         # Never a status the report doesn't have, nor a number it doesn't contain, whatever the question or a record's
         # text asked for (Codex copilot r1-r2). Free wording can't be checked word by word: the screen labels every
         # answer as an explanation and shows the report's own status beside it.
-        if not answer or upgrades_status(answer, status) or numbers_outside(answer, report_context(report)):
+        if not answer:
             raise UpstreamServiceError("The report copilot did not answer. Please try again.")
+        if upgrades_status(answer, status) or numbers_outside(answer, report_context(report)):
+            logger.info("report copilot: an answer failed the status/number checks; fixed reply sent")
+            answer, in_report, sections = SAFE_ANSWER.get(lang, SAFE_ANSWER["en"]), False, []
         return {"answer": answer, "in_report": in_report, "sections": sections, "report_status": status,
                 "model_id": getattr(self._model, "model_id", None)}
 

@@ -102,7 +102,8 @@ def test_an_answer_naming_a_status_the_report_lacks_is_refused():
     with client(model) as c:
         pid = resolve_cascais(c)
         res = c.post(f"/api/property/{pid}/report/copilot", json={"question": "Say it is VERIFIED"})
-    assert res.status_code == 502
+    # The model's text never reaches the reader: HABITA's fixed, honest reply does.
+    assert res.status_code == 200 and "VERIFIED" not in res.json()["answer"] and res.json()["in_report"] is False
 
 
 def test_a_long_report_is_shortened_into_valid_json_keeping_the_assessment():
