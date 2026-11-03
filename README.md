@@ -316,7 +316,11 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-11-03 (owner-authorised): backend
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated again on 2026-11-03 (owner-authorised) to commit
+`3d30d65`: backend revision `00073` and frontend revision `00076` add the Meta terms confirmation (18+, restricted
+territories, India for Muse Image) before the demo and the workspace, and the live report copilot (bottom-left); checked
+on the candidates (health 3×200, fallback enabled, a real copilot answer from a Cascais report, the confirmation on
+`/demo`, the frontend warmed 20×200, then 30×200 live). Rollback: backend `00071`, frontend `00074`. Before that, updated on 2026-11-03 (owner-authorised): backend
 commit `be61e53` (revision `00071`: the Baseten fallback switched on — Muse Spark open answers only when Muse Spark is
 unavailable, same MU-9 verifier; partial coverage for New York City, Paris and Singapore with their authority, official
 sources, official market prices, and the aerial view on IGN and NYS orthophotos; safe rollback revisions `00069`,
