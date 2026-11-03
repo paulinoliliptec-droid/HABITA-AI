@@ -289,7 +289,7 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Permit matters with Muse Spark, follow-up questions, resume (HR-002) | Done |
 | Official-source registry, snapshots, retrieval (HR-003) | Done for Cascais; other jurisdictions planned |
 | MU-9 verification, TrustPin, reviewer, final gate (HR-003) | Tested offline and on staging; whole-sentence verification live (2026-11-02), limits listed in HR-003; replica-set binding tested on a local MongoDB 8.0 replica set, Atlas run pending |
-| Fallback for the reasoning model when Muse Spark is unavailable: Muse Spark open on Baseten (Modal prepared, off); same MU-9 verifier | Code, key and a comparative run ready (2026-11-02); not yet deployed — `infrastructure/open-models/` |
+| Fallback for the reasoning model when Muse Spark is unavailable: Muse Spark open on Baseten (Modal prepared, off); same MU-9 verifier | Live since 2026-11-03 (backend `00071`) — `infrastructure/open-models/` |
 | Zoning classification from official GIS | Planned (no validated connector; absence stated) |
 | Map with post-its (HR-004) | Done (MVP); owner browser check pending |
 | PDF report with verification record and provenance (HR-006) | Done; tested on staging |
@@ -298,17 +298,17 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Spoken report in Portuguese and English with ElevenLabs (HR-007) | Live; real audio generated, full listening test pending |
 | Bilingual site, answers and PDF (Portuguese and English) | Live; Portuguese answers are labelled machine translation |
 | Private staging on Cloud Run | Done (IAM-authenticated, isolated database) |
-| Original (public demo) | Live; last updated 2026-11-01 (commit `8b4b8b2`) |
+| Original (public demo) | Live; see "Live demo" below for the current revision |
 | Property profile: official, observed, declared (HR-008) | Live; acceptance pending |
 | Request types with correction by the user (HR-009) | Live; acceptance pending |
 | Photos and plans read as observations (HR-010) | Live; acceptance pending (consent wording not legally reviewed) |
 | Costs, financing and market price (HR-011) | Live; acceptance pending |
 | Before/after concepts from the user's photos, views from a plan, and the room the user chooses to divide (HR-012) | Live; acceptance pending |
-| Report copilot, live (2026-11-03): bottom-right, questions by text or dictation (dictation sends by itself after 10 s of silence), the reader chooses the model, Muse Spark (Meta Model API) or Muse Spark Open (Meta's open weights, `meta-models/muse-spark-open-1026` on Baseten; same prompt, schema, limits and status/number guards; each answer names its model), answers spoken in the ElevenLabs voice of the reader's language (the server speaks only answers it gave, by an id valid 30 minutes; the browser's voice if that audio can't be had); only about the report the reader sees | Code, tests and real checks with Muse Spark (a zoning question answered from the report; a cost question refused; an injection asking to say VERIFIED never reached the reader); not yet deployed. Limits: an answer naming a status the report lacks, or a number it doesn't contain, is replaced by a fixed reply; free wording isn't checked word by word, so the screen shows the report's own status beside every answer and labels it an explanation, not a verification or legal advice |
-| Meta terms (2026-11-03): before the demo and the workspace, visitors confirm they are 18+ and not in Meta's restricted territories (and not in India, for Muse Image) | Code and tests; not yet deployed. A notice and confirmation, not network blocking (that needs a load balancer, owner decision) |
+| Report copilot, live (2026-11-03): bottom-right, questions by text or dictation (dictation sends by itself after 10 s of silence), the reader chooses the model, Muse Spark (Meta Model API) or Muse Spark Open (Meta's open weights, `meta-models/muse-spark-open-1026` on Baseten; same prompt, schema, limits and status/number guards; each answer names its model), answers spoken in the ElevenLabs voice of the reader's language (the server speaks only answers it gave, by an id valid 30 minutes; the browser's voice if that audio can't be had); only about the report the reader sees | Live; real checks with Muse Spark and Muse Spark Open (a zoning question answered from the report; a cost question refused; an injection asking to say VERIFIED never reached the reader). Limits: an answer naming a status the report lacks, or a number it doesn't contain, is replaced by a fixed reply; free wording isn't checked word by word, so the screen shows the report's own status beside every answer and labels it an explanation, not a verification or legal advice |
+| Meta terms (2026-11-03): before the demo and the workspace, visitors confirm they are 18+ and not in Meta's restricted territories (and not in India, for Muse Image) | Live. A notice and confirmation, not network blocking (that needs a load balancer, owner decision) |
 | Seen from the air: DGT orthophoto + SAM 3.1 (buildings, annexes, pools; conditions to confirm) | Live since 2026-11-01 (`ac5ff3d`; `8b4b8b2`: addresses that point to an area, like a square, get a clear note asking for the door number instead of a disabled button); real analysis checked on the live candidate |
 | Dictation with Muse Voice Transcribe (question and answers, PT/EN) | Live since 2026-11-01 (`b9a256b`); real transcription checked on the live candidate; owner's browser test pending |
-| HR-013 … HR-015 | Pending definition |
+| HR-015 hackathon submission | In progress (deadline 2026-11-04 21:00 ET) |
 
 ## Private staging demo (authenticated)
 A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-staging`) on an isolated database
