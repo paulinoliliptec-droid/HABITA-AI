@@ -180,7 +180,7 @@ export function PropertyMap({
             {
               id: "aerial",
               label: !aerial
-                ? t("Aerial view (DGT · SAM 3.1)")
+                ? t("Aerial view (official orthophoto · SAM 3.1)")
                 : aerial.source.provider === "DGT"
                   ? t("Aerial view (DGT {year} · SAM 3.1)", { year: aerial.source.year ?? "" })
                   : t("Aerial view ({source} · SAM 3.1)", { source: aerial.source.provider }),

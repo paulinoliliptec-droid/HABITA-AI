@@ -42,6 +42,7 @@ export function PrivacyContent() {
             <li>
               {t("Property links are not private: anyone with a property link can open it. Don't enter an address you wouldn't want shared.")}
             </li>
+            <li>{t("When you ask for the aerial view, HABITA keeps, for that property, the official orthophoto with the outlines it drew and the list of what it found.")}</li>
             <li>{t("To have a property record removed, contact the project owner.")}</li>
           </ul>
         </section>

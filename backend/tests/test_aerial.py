@@ -379,3 +379,33 @@ async def test_a_property_across_the_border_is_refused_before_any_spend():
     with pytest.raises(AerialUnavailableError):
         await service.create(prop)
     assert sam.prompts == []
+
+
+async def test_a_stored_analysis_is_not_returned_once_the_property_left_every_source():
+    """Codex aerial r2: a refreshed property moved from New York to New Jersey is refused, not served its old image."""
+    from types import SimpleNamespace
+
+    from app.integrations.orthophotos import NYS_SOURCE, OfficialOrthophotoClient
+    from app.services.aerial.service import AerialAnalysis, AerialUnavailableError, InMemoryAerialRepository
+
+    class NysOrtho(OfficialOrthophotoClient):
+        def __init__(self):
+            pass
+
+        async def fetch(self, lat, lng, half, source=None):
+            return Orthophoto(jpeg=JPEG, bbox=bbox_3857(lat, lng, half), metres_per_pixel=2 * half / SIZE,
+                              sha256="0" * 64, retrieved_at=datetime.now(UTC), source=NYS_SOURCE)
+
+    service = AerialAnalysis(InMemoryAerialRepository(), _Storage(), NysOrtho(), Sam())
+    region = [SimpleNamespace(type="region", id="us/new-york")]
+    ny = SimpleNamespace(property_id="prp_00000000000000ny", precision="rooftop",
+                         coordinates=SimpleNamespace(lat=40.7484, lng=-73.9857),
+                         jurisdiction=SimpleNamespace(country_code="US", levels=region))
+    first = await service.create(ny)
+    assert first.source.provider == "NYS"
+    moved = SimpleNamespace(property_id=ny.property_id, precision="rooftop",
+                            coordinates=SimpleNamespace(lat=40.7178, lng=-74.0431),
+                            jurisdiction=SimpleNamespace(country_code="US",
+                                                         levels=[SimpleNamespace(type="region", id="us/new-jersey")]))
+    with pytest.raises(AerialUnavailableError):
+        await service.create(moved)

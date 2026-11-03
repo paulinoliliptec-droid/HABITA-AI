@@ -221,10 +221,8 @@ class AerialAnalysis:
         return await self._storage.get(_key(property_id, report.aerial_id)) if report else None
 
     async def create(self, prop) -> AerialReport:
-        """``prop`` is a resolved property. Every refusal comes before any spend."""
-        existing = await self._repo.get(prop.property_id)
-        if existing is not None:
-            return existing
+        """``prop`` is a resolved property. Every refusal comes before any spend, and the location gate before a stored
+        analysis is returned (Codex aerial r2: a refreshed property may have moved out of every source)."""
         framing = FRAMING.get(prop.precision)
         if framing is None:
             raise AerialUnavailableError("This address is too imprecise to say which buildings belong to it, so the "
@@ -239,6 +237,9 @@ class AerialAnalysis:
         if source is None:
             raise AerialUnavailableError("The aerial view uses official orthophotos, available for mainland Portugal, "
                                          "metropolitan France and New York State.")
+        existing = await self._repo.get(prop.property_id)
+        if existing is not None:
+            return existing
         if not self._sam.configured():
             raise ServiceNotConfiguredError("The aerial analysis is not configured on the server (META_API_KEY).")
         half, radius = framing
