@@ -151,6 +151,8 @@ def test_numbers_and_every_status_word_are_checked_against_the_report():
     assert numbers_outside("It will cost 40 000 €.", report) == ["40 000"]
     assert numbers_outside("See article 67.", report) == []
     assert numbers_outside("It costs 1234 €.", '{"a":12,"b":34}') == ["1234"]  # Codex copilot r3
+    assert numbers_outside("It costs €12.50.", '{"a":12,"b":50}') == ["12.50"]  # Codex copilot r4
+    assert numbers_outside("It costs €12.50.", '{"a":"12.50"}') == []
 
 
 def test_a_report_with_many_short_items_stays_within_the_cap():

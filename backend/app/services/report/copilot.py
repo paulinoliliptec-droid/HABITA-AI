@@ -121,7 +121,10 @@ def report_context(report: PermitReport) -> str:
                 "assessment": {k: a.get(k) for k in ("status", "status_reason", "conclusion_answer",
                                                     "conclusion_summary") if k in a} | {
                     "conditions": (a.get("conditions") or [])[:30]},
-                "pending": (data.get("pending") or [])[:30], "note": "the report was shortened for this question"}
+                "pending": (data.get("pending") or [])[:30],
+                "note": "This report was shortened to fit: if the question is about something not shown here, say the "
+                        "report is too long to answer that here and point to the full report on screen, not that it is "
+                        "absent."}
         text = dump(_clip(core, 300))[:MAX_REPORT_CHARS]
         if len(text) == MAX_REPORT_CHARS:  # last resort, still valid JSON
             text = dump({"assessment": {"status": a.get("status")}, "note": "the report is too long to read here"})
@@ -129,7 +132,8 @@ def report_context(report: PermitReport) -> str:
 
 
 #: A number as written: thousands groups ("12 500", "12.500", "1,250,000") or a plain run of digits.
-_NUMBER = re.compile(r"\d{1,3}(?:[ .,\u00a0]\d{3})+(?!\d)|\d+")
+#: Decimals ("12.50", "75,5") are one number too (Codex copilot r4).
+_NUMBER = re.compile(r"\d{1,3}(?:[ .,\u00a0]\d{3})+(?:[.,]\d+)?(?!\d)|\d+[.,]\d+|\d+")
 
 
 def _numbers(text: str) -> set[str]:
