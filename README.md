@@ -314,13 +314,17 @@ A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-
 commit `5734adc` (deployed and tested end to end on 2026-10-30).
 
 ## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — backend updated on 2026-11-02 to commit `9ed92a8`
-(revision `00069`: TD-003 structural containment, the polished premium PDF and the HR-007…HR-012 polish; safe
-rollback revisions `00067` and `00065`, which have the same containment; `00063` and older are NOT safe rollbacks:
-they bring back the old verifier with the known false-VERIFIED paths), frontend updated on 2026-11-02 to commit
-`9ed92a8` (revision `00072`: landing page at `/`, live demo with the guided Cascais scenario at `/demo`, workspace
-areas, "Property under analysis" map marker, Layers with the aerial view, notes to graph, the reasoning graph polished
-for phones, laptops and keyboard, INE periods for English readers; rollback revision `00070`), with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-11-03 (owner-authorised): backend
+commit `be61e53` (revision `00071`: the Baseten fallback switched on — Muse Spark open answers only when Muse Spark is
+unavailable, same MU-9 verifier; partial coverage for New York City, Paris and Singapore with their authority, official
+sources, official market prices, and the aerial view on IGN and NYS orthophotos; safe rollback revisions `00069`,
+`00067` and `00065`; `00063` and older are NOT safe rollbacks: they bring back the old verifier with the known
+false-VERIFIED paths), frontend commit `3c97c8c` (revision `00074`: the owner's logo, the landing page with a photo of
+Cascais and a large demo button with a note for the jury, Rua Frederico Arouca 30 as the reference address, New York,
+Paris and Singapore as partial-coverage examples; rollback revision `00072`). Checked on the candidates before the
+switch: health 3×200, the fallback logged as enabled, Paris and Cascais resolved with their authority, Paris prices,
+one real aerial analysis of 5 Rue de Turenne, Paris (IGN, three buildings, 15 s, attribution in the image), the
+frontend warmed 20×200 and then 30×200 live. Also live: with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
 ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
 Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
 current protocol) and the PDF with road map, satellite and Street View. A frontend rollback to its previous revision
