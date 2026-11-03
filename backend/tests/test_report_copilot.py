@@ -150,6 +150,7 @@ def test_numbers_and_every_status_word_are_checked_against_the_report():
     assert numbers_outside("The likely cost is 12 500 € for 75 m².", report) == []
     assert numbers_outside("It will cost 40 000 €.", report) == ["40 000"]
     assert numbers_outside("See article 67.", report) == []
+    assert numbers_outside("It costs 1234 €.", '{"a":12,"b":34}') == ["1234"]  # Codex copilot r3
 
 
 def test_a_report_with_many_short_items_stays_within_the_cap():
@@ -164,3 +165,12 @@ def test_a_report_with_many_short_items_stays_within_the_cap():
     data["pending"] = [f"item {i}" for i in range(20000)]
     text = cp.report_context(PermitReport.model_validate(data))
     assert len(text) <= cp.MAX_REPORT_CHARS and json.loads(text)
+
+
+def test_a_malformed_in_report_is_not_taken_as_true():
+    """Codex copilot r3: "false" as a string is not a boolean; nothing is shown as report-backed."""
+    model = CopilotModel(json.dumps({"answer": "The report says so.", "in_report": "false", "sections": []}))
+    with client(model) as c:
+        pid = resolve_cascais(c)
+        res = c.post(f"/api/property/{pid}/report/copilot", json={"question": "Is it?"})
+    assert res.status_code == 502

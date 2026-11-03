@@ -128,15 +128,19 @@ def report_context(report: PermitReport) -> str:
     return text
 
 
+#: A number as written: thousands groups ("12 500", "12.500", "1,250,000") or a plain run of digits.
+_NUMBER = re.compile(r"\d{1,3}(?:[ .,\u00a0]\d{3})+(?!\d)|\d+")
+
+
+def _numbers(text: str) -> set[str]:
+    return {re.sub(r"\D", "", n) for n in _NUMBER.findall(text)}
+
+
 def numbers_outside(answer: str, report_text: str) -> list[str]:
-    """Numbers in the answer that the report doesn't contain (Codex copilot r2: an invented cost, area or date)."""
-    plain = report_text.replace(" ", "").replace("\u00a0", "")
-    out = []
-    for raw in re.findall(r"\d[\d.,\u00a0 ]*\d|\d", answer):
-        digits = re.sub(r"[^\d]", "", raw)
-        if len(digits) >= 2 and digits not in re.sub(r"[^\d]", "", plain) and raw.strip() not in plain:
-            out.append(raw.strip())
-    return out
+    """Numbers (two digits or more) in the answer that the report doesn't contain as a whole number (Codex copilot
+    r2-r3: an invented cost, area or date; "12" and "34" in the report never make "1234")."""
+    known = _numbers(report_text)
+    return [n for n in _NUMBER.findall(answer) if len(re.sub(r"\D", "", n)) >= 2 and re.sub(r"\D", "", n) not in known]
 
 
 def report_status(report: PermitReport) -> str | None:
@@ -225,7 +229,9 @@ class ReportCopilot:
             parsed = json.loads(result.content or "")
             answer = " ".join(str(parsed["answer"]).split())[:MAX_ANSWER]
             sections = [s for s in parsed.get("sections", []) if s in SECTIONS]
-            in_report = bool(parsed["in_report"])
+            in_report = parsed["in_report"]
+            if not isinstance(in_report, bool) or not isinstance(parsed["answer"], str):
+                raise TypeError("in_report and answer must be a boolean and a string")  # Codex copilot r3
         except (ValueError, KeyError, TypeError):
             raise UpstreamServiceError("The report copilot did not answer. Please try again.") from None
         status = report_status(report)

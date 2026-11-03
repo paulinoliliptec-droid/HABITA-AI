@@ -39,6 +39,8 @@ export function ReportCopilot({ propertyId }: { propertyId: string }) {
       onReportChanged(() => {
         generation.current += 1;
         setTurns([]);
+        // Nothing about the old report keeps being read aloud (Codex copilot r3).
+        if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
       }),
     [],
   );
