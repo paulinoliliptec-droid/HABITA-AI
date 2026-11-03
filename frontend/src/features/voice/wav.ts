@@ -2,6 +2,14 @@
 
 export const TARGET_RATE = 16000;
 export const MAX_SECONDS = 55; // the server allows 60; a margin for the header and timing
+/** Loudness (RMS) above which a block of samples counts as speech; noise suppression keeps silence well below it. */
+export const SPEECH_RMS = 0.015;
+
+export function rms(samples: Float32Array): number {
+  let sum = 0;
+  for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+  return samples.length ? Math.sqrt(sum / samples.length) : 0;
+}
 
 /** Averages each output sample over the input samples it covers (a simple low-pass before decimating). */
 export function downsample(input: Float32Array, fromRate: number, toRate = TARGET_RATE): Float32Array {

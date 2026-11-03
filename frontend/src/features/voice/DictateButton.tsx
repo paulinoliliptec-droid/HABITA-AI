@@ -6,7 +6,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { ApiError, apiRequest } from "@/lib/api";
 import styles from "@/features/permit/Permit.module.css";
 import { claim, release as releaseLock } from "./lock";
-import { MAX_SECONDS, concat, downsample, encodeWav } from "./wav";
+import { MAX_SECONDS, SPEECH_RMS, concat, downsample, encodeWav, rms } from "./wav";
 
 type State = "idle" | "recording" | "transcribing";
 
@@ -18,7 +18,12 @@ function transcribe(audio: Blob, signal: AbortSignal): Promise<{ text: string; m
  * Dictation (owner, 2026-11-01): the user speaks and the text is added to the box they are typing in, to review before
  * sending. Muse Voice Transcribe writes it; the recording is not kept. Typing always stays possible.
  */
-export function DictateButton({ onText, disabled }: { onText: (text: string) => void; disabled?: boolean }) {
+export function DictateButton({ onText, disabled, stopAfterSilence }: {
+  onText: (text: string) => void;
+  disabled?: boolean;
+  /** Ends the recording by itself once the speaker has been silent this many seconds (the copilot's hands-free mode). */
+  stopAfterSilence?: number;
+}) {
   const { t } = useI18n();
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -87,10 +92,24 @@ export function DictateButton({ onText, disabled }: { onText: (text: string) => 
     const ctx = context;
     const chunks: Float32Array[] = [];
     let captured = 0;
+    let heard = false; // silence counts only after the first words, so a slow start is not cut off
+    let silent = 0;
     processor.onaudioprocess = (e) => {
       const chunk = new Float32Array(e.inputBuffer.getChannelData(0));
       chunks.push(chunk);
       captured += chunk.length;
+      if (stopAfterSilence) {
+        if (rms(chunk) >= SPEECH_RMS) {
+          heard = true;
+          silent = 0;
+        } else if (heard) {
+          silent += chunk.length;
+          if (silent / ctx.sampleRate >= stopAfterSilence) {
+            stopRef.current?.(false);
+            return;
+          }
+        }
+      }
       // The limit follows the audio captured, not timers a background tab may slow down.
       const s = captured / ctx.sampleRate;
       setSeconds(Math.floor(s));
