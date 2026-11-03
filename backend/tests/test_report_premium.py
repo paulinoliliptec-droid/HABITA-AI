@@ -21,16 +21,14 @@ from app.services.report.premium import (
     render_html,
     render_premium_pdf,
 )
+from tests.pdf_logo import is_logo
 
 FIXTURE = Path(__file__).resolve().parents[2] / "frontend" / "src" / "features" / "report" / "fixtures" / "verified-report.json"
 
 
 def _content_images(reader) -> set[str]:
-    """Images in the PDF other than HABITA's logo on the cover (a 160 x 160 PNG, 2026-11-03)."""
-    from PIL import Image
-
-    mark = Image.open(Path(__file__).parents[1] / "app/services/report/assets/habita-mark.png").size
-    return {i.name for p in reader.pages for i in p.images if i.image.size != mark}
+    """Images in the PDF other than HABITA's logo on the cover."""
+    return {i.name for p in reader.pages for i in p.images if not is_logo(i)}
 
 
 @pytest.fixture(scope="module")
@@ -255,3 +253,13 @@ def test_hr006_a_partly_cited_group_is_drawn_dashed(verified):
     assert expected == {(g["id"], t) for g in groups.values() for t in g.get("partial_to", ())}
     svg = reasoning_graph(verified)
     assert svg.count('stroke-dasharray="3 2"') == len(expected)
+
+
+def test_the_logo_exclusion_recognises_the_logo_only():
+    """Codex logo r1: an image of the logo's size but other pixels (a map) is still counted."""
+    from types import SimpleNamespace
+
+    from tests.pdf_logo import _MARK
+
+    assert is_logo(SimpleNamespace(image=_MARK.copy()))
+    assert not is_logo(SimpleNamespace(image=PILImage.new("RGB", _MARK.size, (90, 120, 160))))

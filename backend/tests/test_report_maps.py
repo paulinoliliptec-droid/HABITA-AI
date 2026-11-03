@@ -5,7 +5,6 @@ when the map service is missing or fails, spend bounds, and no key in the PDF or
 import io
 import logging
 from datetime import date
-from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -17,6 +16,7 @@ from pypdf import PdfReader
 from app.core.config import Settings
 from app.integrations.maps.static_maps import FRAMING, StaticMapClient, circle_polyline, map_params
 from app.main import create_app
+from tests.pdf_logo import is_logo
 from tests.permit_fakes import ScriptedModel, google_handler
 from tests.test_permit_official_sources import auth, ingest_regulamento, run_matter
 
@@ -86,9 +86,8 @@ def property_pdf(c: TestClient) -> bytes:
 def images_and_text(content: bytes) -> tuple[list[bytes], str]:
     reader = PdfReader(io.BytesIO(content))
     # distinct images: the premium PDF shares one resource dictionary across pages
-    # The cover's logo (a 160 x 160 PNG, 2026-11-03) is HABITA's own image, not map imagery.
-    mark = PILImage.open(Path(__file__).parents[1] / "app/services/report/assets/habita-mark.png").size
-    images = list({img.data: None for page in reader.pages for img in page.images if img.image.size != mark})
+    # The cover's logo is HABITA's own image, not map imagery (recognised by its pixels).
+    images = list({img.data: None for page in reader.pages for img in page.images if not is_logo(img)})
     return images, " ".join(" ".join(p.extract_text().split()) for p in reader.pages)  # line breaks → spaces
 
 

@@ -45,7 +45,7 @@
   font-family: var(--font-sans);
   font-size: 1em;
   font-weight: 800;
-  background: linear-gradient(90deg, #1f5fbf, #19b38a);
+  background: linear-gradient(90deg, #1f5fbf, #0b7d5f); /* both ends ≥ 4.5:1 on the bar (#f6f5f1) */
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
