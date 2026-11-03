@@ -304,7 +304,7 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Photos and plans read as observations (HR-010) | Live; acceptance pending (consent wording not legally reviewed) |
 | Costs, financing and market price (HR-011) | Live; acceptance pending |
 | Before/after concepts from the user's photos, views from a plan, and the room the user chooses to divide (HR-012) | Live; acceptance pending |
-| Report copilot, live (2026-11-03): bottom-left, questions by text or dictation, answers spoken; only about the report the reader sees | Code, tests and real checks with Muse Spark (a zoning question answered from the report; a cost question refused; an injection asking to say VERIFIED never reached the reader); not yet deployed. Limits: an answer naming a status the report lacks, or a number it doesn't contain, is replaced by a fixed reply; free wording isn't checked word by word, so the screen shows the report's own status beside every answer and labels it an explanation, not a verification or legal advice |
+| Report copilot, live (2026-11-03): bottom-right, questions by text or dictation, answers spoken; only about the report the reader sees | Code, tests and real checks with Muse Spark (a zoning question answered from the report; a cost question refused; an injection asking to say VERIFIED never reached the reader); not yet deployed. Limits: an answer naming a status the report lacks, or a number it doesn't contain, is replaced by a fixed reply; free wording isn't checked word by word, so the screen shows the report's own status beside every answer and labels it an explanation, not a verification or legal advice |
 | Meta terms (2026-11-03): before the demo and the workspace, visitors confirm they are 18+ and not in Meta's restricted territories (and not in India, for Muse Image) | Code and tests; not yet deployed. A notice and confirmation, not network blocking (that needs a load balancer, owner decision) |
 | Seen from the air: DGT orthophoto + SAM 3.1 (buildings, annexes, pools; conditions to confirm) | Live since 2026-11-01 (`ac5ff3d`; `8b4b8b2`: addresses that point to an area, like a square, get a clear note asking for the door number instead of a disabled button); real analysis checked on the live candidate |
 | Dictation with Muse Voice Transcribe (question and answers, PT/EN) | Live since 2026-11-01 (`b9a256b`); real transcription checked on the live candidate; owner's browser test pending |
@@ -318,7 +318,7 @@ commit `5734adc` (deployed and tested end to end on 2026-10-30).
 ## Live demo (original)
 **https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated again on 2026-11-03 (owner-authorised) to commit
 `3d30d65`: backend revision `00073` and frontend revision `00076` add the Meta terms confirmation (18+, restricted
-territories, India for Muse Image) before the demo and the workspace, and the live report copilot (bottom-left); checked
+territories, India for Muse Image) before the demo and the workspace, and the live report copilot (bottom-right); checked
 on the candidates (health 3×200, fallback enabled, a real copilot answer from a Cascais report, the confirmation on
 `/demo`, the frontend warmed 20×200, then 30×200 live). Rollback: backend `00071`, frontend `00074`. Before that, updated on 2026-11-03 (owner-authorised): backend
 commit `be61e53` (revision `00071`: the Baseten fallback switched on — Muse Spark open answers only when Muse Spark is
