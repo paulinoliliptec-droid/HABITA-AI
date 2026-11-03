@@ -62,9 +62,21 @@ municipality → parish) and the competent authority. Portugal is modelled. **Ne
 partial coverage** (2026-11-02): HABITA names the authority that decides (building permits: NYC Department of
 Buildings, Maire de Paris under the PLU or, in the safeguarded sectors, a PSMV; in Singapore, planning permission from
 the URA, with building plans approved by the BCA) and the official sources to consult, each linked or cited; it has not verified their
-rules, so the workspace says so and does not draft a permit answer there. They show that the same jurisdiction chain,
-source registry and verifier extend to other legal systems; adding verified sources is the next step. Other countries
-get a generic chain without an authority.
+rules, so the workspace says so and does not draft a permit answer there. They also get, from official open data:
+- **the aerial view** (Meta SAM 3.1) on the official orthophoto: IGN Géoplateforme BD ORTHO for Paris (Licence Ouverte
+  2.0) and the NYS Statewide Digital Orthoimagery for New York City; the source is chosen by the property's
+  jurisdiction and its attribution is burned into the image. **Singapore has none**: the OneMap terms restrict storing
+  and modifying the imagery, so it waits for the Singapore Land Authority's confirmation;
+- **official market prices**, medians HABITA computes from real sales (snapshot of 2026-11-03,
+  `python -m app.services.afford.international`): DVF 2025 for each Paris arrondissement (€/m² of single-apartment
+  sales), NYC Department of Finance 2025 sales by borough (median price of homes), HDB resale flats over the last 12
+  months for Singapore (S$/m², public housing only). Statistics of past sales, never a valuation.
+
+**Not built there yet, by design (limitations):** verified permit answers, the request catalogue and its fixed
+warnings, works costs and financing, and the PDF's aerial figure. They need each place's official sources ingested and
+checked, and its law reviewed. These cities are a proof of scale: the same jurisdiction chain, source registry,
+verifier, aerial pipeline and price snapshot extend to other legal systems. Other countries get a generic chain
+without an authority.
 Code: `backend/app/services/property_location.py`, `services/jurisdiction/`, `frontend/src/features/property/`.
 
 ### HR-002 · Permit Intelligence — Done
