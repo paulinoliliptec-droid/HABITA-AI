@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="frontend/src/app/icon.svg" width="96" height="96" alt="HABITA AI logo">
+  <img src="frontend/src/app/icon.png" width="110" height="110" alt="HABITA AI logo">
 </p>
 
 <h1 align="center">HABITA AI</h1>
