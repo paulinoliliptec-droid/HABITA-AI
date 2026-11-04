@@ -12,19 +12,17 @@
   <a href="https://habita-frontend-preview-jcyiz2arua-uc.a.run.app/demo">Guided Cascais scenario</a>
 </p>
 
-Property intelligence that knows which rules apply where: resolve an address to its jurisdiction and competent
-authority, ask a permitting question, and get an answer that is shown as **verified** only when every statement is
-backed by an official source that HABITA retrieved, snapshotted and checked.
-
-Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (modules HR-001 … HR-012, described
-below).
+Ask a permitting question about a real address: HABITA finds the rules and the authority that apply there, and shows
+the answer as **verified** only when every statement is backed by an official source it retrieved and checked. Built
+for the Meta Global AI Developer Hackathon.
 
 ## For the judges, in one minute
 | | |
 |---|---|
 | ▶ **Demo video** | [HABITA AI — Can I Build Here?](https://www.youtube.com/watch?v=UInq7hNPPz4) |
-| 🌐 **Live demo** | [habita-frontend-preview-jcyiz2arua-uc.a.run.app](https://habita-frontend-preview-jcyiz2arua-uc.a.run.app). No account needed. Press "Try the live demo", or open [`/demo`](https://habita-frontend-preview-jcyiz2arua-uc.a.run.app/demo), which starts at Rua Frederico Arouca 30, Cascais, and reaches every feature |
-| 🌍 **Proof, then scale** | **Cascais proves it works**: deep, verified coverage on real official sources. **New York City, Paris and Singapore show it scales**: the same pipeline already resolves their authorities, planning rules, market data and (NYC, Paris) aerial imagery from official sources, as [partial coverage](#partial-coverage-new-york-paris-and-singapore) |
+| 🌐 **Live demo** | [habita-frontend-preview-jcyiz2arua-uc.a.run.app](https://habita-frontend-preview-jcyiz2arua-uc.a.run.app), no account needed; [`/demo`](https://habita-frontend-preview-jcyiz2arua-uc.a.run.app/demo) starts at a real Cascais address (Rua Frederico Arouca 30) and reaches every feature |
+| 🌍 **Proof, then scale** | **Cascais proves it works**: deep, verified coverage on real official sources. **New York City, Paris and Singapore show it scales**: the same pipeline on their official authorities, rules, market data and aerial imagery ([partial coverage](#partial-coverage-new-york-paris-and-singapore)) |
+| 🤖 **Meta models at the core** | **Muse Spark** plans, searches the official sources, drafts and self-reviews every answer, and reads photos and plans; **SAM 3.1** measures buildings on the official aerial photo; **Muse Voice Transcribe** for dictation; **Muse Image** for before/after concepts; **Muse Spark Open** (open weights) as fallback; **Muse Code** attacked the verifier in review ([details](#meta-models-in-the-product)) |
 | 📊 **Measured** | **0 unsupported answers shown as verified** in the verifier's 294 test cases, 212 of them attacks (changed figures, dropped conditions, invented facts); about 4 ms per check. Cautious by design: 3 of its 8 legitimate test answers are still left unverified. **7602 backend tests passing.** Reproduce: `cd backend && python -m tests.mu9_acceptance` |
 | 🏛️ **What makes it different** | Real rules of a real place, not sample data or a fictional city: the Cascais municipal master plan (PDM) and Portuguese national law (RJUE, RGEU), retrieved from official sources and snapshotted. An answer is shown as **verified** only when the MU-9 verifier finds every statement supported by those records; otherwise HABITA says what is missing |
 | 🛠️ **Built entirely during the hackathon** | Nothing was built before the event. The repository started empty on 2026-10-26, the hackathon's first day: the first commit (`041831f`, 18:39 UTC) holds only `.gitignore`, `LICENSE` and a two-line README. Every line of code, every data connector and every test came after it; see [How it was built](#how-it-was-built-one-developer-three-coding-agents-muse-code-as-reviewer) and the dated commit history |
