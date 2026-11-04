@@ -27,7 +27,9 @@ below).
 | 🏛️ **What makes it different** | Real rules of a real place, not sample data or a fictional city: the Cascais municipal master plan (PDM) and Portuguese national law (RJUE, RGEU), retrieved from official sources and snapshotted. An answer is shown as **verified** only when the MU-9 verifier finds every statement supported by those records; otherwise HABITA says what is missing |
 | 🛠️ **Built entirely during the hackathon** | Nothing was built before the event. The repository started empty on 2026-10-26, the hackathon's first day: the first commit (`041831f`, 18:39 UTC) holds only `.gitignore`, `LICENSE` and a two-line README. Every line of code, every data connector and every test came after it; see [How it was built](#how-it-was-built-one-developer-three-coding-agents-muse-code-as-reviewer) and the dated commit history |
 | 📍 **Real data, nothing fictional** | The demo runs on real addresses and the real official sources of the municipality of Cascais; see [Real data from Cascais](#real-data-from-the-municipality-of-cascais) |
-| ⚖️ **Limits** | Information, not legal advice. Deep verified coverage is Cascais today; other places are shown as partial coverage. Open items are listed in [Roadmap and technical debt](#roadmap-and-technical-debt) |
+| 📊 **Measured** | **0 unsupported answers shown as verified** across the 294 cases of the verifier's acceptance corpus, 212 of them attacks (a changed figure, a dropped condition, words recombined from different sources, an invented fact); about 4 ms per check. The verifier is deliberately cautious: 3 of its 8 legitimate test answers are still left unverified rather than risk a false "verified". **7602 backend tests passing**, more than 340 commits since 2026-10-26. Reproduce with `cd backend && python -m tests.mu9_acceptance` and `pytest` |
+| 🌍 **Proof, then scale** | **Cascais is the proof that it works**: deep, verified coverage on real official sources. **New York City, Paris and Singapore show that it scales**: the same pipeline already resolves their competent authorities, planning rules, market data and (New York, Paris) official aerial imagery from official sources, as partial coverage; see [Partial coverage](#partial-coverage-new-york-paris-and-singapore) |
+| ⚖️ **Limits** | Information, not legal advice. Deep verified coverage is Cascais today; New York City, Paris and Singapore are partial coverage. Open items are listed in [Roadmap and technical debt](#roadmap-and-technical-debt) |
 
 ### Real data from the municipality of Cascais
 HABITA does not use sample data, a fictional city or invented rules. What a user sees for a Cascais address comes from
@@ -407,9 +409,11 @@ No credential is needed for the default suites:
 cd backend && pytest                                   # offline suite, incl. an end-to-end Cascais run with a scripted model
 cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 ```
-Last full run (2026-11-02, TD-003 structural containment): backend **7514 passed, 29 skipped, 3 expected
-failures** (known limitations kept as strict xfail), plus 23 replica-set and ingestion concurrency tests against a local
-MongoDB 8.0 replica set; frontend unchanged since its last run (2026-11-01: **89 passed**, lint, typecheck and build clean). Live tests against
+Last full run (2026-11-04, `main` at `ac52716`): backend **7602 passed, 29 skipped, 3 expected failures** (known
+limitations kept as strict xfail). The verifier's acceptance corpus (`python -m tests.mu9_acceptance`): 294 cases, 220
+automated, 212 attacks, **0 unsupported answers verified**, 3 of 8 legitimate answers still unverified, 4.15 ms mean per
+run. On 2026-11-02 the suite also ran 23 replica-set and ingestion concurrency tests against a local MongoDB 8.0 replica
+set; frontend unchanged since its last run (2026-11-01: **89 passed**, lint, typecheck and build clean). Live tests against
 MongoDB Atlas and the Meta API are opt-in (`HABITA_LIVE_TESTS=1`, real credentials).
 
 ## How it was built: one developer, three coding agents, Muse Code as reviewer
