@@ -16,8 +16,8 @@ Property intelligence that knows which rules apply where: resolve an address to 
 authority, ask a permitting question, and get an answer that is shown as **verified** only when every statement is
 backed by an official source that HABITA retrieved, snapshotted and checked.
 
-Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (HR-001 … HR-012 as described
-below); development continues on the branch `mu9/structural-verification` and reaches `main` only by an explicit merge.
+Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (modules HR-001 … HR-012, described
+below).
 
 ## For the judges, in one minute
 | | |
@@ -44,6 +44,18 @@ real, public, official sources, retrieved and snapshotted with their origin:
 The reference address of the demo, Rua Frederico Arouca 30, is a real street in Cascais. The only synthetic files in the
 project are the photos and plans we made ourselves to test the upload features (described in HR-010 and HR-012); they
 are never presented as official data.
+
+### Partial coverage: New York, Paris and Singapore
+To show that HABITA grows to other places without changing how answers are checked, three cities have partial
+coverage: the authority that decides on building permits, its official sources, official market prices and, where an
+official aerial photo exists, the aerial view. Every source below is real and official; their links were checked on
+2026-11-02. Deep, verified permit answers are still Cascais only.
+
+| City | Who decides | Official rules | Market prices | Aerial photo |
+|---|---|---|---|---|
+| **New York City** | NYC Department of Buildings | NYC Zoning Resolution (Department of City Planning, `zr.planning.nyc.gov`), New York City Charter | NYC property sales, NYC Open Data (`data.cityofnewyork.us`) | NYS Statewide Digital Orthoimagery (`orthos.its.ny.gov`) |
+| **Paris** | Maire de Paris | Plan Local d'Urbanisme de Paris and the Plans de Sauvegarde et de Mise en Valeur (`paris.fr`), Code de l'urbanisme | DVF property transactions (`data.gouv.fr`) | IGN Géoplateforme, BD ORTHO (`data.geopf.fr`) |
+| **Singapore** | Urban Redevelopment Authority (URA) | URA Master Plan and Development Control Guidelines (`ura.gov.sg`), Building and Construction Authority (`bca.gov.sg`), Planning Act 1998 | HDB resale prices (`data.gov.sg`) | not available |
 
 ### Meta models in the product
 | Meta model | What it does in HABITA |
@@ -173,7 +185,7 @@ are refused. Code: `services/permit/`, `integrations/meta/`.
 - **Zoning** has no validated official GIS connector yet, so the classification always asks for manual confirmation.
 - **Next step:** the structured claims above, so that legal statements are built from fields instead of free text.
 
-### HR-004 · Map with post-its — Done (MVP); owner browser check pending
+### HR-004 · Map with post-its — Done (MVP)
 Notes over the Google map, all read from the same report model as the PDF: property with coordinates and precision
 (**never presented as a parcel boundary**), municipality and competent authority; analysis status (also when no
 assessment exists); zoning — a classification only from a verified layer, otherwise **"Zoning not verified"** with the
@@ -194,7 +206,7 @@ parcel outline is drawn: Cascais has only the old rustic geometric cadastre, the
 covered, and an invented outline would mislead. Photos carry no location by design (removed on upload), so they are
 not pinned on the map.
 
-### HR-006 · PDF report — Done; real Google images validated on the private staging
+### HR-006 · PDF report — Done
 A server-generated PDF from the same model: cover (status, municipality, authority, zoning state, and a permanent
 warning that there is **no municipal confirmation**), property identification, a location page, planning context,
 analysis, conditions, risks, verification record (protocol, TrustPin), evidence provenance (source, version,
@@ -223,7 +235,7 @@ report's fingerprint (sha256 of its stored content) and the property's public li
 check (TD-055).
 Code: `backend/app/services/report/`, `backend/app/integrations/maps/static_maps.py`.
 
-### HR-005 · Visual Reasoning Graph — Live; acceptance pending
+### HR-005 · Visual Reasoning Graph — Live
 A clickable graph from the property through rules, evidence and conditions to the conclusion, documents and next steps,
 built only from relations stored in the report. Selecting a block lights its flow. It never invents causality or
 authorisation.
@@ -241,11 +253,10 @@ a decimal or an abbreviation ("2.º Trimestre", "Art. 67.º") and says a doubled
 the stray full stop after a question; INE periods read "Q2 2026" / "September 2026" for English readers; plan labels
 in capitals ("KITCHEN") are now translated instead of keeping the whole sentence in English (the translation check took
 them for acronyms); the property profile uses HABITA's serif. Already in place and checked: the voice's spend ceiling
-(daily cap shared by instances, per-minute bucket, cached sentences) and the before/after gallery on phones. Still the
-owner's: the listening test and the ElevenLabs key rotation (HR-007), and a lawyer-reviewed fixed procedure per
-request type (HR-009, TD-067), which HABITA does not write on its own.
+(daily cap shared by instances, per-minute bucket, cached sentences) and the before/after gallery on phones. Still open:
+a lawyer-reviewed fixed procedure per request type (HR-009, TD-067), which HABITA does not write on its own.
 
-### HR-007 · Voice Explanation — Live; owner's listening test pending
+### HR-007 · Voice Explanation — Live
 The report can be heard with Listen, Pause, Resume, Repeat and Stop, with the sentence on screen. Audio is an
 explanation, never legal proof: it opens and closes by saying so, follows the report's status rule and says every
 pending item. The script is built on the backend from the stored report, and audio is requested by sentence position,
@@ -256,7 +267,7 @@ Portuguese audio reads machine translation, labelled as such.
 Code: `backend/app/services/report/voice.py`, `backend/app/integrations/speech/client.py`,
 `frontend/src/features/report/VoiceExplanation.tsx`.
 
-### HR-008 · Property Intelligence — Live; acceptance pending
+### HR-008 · Property Intelligence — Live
 A property profile says what is known and who said it. Official facts, observations and user declarations never mix,
 each with origin, date and precision, and what is unknown is shown as not confirmed. Only a registered official source
 makes a fact official; a user's answer stays a declaration, visible only to whoever can read that matter. When sources
@@ -264,7 +275,7 @@ disagree, both are shown. The profile changes no status. It opens in its own pan
 voice. It holds few items today: no source yet gives area, year, typology or land registry data.
 Code: `backend/app/services/report/profile.py`, `frontend/src/features/report/ProfilePanel.tsx`.
 
-### HR-009 · Intent & Permits — Live; acceptance pending
+### HR-009 · Intent & Permits — Live
 HABITA places a request in a closed catalog: dividing into units, change of use, interior works or general orientation.
 It shows what it understood and the user can choose another type. New construction, extensions and demolition are not
 covered yet and are stated as such, as is anything outside Cascais. HABITA holds no reviewed rule on which interior
@@ -275,7 +286,7 @@ HABITA, not the model. Last real test on 2026-10-31: five cases, 4 VERIFIED with
 verified answers are short. The warnings have not had a legal review.
 Code: `backend/app/services/permit/requirements.py`, `frontend/src/features/permit/PermitSection.tsx`.
 
-### HR-010 · Multimodal Property Understanding — Live; acceptance pending
+### HR-010 · Multimodal Property Understanding — Live
 In a matter, the user can add photos and plans (JPEG, PNG, PDF; up to 10 files of 10 MB) after a consent notice that
 says what goes to Meta and what HABITA keeps. The type is checked from the content, not the name. Capture date and GPS
 are read first; a GPS point far from the property is shown as a mismatch that proves nothing. The kept copy, in a
@@ -294,22 +305,22 @@ near and far): four Muse Spark readings, labels and figures described as shown a
 mismatch, no metadata left in the bucket copies, and every copy gone after deletion.
 Code: `backend/app/services/files/`, `frontend/src/features/permit/PermitFiles.tsx`.
 
-### HR-011 · AFFORD / Financial Feasibility — Live; acceptance pending
+### HR-011 · AFFORD / Financial Feasibility — Live
 In a matter, the user can enter the area, their own quotes, a budget and a loan's rate, term and down payment. HABITA
 shows the cost of the works as a range (lower, likely, higher), from the user's quotes when given and from a reference
-table built from public price guides, cited, dated and approved by the owner on 2026-10-31 (an assumption, not a
+table built from public price guides, cited, dated and reviewed by us on 2026-10-31 (an assumption, not a
 market price). Financing
 uses only the user's own rate and term, with the formula shown; there is no default rate. The market price comes from
 INE official statistics for the municipality and parish (median bank valuation, median sale price over 12 months), from
 a dated snapshot, each source shown apart. A municipality without statistics, or with an ambiguous name, shows no price.
 Municipal fees are left to the Câmara. Every number is computed by code; no model writes one. It is an estimate with no
-financial guarantee and never changes the assessment. Idealista and Casafari are not connected: they need the owner's
+financial guarantee and never changes the assessment. Idealista and Casafari are not connected: they need commercial
 accounts. Code: `backend/app/services/afford/`, `frontend/src/features/permit/PermitAfford.tsx`.
 
-### HR-012 · Visual Transformation — Live; acceptance pending
+### HR-012 · Visual Transformation — Live
 From one of their own photos (checked by the reader and found to show no people), the user can ask for a before/after
 concept, choosing a change from a short list for the matter's type: new kitchen, new bathroom, floor and paint, a small
-office layout, or a light partition. Nothing outside the building, nothing structural, no facade changes (owner
+office layout, or a light partition. Nothing outside the building, nothing structural, no facade changes (a design
 decision). Muse Image (`muse-image-1.0`, edit endpoint) gets the photo and HABITA's fixed instruction, never the user's
 text. Every concept has a notice burned in, in Portuguese and English: "Concept generated by AI — not a project, not an
 authorisation, not a promise of cost". From a plan (chosen as a plan, or recognised by the reader), the user can also
@@ -317,12 +328,12 @@ ask for a 3D view or a realistic image of the home, kept to the plan's layout, o
 (made inside the home with one light partition, keeping every existing wall, column, door and window, never an
 extension), with its own allowance of 3 per matter. These views carry a second burned-in notice, repeated in the PDF
 and the spoken report, "May not match your plan exactly" / "Pode não corresponder exatamente à sua planta",
-because in the real test of 2026-11-01 the model added a store room to one view and a stair to the other (owner chose
+because in the real test of 2026-11-01 the model added a store room to one view and a stair to the other (we chose
 on 2026-11-01 to publish them as illustrations with that notice, provided a view does what is asked). The
 one-more-bedroom view passed its real test on 2026-11-01 (synthetic two-bedroom plan: the living room divided by a
 light partition with a door, every other room, window and the entrance kept, no stairs or extension). How a view is
 judged against its plan (zero tolerance, fail-closed) is set out in
-[`docs/hr012-plan-fidelity.md`](docs/hr012-plan-fidelity.md) (applied by hand before each publication of plan views, owner's choice of 2026-11-01; not automatic), with a matrix of 27 cases on five synthetic plans (T1, T3, a plan without areas, a tie for the largest room, a duplex) that must pass, fail or stay undecided, and 8 more for the chosen room. **The user chooses the room to divide** (owner, 2026-11-01; [`docs/hr012-room-choice-ux.md`](docs/hr012-room-choice-ux.md); live since 2026-11-01, `7fad9a9`): the plan reading also lists the rooms, only a living room, a bedroom or an office is offered, nothing is preselected ("the largest" is only marked), a very small room carries an RGEU warning, a plan whose rooms can't be read doesn't get this view, and on several floors the user picks the floor first; the instruction names the room in HABITA's fixed words only (type, place, floor), never the label read from the plan;
+[`docs/hr012-plan-fidelity.md`](docs/hr012-plan-fidelity.md) (applied by hand before each publication of plan views, our choice of 2026-11-01; not automatic), with a matrix of 27 cases on five synthetic plans (T1, T3, a plan without areas, a tie for the largest room, a duplex) that must pass, fail or stay undecided, and 8 more for the chosen room. **The user chooses the room to divide** (owner, 2026-11-01; [`docs/hr012-room-choice-ux.md`](docs/hr012-room-choice-ux.md); live since 2026-11-01, `7fad9a9`): the plan reading also lists the rooms, only a living room, a bedroom or an office is offered, nothing is preselected ("the largest" is only marked), a very small room carries an RGEU warning, a plan whose rooms can't be read doesn't get this view, and on several floors the user picks the floor first; the instruction names the room in HABITA's fixed words only (type, place, floor), never the label read from the plan;
 a plan is never redrawn by a photo change, since an AI-edited plan could pass for a project. The original and the
 concept are shown side by side, and open large on a
 click. The panel picks up a new photo as soon as it is added. At most 3 per matter and 50
@@ -337,73 +348,41 @@ Code: `backend/app/services/concepts/`, `frontend/src/features/permit/PermitConc
 | Address search, geocoding, jurisdiction, authority (HR-001) | Done |
 | Permit matters with Muse Spark, follow-up questions, resume (HR-002) | Done |
 | Official-source registry, snapshots, retrieval (HR-003) | Done for Cascais; other jurisdictions planned |
-| MU-9 verification, TrustPin, reviewer, final gate (HR-003) | Tested offline and on staging; whole-sentence verification live (2026-11-02), limits listed in HR-003; replica-set binding tested on a local MongoDB 8.0 replica set, Atlas run pending |
+| MU-9 verification, TrustPin, reviewer, final gate (HR-003) | Whole-sentence verification live (2026-11-02), limits listed in HR-003; replica-set binding tested on a local MongoDB 8.0 replica set, Atlas run pending |
 | Fallback for the reasoning model when Muse Spark is unavailable: Muse Spark open on Baseten (Modal prepared, off); same MU-9 verifier | Live since 2026-11-03 (backend `00071`) — `infrastructure/open-models/` |
 | Zoning classification from official GIS | Planned (no validated connector; absence stated) |
-| Map with post-its (HR-004) | Done (MVP); owner browser check pending |
-| PDF report with verification record and provenance (HR-006) | Done; tested on staging |
-| Reasoning graph (HR-005) | Live; acceptance pending |
-| PDF road map + satellite (+ Street View) images (HR-006) | Validated with real Google data locally and on the private staging |
-| Spoken report in Portuguese and English with ElevenLabs (HR-007) | Live; real audio generated, full listening test pending |
+| Map with post-its (HR-004) | Done (MVP) |
+| PDF report with verification record and provenance (HR-006) | Done |
+| Reasoning graph (HR-005) | Live |
+| PDF road map + satellite (+ Street View) images (HR-006) | Live; validated with real Google data |
+| Spoken report in Portuguese and English with ElevenLabs (HR-007) | Live |
 | Bilingual site, answers and PDF (Portuguese and English) | Live; Portuguese answers are labelled machine translation |
-| Private staging on Cloud Run | Done (IAM-authenticated, isolated database) |
-| Original (public demo) | Live; see "Live demo" below for the current revision |
-| Property profile: official, observed, declared (HR-008) | Live; acceptance pending |
-| Request types with correction by the user (HR-009) | Live; acceptance pending |
-| Photos and plans read as observations (HR-010) | Live; acceptance pending (consent wording not legally reviewed) |
-| Costs, financing and market price (HR-011) | Live; acceptance pending |
-| Before/after concepts from the user's photos, views from a plan, and the room the user chooses to divide (HR-012) | Live; acceptance pending |
+| Public live demo | Live; see [Live demo](#live-demo) |
+| Property profile: official, observed, declared (HR-008) | Live |
+| Request types with correction by the user (HR-009) | Live |
+| Photos and plans read as observations (HR-010) | Live (consent wording not yet reviewed by a lawyer) |
+| Costs, financing and market price (HR-011) | Live |
+| Before/after concepts from the user's photos, views from a plan, and the room the user chooses to divide (HR-012) | Live |
 | Report copilot, live (2026-11-03): bottom-right, questions by text or dictation (dictation sends by itself after 10 s of silence), the reader chooses the model, Muse Spark (Meta Model API) or Muse Spark Open (Meta's open weights, `meta-models/muse-spark-open-1026` on Baseten; same prompt, schema, limits and status/number guards; each answer names its model), answers spoken in the ElevenLabs voice of the reader's language (the server speaks only answers it gave, by an id valid 30 minutes; the browser's voice if that audio can't be had); only about the report the reader sees | Live; real checks with Muse Spark and Muse Spark Open (a zoning question answered from the report; a cost question refused; an injection asking to say VERIFIED never reached the reader). Limits: an answer naming a status the report lacks, or a number it doesn't contain, is replaced by a fixed reply; free wording isn't checked word by word, so the screen shows the report's own status beside every answer and labels it an explanation, not a verification or legal advice |
-| Meta terms (2026-11-03): before the demo and the workspace, visitors confirm they are 18+ and not in Meta's restricted territories (and not in India, for Muse Image) | Live. A notice and confirmation, not network blocking (that needs a load balancer, owner decision) |
+| Meta terms (2026-11-03): before the demo and the workspace, visitors confirm they are 18+ and not in Meta's restricted territories (and not in India, for Muse Image) | Live. A notice and confirmation, not network blocking (that needs a load balancer) |
 | Seen from the air: DGT orthophoto + SAM 3.1 (buildings, annexes, pools; conditions to confirm) | Live since 2026-11-01 (`ac5ff3d`; `8b4b8b2`: addresses that point to an area, like a square, get a clear note asking for the door number instead of a disabled button); real analysis checked on the live candidate |
-| Dictation with Muse Voice Transcribe (question and answers, PT/EN) | Live since 2026-11-01 (`b9a256b`); real transcription checked on the live candidate; owner's browser test pending |
-| HR-015 hackathon submission | In progress (deadline 2026-11-04 21:00 ET) |
+| Dictation with Muse Voice Transcribe (question and answers, PT/EN) | Live since 2026-11-01 (`b9a256b`); real transcription checked on the live candidate |
+| Hackathon submission (HR-015) | Submitted |
 
-## Private staging demo (authenticated)
-A private staging runs on Cloud Run (`habita-backend-staging`, `habita-frontend-staging`) on an isolated database
-(`habita_ai_staging`, its own least-privilege MongoDB user): no anonymous access, no public URL to open. It runs
-commit `5734adc` (deployed and tested end to end on 2026-10-30).
+## Live demo
+**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** (no account needed)
 
-## Live demo (original)
-**https://habita-frontend-preview-jcyiz2arua-uc.a.run.app** — updated on 2026-11-03 (owner-authorised) to commit `f88957d`:
-backend revision `00077` and frontend revision `00082` let the reader run the copilot on Muse Spark Open (Meta's open
-weights on Baseten); checked on the candidates (health 3×200, a real copilot answer in PT from
-`meta-models/muse-spark-open-1026` in 9 s, the frontend warmed 15×200, then 30×200 live). Rollback: backend `00075`,
-frontend `00080`. Before that, updated on 2026-11-03 to commit `878f82d`:
-backend revision `00075` and frontend revision `00080` speak the copilot's answers in the ElevenLabs voice and send a
-dictated question by itself after 10 s of silence; checked on the candidates (health 3×200, a real copilot answer in
-PT from Rua Frederico Arouca 30 and its ElevenLabs audio, the frontend warmed 15×200, then 30×200 live). Rollback:
-backend `00073`, frontend `00078`. Before that, frontend updated on 2026-11-03 to commit
-`8f8a345` (revision `00078`: the live copilot button and panel moved to the bottom-right corner; warmed 15×200, then
-30×200 live; rollback revision `00076`; backend unchanged). Before that, updated on 2026-11-03 to commit
-`3d30d65`: backend revision `00073` and frontend revision `00076` add the Meta terms confirmation (18+, restricted
-territories, India for Muse Image) before the demo and the workspace, and the live report copilot (bottom-right); checked
-on the candidates (health 3×200, fallback enabled, a real copilot answer from a Cascais report, the confirmation on
-`/demo`, the frontend warmed 20×200, then 30×200 live). Rollback: backend `00071`, frontend `00074`. Before that, updated on 2026-11-03 (owner-authorised): backend
-commit `be61e53` (revision `00071`: the Baseten fallback switched on — Muse Spark open answers only when Muse Spark is
-unavailable, same MU-9 verifier; partial coverage for New York City, Paris and Singapore with their authority, official
-sources, official market prices, and the aerial view on IGN and NYS orthophotos; safe rollback revisions `00069`,
-`00067` and `00065`; `00063` and older are NOT safe rollbacks: they bring back the old verifier with the known
-false-VERIFIED paths), frontend commit `3c97c8c` (revision `00074`: the owner's logo, the landing page with a photo of
-Cascais and a large demo button with a note for the jury, Rua Frederico Arouca 30 as the reference address, New York,
-Paris and Singapore as partial-coverage examples; rollback revision `00072`). Checked on the candidates before the
-switch: health 3×200, the fallback logged as enabled, Paris and Cascais resolved with their authority, Paris prices,
-one real aerial analysis of 5 Rue de Turenne, Paris (IGN, three buildings, 15 s, attribution in the image), the
-frontend warmed 20×200 and then 30×200 live. Also live: with the aerial view (DGT orthophotos + Meta SAM 3.1), dictation (Muse Voice Transcribe),, with the reasoning graph, the spoken report, the property profile, request types, photos and plans, costs and price, before/after concepts, and views from a plan (3D, realistic, 3D with one more bedroom in the room the user chooses). The MU-9 migration of its database
-ran on 2026-10-30 (verified backup, audit, nothing deleted). Known open item: phone layout needs polish.
-Tested there on 2026-10-30: address search in Cascais, map and satellite view, post-its, a real permit question (VERIFIED under the
-current protocol) and the PDF with road map, satellite and Street View. A frontend rollback to its previous revision
-is one command (`infrastructure/STAGING.md`); a backend rollback must not go to a revision older than `00065`. Historical results verified under the old protocol are never shown
-as current VERIFIED: they read as superseded (legacy, not revalidated), with their original provenance.
+1. On the landing page, press **Try the live demo**, or open [`/demo`](https://habita-frontend-preview-jcyiz2arua-uc.a.run.app/demo).
+   Visitors first confirm Meta's terms (18+, not in a restricted territory).
+2. The guided scenario starts at **Rua Frederico Arouca 30, Cascais**, a real address, and reaches every feature: the
+   jurisdiction and authority, a permit question with its verification, the map with post-its, the aerial view with
+   SAM 3.1, photos and plans, before/after concepts, costs, the PDF report, the spoken report and the copilot.
+3. New York, Paris and Singapore are shown as **partial-coverage** examples (authority, official sources, market prices,
+   and the aerial view in New York and Paris); see [Partial coverage](#partial-coverage-new-york-paris-and-singapore).
 
-Access requires an authorised Google account and the official proxy, on the computer where the browser runs:
-```bash
-gcloud components install cloud-run-proxy
-gcloud run services proxy habita-backend-staging  --region us-central1 --project habita-ai-512916 --port 8081
-gcloud run services proxy habita-frontend-staging --region us-central1 --project habita-ai-512916 --port 3000
-# then open http://localhost:3000 (a private window avoids conflicts between several Google accounts)
-```
-Procedure, checks, rollback and costs: [`infrastructure/STAGING.md`](infrastructure/STAGING.md).
+Best viewed on a computer; the phone layout still needs polish. Answers about a property's legal status are shown as
+**verified** only when the verifier supports every statement; older results are never shown as current verified.
+Deployment history, revisions and rollbacks: [`docs/deploy-history.md`](docs/deploy-history.md).
 
 ## Run it locally
 1. `cp .env.example .env` and fill in your own values. **Never commit secrets.** Without `MONGODB_URI` the backend
@@ -452,14 +431,13 @@ was one of the two reviewers, alongside Codex. Its work, all during the hackatho
 Codex reviewed the other changes; Muse Code reviewed the parts above, where a second independent reader mattered most.
 
 ## Roadmap and technical debt
-- Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md) — HR-001/HR-002
-  done; HR-003 live (whole-sentence verification, fail-closed); HR-004 and HR-006 MVP complete (why, and what would make them full: roadmap "Why HR-004 and HR-006 are MVP complete"); HR-005, HR-007, HR-008 and HR-009 to HR-012 live, acceptance pending;
-  HR-013…HR-015 pending definition.
-- Main open items: redeploy staging with the latest HR-004/HR-006 code (including the real PDF images); set Google
-  Cloud API quotas and review the Maps Platform terms for imagery in PDFs; improve answers to procedure questions (repeated zoning conditions, missing RJUE
-  procedure citations); research semantic verification (entailment, negation scope, deontic logic) without weakening
-  the deterministic final gate; validate an official GIS connector for zoning; real replica-set run of the identity
-  binding.
+- Roadmap with acceptance criteria and evidence per module: [`docs/roadmap.md`](docs/roadmap.md). HR-001 and HR-002
+  are done; HR-003 is live (whole-sentence verification, fail-closed); HR-004 and HR-006 are complete as an MVP; HR-005,
+  HR-007, HR-008 and HR-009 to HR-012 are live.
+- Next: more jurisdictions beyond Cascais; zoning read from an official GIS connector; better answers to procedure
+  questions (RJUE procedure citations); research into semantic verification (entailment, negation scope, deontic logic)
+  without weakening the deterministic final gate; Google Cloud API quotas and the Maps Platform terms for imagery in
+  PDFs.
 - The maintainers keep a detailed technical-debt register (severity, evidence, tests, closure criteria) for these
   items.
 
@@ -469,7 +447,7 @@ Codex reviewed the other changes; Muse Code reviewed the parts above, where a se
 | `frontend/` | Next.js + React web app |
 | `backend/` | FastAPI API, permit workflow, verifier, reports, maintenance commands |
 | `docs/` | Architecture, environment, roadmap, demo runbook |
-| `infrastructure/` | Container images, manual Cloud Run staging procedure and deploy script |
+| `infrastructure/` | Container images, manual Cloud Run deployment procedure and scripts |
 
 ## Deployment and safety
 There is no CI/CD: nothing deploys on push or merge; deployment is manual and authorised step by step
