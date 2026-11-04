@@ -1,10 +1,59 @@
-# HABITA AI
+<p align="center">
+  <img src="frontend/src/app/icon.svg" width="96" height="96" alt="HABITA AI logo">
+</p>
+
+<h1 align="center">HABITA AI</h1>
+
+<p align="center"><b>Can I build here? Answers about a real property, checked against the official rules of a real place.</b></p>
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=UInq7hNPPz4">▶ Demo video</a> ·
+  <a href="https://habita-frontend-preview-jcyiz2arua-uc.a.run.app">🌐 Live demo</a> ·
+  <a href="https://habita-frontend-preview-jcyiz2arua-uc.a.run.app/demo">Guided Cascais scenario</a>
+</p>
+
 Property intelligence that knows which rules apply where: resolve an address to its jurisdiction and competent
 authority, ask a permitting question, and get an answer that is shown as **verified** only when every statement is
 backed by an official source that HABITA retrieved, snapshotted and checked.
 
 Built for the Meta Global AI Developer Hackathon. `main` holds the integrated MVP (HR-001 … HR-012 as described
 below); development continues on the branch `mu9/structural-verification` and reaches `main` only by an explicit merge.
+
+## For the judges, in one minute
+| | |
+|---|---|
+| ▶ **Demo video** | [HABITA AI — Can I Build Here?](https://www.youtube.com/watch?v=UInq7hNPPz4) |
+| 🌐 **Live demo** | [habita-frontend-preview-jcyiz2arua-uc.a.run.app](https://habita-frontend-preview-jcyiz2arua-uc.a.run.app). No account needed. Press "Try the live demo", or open [`/demo`](https://habita-frontend-preview-jcyiz2arua-uc.a.run.app/demo), which starts at Rua Frederico Arouca 30, Cascais, and reaches every feature |
+| 🏛️ **What makes it different** | Real rules of a real place, not sample data or a fictional city: the Cascais municipal master plan (PDM) and Portuguese national law (RJUE, RGEU), retrieved from official sources and snapshotted. An answer is shown as **verified** only when the MU-9 verifier finds every statement supported by those records; otherwise HABITA says what is missing |
+| 🛠️ **Built entirely during the hackathon** | Nothing was built before the event. The repository started empty on 2026-10-26, the hackathon's first day: the first commit (`041831f`, 18:39 UTC) holds only `.gitignore`, `LICENSE` and a two-line README. Every line of code, every data connector and every test came after it; see [How it was built](#how-it-was-built-one-developer-three-coding-agents-muse-code-as-reviewer) and the dated commit history |
+| 📍 **Real data, nothing fictional** | The demo runs on real addresses and the real official sources of the municipality of Cascais; see [Real data from Cascais](#real-data-from-the-municipality-of-cascais) |
+| ⚖️ **Limits** | Information, not legal advice. Deep verified coverage is Cascais today; other places are shown as partial coverage. Open items are listed in [Roadmap and technical debt](#roadmap-and-technical-debt) |
+
+### Real data from the municipality of Cascais
+HABITA does not use sample data, a fictional city or invented rules. What a user sees for a Cascais address comes from
+real, public, official sources, retrieved and snapshotted with their origin:
+
+| Source | Used for |
+|---|---|
+| Câmara Municipal de Cascais (`cascais.pt`) | The municipal master plan (PDM) and its regulation, municipal procedures and forms |
+| GeoCascais, the municipality's GIS (`geocascais.cascais.pt`) | Registered as an official source; reading the zoning class from it is still planned (see the feature summary) |
+| Diário da República (`diariodarepublica.pt`) | National law and the published PDM: RJUE (urban development and building), RGEU (general building regulation) |
+| DGT, Direção-Geral do Território | Official aerial photos (orthophotos, WMS) read by SAM 3.1 |
+| INE, Statistics Portugal (`ine.pt`) | Official housing-market statistics used in the costs and price module |
+
+The reference address of the demo, Rua Frederico Arouca 30, is a real street in Cascais. The only synthetic files in the
+project are the photos and plans we made ourselves to test the upload features (described in HR-010 and HR-012); they
+are never presented as official data.
+
+### Meta models in the product
+| Meta model | What it does in HABITA |
+|---|---|
+| **Muse Spark** (`muse-spark-1.3`) | Plans the answer, calls tools over the official sources, drafts it, runs a review that can only make the verdict stricter, and reads the user's photos and plans |
+| **Muse Spark Open** (`meta-models/muse-spark-open-1026`, open weights on Baseten) | Fallback when Muse Spark is unavailable, and a model the reader can choose for the report copilot, under the same MU-9 verifier and guards |
+| **SAM 3.1** (`sam-3.1`) | Outlines buildings, annexes and pools on the official DGT aerial photo, measured from the image scale |
+| **Muse Voice Transcribe** (`muse-voice-transcribe-1.0`) | Dictation of the question and the answers, in Portuguese and English |
+| **Muse Image** (`muse-image-1.0`) | Before/after concepts from the user's photos and views from a plan, always labelled as AI concepts |
+| **Muse Code** (1.4.13) | Independent reviewer during development: attacks on the legal verifier and an interface review (see [How it was built](#how-it-was-built-one-developer-three-coding-agents-muse-code-as-reviewer)) |
 
 ## The problem
 **Anyone who wants to buy, divide, convert, renovate or invest in a home cannot easily find out what they are allowed
